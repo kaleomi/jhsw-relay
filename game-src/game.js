@@ -2445,10 +2445,27 @@ function updateNums(dt) {
  * ============================================================ */
 function requestLock() {
   if (fallbackLook) return;
+  if (!canvas.requestPointerLock) { lockFailed(); return; }
+  // unadjustedMovement：读取原始鼠标位移（不经系统加速），也避开 Chrome 在 Windows 上偶发的位移跳变
+  const plain = () => { try { const r2 = canvas.requestPointerLock(); if (r2 && r2.catch) r2.catch(() => lockFailed()); } catch (e) { lockFailed(); } };
   try {
-    const r = canvas.requestPointerLock && canvas.requestPointerLock();
-    if (r && r.catch) r.catch(() => lockFailed());
-  } catch (e) { lockFailed(); }
+    const r = canvas.requestPointerLock({ unadjustedMovement: true });
+    if (r && r.catch) r.catch(err => { if (err && err.name === 'NotSupportedError') plain(); else lockFailed(); });
+  } catch (e) { plain(); }
+}
+// 鼠标位移去尖峰：浏览器偶尔会报一个与前后完全不连续的巨大位移（锁定瞬间、掉帧合并事件、系统 bug），
+// 视角就会突然甩一大圈。和最近几次位移相比明显离群的单个事件直接丢弃。
+const look = { hist: [0, 0, 0], last: 0, skip: 0 };
+function lookFilter(dx, dy) {
+  const now = performance.now();
+  if (now - look.last > 120) look.hist.fill(0);
+  look.last = now;
+  if (look.skip > 0) { look.skip--; return false; }
+  const m = Math.hypot(dx, dy), avg = (look.hist[0] + look.hist[1] + look.hist[2]) / 3;
+  // 只丢孤立的尖峰：连续两次大位移说明是真实的快速甩枪，第二次起照常生效
+  if (m > 400 && m > avg * 6 + 120) { look.hist.push(m); look.hist.shift(); return false; }
+  look.hist.push(m); look.hist.shift();
+  return true;
 }
 function enableFallback() {
   if (fallbackLook) return;
@@ -2458,13 +2475,14 @@ function enableFallback() {
 function lockFailed() { if (mode !== 'play') return; if (!hadLock) enableFallback(); }
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
-  if (locked) hadLock = true;
+  if (locked) { hadLock = true; look.skip = 2; look.hist.fill(0); }
   if (!locked && mode === 'play' && !fallbackLook) pauseGame();
 });
 document.addEventListener('pointerlockerror', lockFailed);
 addEventListener('mousemove', e => {
   if (mode !== 'play') return;
   if (locked || (fallbackLook && mouse.any)) {
+    if (!lookFilter(e.movementX || 0, e.movementY || 0)) return;
     const k = 0.0022 * settings.sens * (1 - cam.ads * (cache.scope ? 0.75 : 0.4));
     cam.yaw -= e.movementX * k;
     cam.pitch = clamp(cam.pitch - e.movementY * k, -1.5, 1.5);
