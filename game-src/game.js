@@ -3152,19 +3152,28 @@ function sendQuick(i) {
 /* ---------- 文字聊天：Enter 打开输入框，Enter 发送，Esc 取消 ---------- */
 let chatOpen = false, chatLast = 0;
 function cleanChat(t) { return String(t || '').replace(/[\u0000-\u001f\u007f\u200b-\u200f\u2028-\u202e]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60); }
+// 左下角聊天记录：10 秒后淡出，打开输入框时重新显示最近几条
+function chatLine(name, col, text) {
+  const box = $('chatLog'), el = document.createElement('div'), b = document.createElement('b');
+  el.className = 'cm'; b.textContent = name + '：'; b.style.color = col;
+  el.append(b, document.createTextNode(text));
+  box.appendChild(el);
+  while (box.children.length > 6) box.removeChild(box.firstChild);
+  setTimeout(() => el.classList.add('old'), 10000);
+}
 function openChat() {
   if (mode !== 'play') return;
   if (shopOpen) toggleShop(false); if (labOpen) toggleLab(false); if (evoTrap !== null) closeEvo(); if (quickOpen) toggleQuick(false);
   for (const k in keys) keys[k] = false;
   mouse.l = mouse.r = false; mouse.any = false;
-  chatOpen = true; $('chatBox').hidden = false;
+  chatOpen = true; $('chatBox').hidden = false; $('leftDock').classList.add('chatting');
   panelOpened(true);
   const inp = $('chatIn'); inp.value = '';
   setTimeout(() => { if (chatOpen) inp.focus(); }, 0);
 }
 function closeChat() {
   if (!chatOpen) return;
-  chatOpen = false; $('chatBox').hidden = true;
+  chatOpen = false; $('chatBox').hidden = true; $('leftDock').classList.remove('chatting');
   const inp = $('chatIn'); if (document.activeElement === inp) inp.blur();
   panelClosed();
 }
@@ -3176,7 +3185,7 @@ function sendChat() {
   if (now - chatLast < 700) { toast('发得太快了，稍等一下', true); return; }
   chatLast = now;
   const p = me();
-  feed(t, 'chat', 9000, { name: '你', col: TEAM_CSS[p ? p.slot % 4 : 0] }); Snd.play('ping');
+  chatLine('你', TEAM_CSS[p ? p.slot % 4 : 0], t); Snd.play('ping');
   if (MP.role !== 'solo') { MP.ch = [++sigSeq, t]; if (MP.role === 'host') hostPresence(); else clientPresence(true); }
 }
 function initChat() {
@@ -3205,7 +3214,7 @@ function peerSignals(peers) {
     const q = sim && sim.s.players[pe.peer], slot = q ? q.slot : 1, name = (q && q.name) || cleanName(pr.n) || '队友';
     if (pg && pg[0] !== seen.pg) { seen.pg = pg[0]; if (sim && mode !== 'menu') addPingMark(pg[1] ? 1 : 0, pg[2], pg[3], pg[4], pg[5] | 0, slot, name); }
     if (qc && qc[0] !== seen.qc) { seen.qc = qc[0]; if (QUICK[qc[1] | 0] && mode !== 'menu') { feed(`${name}：${QUICK[qc[1] | 0]}`, 'good'); Snd.play('ping'); } }
-    if (ch && ch[0] !== seen.ch) { seen.ch = ch[0]; const t = cleanChat(ch[1]); if (t && mode !== 'menu') { feed(t, 'chat', 9000, { name, col: TEAM_CSS[slot % 4] }); Snd.play('ping'); } }
+    if (ch && ch[0] !== seen.ch) { seen.ch = ch[0]; const t = cleanChat(ch[1]); if (t && mode !== 'menu') { chatLine(name, TEAM_CSS[slot % 4], t); Snd.play('ping'); } }
   }
 }
 function drawPings(dt) {
@@ -3589,7 +3598,7 @@ function newGame(state, prebuilt) {
   if (!state && !prebuilt) sim.addPlayer(PID, MP.name || '你', false, PROG.personal(), selCls);
   sim.drainEvents();
   acc = 0; clearTags(); for (const k in teamVis) delete teamVis[k];
-  for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null;
+  for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null; $('chatLog').innerHTML = '';
   diff = sim.s.diff;
   trapIndex = new Map(); slotCache = null; pathDirCache.clear();
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;

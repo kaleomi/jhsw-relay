@@ -78,7 +78,16 @@ button { font: inherit; color: inherit; }
 #feed .f.bad { border-color: var(--danger); }
 #feed .f.chat { border-color: var(--crys); background: rgba(8, 18, 28, .82); color: var(--ink); }
 #feed .f.chat b { font-weight: 700; }
-#chatBox { position: absolute; left: 16px; top: calc(14px + env(safe-area-inset-top, 0px) + 6 * 27px); width: min(380px, 60vw); display: flex; align-items: stretch; pointer-events: auto; z-index: 6;
+/* 左下角：聊天记录 + 输入框 + 队伍（从上到下） */
+#leftDock { position: absolute; left: 16px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: min(360px, 44vw); display: flex; flex-direction: column; align-items: stretch; gap: 6px; pointer-events: none; z-index: 6; }
+#leftDock > #team { align-self: flex-start; }
+#chatLog { display: grid; gap: 3px; }
+#chatLog:empty { display: none; }
+#chatLog .cm { justify-self: start; max-width: 100%; font-size: 13px; line-height: 1.45; padding: 3px 9px; color: var(--ink); background: rgba(6, 12, 20, .62); border-left: 2px solid var(--crys); overflow-wrap: anywhere; transition: opacity .8s; }
+#chatLog .cm b { font-weight: 700; }
+#chatLog .cm.old { opacity: 0; }
+#leftDock.chatting #chatLog .cm.old { opacity: .8; }
+#chatBox { width: 100%; display: flex; align-items: stretch; pointer-events: auto;
   background: var(--panel2); border: 1px solid rgba(95, 227, 255, .45); box-shadow: 0 0 18px rgba(95, 227, 255, .18); }
 #chatBox[hidden] { display: none; }
 #chatBox .chTo { display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 700; color: #071018; background: var(--crys); }
@@ -310,7 +319,7 @@ h3 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: .2em; color: 
 #tags .tag b { font-size: 13px; font-weight: 500; color: var(--tc); text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, .7); white-space: nowrap; }
 #tags .tag i { display: block; width: 46px; height: 4px; background: rgba(0, 0, 0, .55); }
 #tags .tag s { display: block; height: 100%; background: var(--tc); }
-#team { position: absolute; left: 16px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); width: min(220px, 40vw); display: grid; gap: 4px; }
+#team { width: min(220px, 40vw); display: grid; gap: 4px; }
 #team .tm { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 8px; padding: 4px 8px 5px; background: var(--panel); border-left: 3px solid var(--tc); font-size: 12px; }
 #team .tm b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #team .tm span { color: var(--dim); font-size: 11px; }
@@ -434,7 +443,7 @@ body.touch #feed .f { font-size: 10.5px; padding: 2px 6px; white-space: nowrap; 
 body.touch #feed .f:nth-last-child(n+3) { display: none; }
 body.touch #mapWrap { top: calc(4px + env(safe-area-inset-top, 0px)); right: calc(6px + env(safe-area-inset-right, 0px)); transform: scale(.62); padding-bottom: 8px; }
 body.touch #mapWrap.big { transform: scale(1.35); }
-body.touch #team { left: calc(6px + env(safe-area-inset-left, 0px)); top: calc(56px + env(safe-area-inset-top, 0px)); bottom: auto; width: 130px; }
+body.touch #team { width: 130px; }
 body.touch #team .tm { font-size: 10px; padding: 2px 6px; }
 body.touch #toast { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); font-size: 12px; }
 body.touch #trapCard { left: calc(50% + 34px); width: 160px; font-size: 11.5px; padding: 8px 10px 8px 12px; }
@@ -451,7 +460,9 @@ body.touch .wcard .wd { font-size: 11px; }
 body.touch .shopHead span { display: none; }
 body.touch #qchat { left: 50%; transform: translate(-50%, -50%); pointer-events: auto; }
 body.touch #qchat li { padding: 6px 4px; }
-body.touch #chatBox { left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(460px, 70vw); }
+body.touch #chatBox { position: fixed; left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(460px, 70vw); }
+body.touch #leftDock { left: calc(60px + env(safe-area-inset-left, 0px)); top: calc(104px + env(safe-area-inset-top, 0px)); bottom: auto; width: min(240px, 30vw); flex-direction: column-reverse; justify-content: flex-end; gap: 4px; }
+body.touch #chatLog .cm { font-size: 10.5px; padding: 2px 6px; }
 body.touch .keys { display: none; }
 body.touch .menuIn { gap: 14px; padding-top: 16px; }
 body.touch h1 { font-size: 48px; }
@@ -550,7 +561,6 @@ body.touch .mpRow input { padding: 10px; }
     </div>
   </div>
   <div id="feed"></div>
-  <div id="chatBox" hidden><span class="chTo">全队</span><input id="chatIn" type="text" maxlength="60" autocomplete="off" enterkeyhint="send" placeholder="输入消息 · Enter 发送 · Esc 取消"><button type="button" id="chatSend">发送</button></div>
   <div id="mapWrap"><canvas id="minimap" width="185" height="160"></canvas><span class="diff" id="diffTag"></span><span class="maphint">M 放大</span></div>
   <div id="cross"><i></i><i></i><i></i><i></i></div>
   <div id="hitmark"></div>
@@ -580,7 +590,11 @@ body.touch .mpRow input { padding: 10px; }
   <div id="dmgDir"></div>
   <div id="vignette"></div>
   <div id="alarm"></div>
-  <div id="team" hidden></div>
+  <div id="leftDock">
+    <div id="chatLog"></div>
+    <div id="chatBox" hidden><span class="chTo">全队</span><input id="chatIn" type="text" maxlength="60" autocomplete="off" enterkeyhint="send" placeholder="输入消息 · Enter 发送 · Esc 取消"><button type="button" id="chatSend">发送</button></div>
+    <div id="team" hidden></div>
+  </div>
   <div id="qchat" hidden>
     <div class="shopHead"><h3>快捷消息</h3><span>按 1-6 发送 · V / Esc 关闭</span><button type="button" class="pClose" data-close="qchat" aria-label="关闭">✕</button></div>
     <ol>
@@ -7153,19 +7167,28 @@ function sendQuick(i) {
 /* ---------- 文字聊天：Enter 打开输入框，Enter 发送，Esc 取消 ---------- */
 let chatOpen = false, chatLast = 0;
 function cleanChat(t) { return String(t || '').replace(/[\u0000-\u001f\u007f\u200b-\u200f\u2028-\u202e]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60); }
+// 左下角聊天记录：10 秒后淡出，打开输入框时重新显示最近几条
+function chatLine(name, col, text) {
+  const box = $('chatLog'), el = document.createElement('div'), b = document.createElement('b');
+  el.className = 'cm'; b.textContent = name + '：'; b.style.color = col;
+  el.append(b, document.createTextNode(text));
+  box.appendChild(el);
+  while (box.children.length > 6) box.removeChild(box.firstChild);
+  setTimeout(() => el.classList.add('old'), 10000);
+}
 function openChat() {
   if (mode !== 'play') return;
   if (shopOpen) toggleShop(false); if (labOpen) toggleLab(false); if (evoTrap !== null) closeEvo(); if (quickOpen) toggleQuick(false);
   for (const k in keys) keys[k] = false;
   mouse.l = mouse.r = false; mouse.any = false;
-  chatOpen = true; $('chatBox').hidden = false;
+  chatOpen = true; $('chatBox').hidden = false; $('leftDock').classList.add('chatting');
   panelOpened(true);
   const inp = $('chatIn'); inp.value = '';
   setTimeout(() => { if (chatOpen) inp.focus(); }, 0);
 }
 function closeChat() {
   if (!chatOpen) return;
-  chatOpen = false; $('chatBox').hidden = true;
+  chatOpen = false; $('chatBox').hidden = true; $('leftDock').classList.remove('chatting');
   const inp = $('chatIn'); if (document.activeElement === inp) inp.blur();
   panelClosed();
 }
@@ -7177,7 +7200,7 @@ function sendChat() {
   if (now - chatLast < 700) { toast('发得太快了，稍等一下', true); return; }
   chatLast = now;
   const p = me();
-  feed(t, 'chat', 9000, { name: '你', col: TEAM_CSS[p ? p.slot % 4 : 0] }); Snd.play('ping');
+  chatLine('你', TEAM_CSS[p ? p.slot % 4 : 0], t); Snd.play('ping');
   if (MP.role !== 'solo') { MP.ch = [++sigSeq, t]; if (MP.role === 'host') hostPresence(); else clientPresence(true); }
 }
 function initChat() {
@@ -7206,7 +7229,7 @@ function peerSignals(peers) {
     const q = sim && sim.s.players[pe.peer], slot = q ? q.slot : 1, name = (q && q.name) || cleanName(pr.n) || '队友';
     if (pg && pg[0] !== seen.pg) { seen.pg = pg[0]; if (sim && mode !== 'menu') addPingMark(pg[1] ? 1 : 0, pg[2], pg[3], pg[4], pg[5] | 0, slot, name); }
     if (qc && qc[0] !== seen.qc) { seen.qc = qc[0]; if (QUICK[qc[1] | 0] && mode !== 'menu') { feed(`${name}：${QUICK[qc[1] | 0]}`, 'good'); Snd.play('ping'); } }
-    if (ch && ch[0] !== seen.ch) { seen.ch = ch[0]; const t = cleanChat(ch[1]); if (t && mode !== 'menu') { feed(t, 'chat', 9000, { name, col: TEAM_CSS[slot % 4] }); Snd.play('ping'); } }
+    if (ch && ch[0] !== seen.ch) { seen.ch = ch[0]; const t = cleanChat(ch[1]); if (t && mode !== 'menu') { chatLine(name, TEAM_CSS[slot % 4], t); Snd.play('ping'); } }
   }
 }
 function drawPings(dt) {
@@ -7590,7 +7613,7 @@ function newGame(state, prebuilt) {
   if (!state && !prebuilt) sim.addPlayer(PID, MP.name || '你', false, PROG.personal(), selCls);
   sim.drainEvents();
   acc = 0; clearTags(); for (const k in teamVis) delete teamVis[k];
-  for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null;
+  for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null; $('chatLog').innerHTML = '';
   diff = sim.s.diff;
   trapIndex = new Map(); slotCache = null; pathDirCache.clear();
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;
