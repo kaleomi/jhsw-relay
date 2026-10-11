@@ -9,7 +9,7 @@
   --bg: #05080c; --ink: #e4edf2; --dim: #8ea3b1; --faint: #5b6d7b;
   --crys: #5fe3ff; --gold: #ffb547; --danger: #ff5266; --ok: #6cf0a4;
   --panel: rgba(8, 14, 21, .72); --panel2: rgba(12, 20, 30, .92); --line: rgba(120, 190, 225, .24);
-  --c-floor: #4fd6c4; --c-pad: #ffb547; --c-wall: #ff6b8b; --c-ceil: #b58cff; --c-gun: #c9d6df;
+  --c-floor: #4fd6c4; --c-pad: #ffb547; --c-wall: #ff6b8b; --c-ceil: #b58cff; --c-gun: #c9d6df; --c-heavy: #ff7a3d; --c-hfloor: #8cff66;
   --f-disp: "ZCOOL QingKe HuangYou", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --f-body: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
   --f-num: "Chakra Petch", "Noto Sans SC", ui-monospace, monospace;
@@ -178,7 +178,7 @@ body.touch .qcType .kb { display: none; }
 .slot.poor { opacity: .55; }
 .slot.poor .c { color: var(--danger); }
 .slot.sel { background: color-mix(in srgb, var(--cc) 26%, rgba(8, 14, 21, .85)); transform: translateY(-5px); box-shadow: inset 0 -3px 0 var(--cc); }
-.cat-floor { --cc: var(--c-floor); } .cat-pad { --cc: var(--c-pad); } .cat-wall { --cc: var(--c-wall); } .cat-ceil { --cc: var(--c-ceil); } .cat-gun { --cc: var(--c-gun); }
+.cat-floor { --cc: var(--c-floor); } .cat-pad { --cc: var(--c-pad); } .cat-wall { --cc: var(--c-wall); } .cat-ceil { --cc: var(--c-ceil); } .cat-gun { --cc: var(--c-gun); } .cat-heavy { --cc: var(--c-heavy); } .cat-hfloor { --cc: var(--c-hfloor); }
 #ammo { justify-self: end; text-align: right; }
 #skills { display: grid; gap: 4px; justify-items: end; margin-bottom: 8px; }
 #skills .sk { display: grid; grid-template-columns: auto auto auto; align-items: center; column-gap: 6px; font-size: 12px; color: var(--dim); }
@@ -1352,9 +1352,9 @@ const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 /* ---------- 难度 ---------- */
 const DIFFS = {
-  normal: { name: '普通', hp: 1.0, gold: 1.0 },
-  hard: { name: '困难', hp: 1.45, gold: 0.95 },
-  hell: { name: '炼狱', hp: 2.05, gold: 0.9 },
+  normal: { name: '普通', hp: 1.12, gold: 1.0, grow: 0.14 },
+  hard: { name: '困难', hp: 1.7, gold: 0.93, grow: 0.16 },
+  hell: { name: '炼狱', hp: 2.4, gold: 0.87, grow: 0.17 },
 };
 
 /* ---------- 怪物 ----------
@@ -1378,6 +1378,11 @@ const MON = {
   siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [1.4, 1.55], head: [2.62, 0.72, 0.2] },
   colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.93, 0.62, 0.15] },
   brood: { name: '深渊母巢', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.1, 1.6], head: [1.6, 0.66, 1.4] },
+  // —— 强力敌人（第二批）——
+  shield: { name: '棱盾守卫', hp: 950, spd: 2.6, armor: 0.25, core: 6, bounty: 60, dps: 55, melee: 14, r: 0.6, knockRes: 0.3, aura: { every: 5.5, r: 6, amt: 200 }, body: [0.98, 0.48], head: [1.86, 0.56] },
+  tank: { name: '铁蹄坦克', hp: 2500, spd: 1.9, armor: 0.4, core: 12, bounty: 130, dps: 150, r: 1.15, knockRes: 1, slowRes: 0.3, stunRes: 0.6, heavy: true, cannon: { range: 15, every: 5.5, dmg: 380, dis: 4 }, body: [0.9, 1.15], head: [1.75, 0.42, 0.65] },
+  blinker: { name: '相位行者', hp: 520, spd: 3.3, core: 4, bounty: 40, dps: 35, melee: 12, r: 0.45, blink: { every: 6.5, dist: 6 }, body: [0.78, 0.38], head: [1.47, 0.46] },
+  gunship: { name: '天穹炮艇', hp: 2000, spd: 2.4, armor: 0.2, core: 10, bounty: 110, fly: true, heavy: true, r: 1.2, ranged: { range: 20, dmg: 8, rate: 1.4, acc: 0.6 }, drop: { type: 'mite', n: 2, every: 9 }, body: [0, 1.1], head: [0.3, 0.45, 1.15] },
   broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
 };
 const BOSS_TIP = {
@@ -1408,7 +1413,16 @@ const TRAPS = [
     desc: '墙壁 · 喷火覆盖整条横线，附带灼烧' },
   { id: 'crusher', key: '9', name: '粉碎锤', cat: 'ceil', cost: 300, cd: [3.0, 2.8, 2.6, 2.4], dmg: [260, 430, 650, 950], stun: 0.8,
     desc: '天花板 · 重锤砸地，3×3 范围重伤并眩晕地面敌人' },
+  // —— 重型陷阱：占地 2×2 ——
+  { id: 'rail', key: '0', name: '轨道电磁炮', cat: 'heavy', big: true, cost: 720, cd: [3.4, 3.1, 2.8, 2.5], range: 34, dmg: [760, 1150, 1700, 2450],
+    desc: '重型炮台 2×2 · 蓄能贯穿一条直线上的所有敌人（对地对空、无视护甲），优先锁定 BOSS、精英与重甲' },
+  { id: 'mortar', key: '-', name: '等离子迫击炮', cat: 'heavy', big: true, cost: 620, cd: [3.0, 2.8, 2.6, 2.4], range: 30, minRange: 6, dmg: [380, 580, 860, 1250], splash: 3.8,
+    desc: '重型炮台 2×2 · 远程曲射，自动轰击怪物最密集的位置，大范围溅射（只打地面）' },
+  { id: 'grinder', key: '=', name: '碎骨绞盘', cat: 'hfloor', big: true, cost: 540, dps: [150, 235, 350, 500], slow: [0.3, 0.35, 0.4, 0.45],
+    desc: '地面 2×2 · 铺在通道上的巨型绞盘，持续撕碎经过的地面敌人并减速（无视护甲）' },
 ];
+const BIG_CATS = { heavy: 1, hfloor: 1 };
+const kindOfCat = cat => (cat === 'pad' || cat === 'heavy' || cat === 'hfloor') ? 'floor' : cat;
 const TRAP = {}; TRAPS.forEach(t => { TRAP[t.id] = t; });
 // 满级进阶：Lv3 → Lv4 时二选一
 const EVO = {
@@ -1421,6 +1435,9 @@ const EVO = {
   laser: { a: { name: '过载激光', desc: '伤害 ×1.6' }, b: { name: '棱镜光束', desc: '光束延长到 6 格，并减速被照射的敌人' } },
   flame: { a: { name: '凝固汽油', desc: '灼烧时间延长到 5 秒，灼烧伤害 ×1.4' }, b: { name: '蓝焰', desc: '伤害 ×1.4，对精英和 BOSS 再 +50%' } },
   crusher: { a: { name: '重锤', desc: '伤害 ×1.5，眩晕延长到 1.6 秒' }, b: { name: '连击锤', desc: '冷却缩短 40%' } },
+  rail: { a: { name: '超载线圈', desc: '伤害 ×1.6，命中的非 BOSS 敌人眩晕 0.8 秒' }, b: { name: '速射轨道', desc: '冷却缩短 45%' } },
+  mortar: { a: { name: '燃烧弹', desc: '落点燃起烈焰，灼烧范围内敌人 4 秒' }, b: { name: '集束弹', desc: '炮弹炸开后再散落 4 枚子弹药' } },
+  grinder: { a: { name: '锯刃风暴', desc: '伤害 ×1.6' }, b: { name: '引力漩涡', desc: '把 5 米内的飞行敌人拽到地面撕碎，减速范围扩大一圈' } },
 };
 // 突变词缀（可选，叠加提升难度）
 const MUTATORS = [
@@ -1495,7 +1512,7 @@ const UPG_MUL = [0.8, 1.2, 1.6];   // Lv1→2, 2→3, 3→4
 const MAX_LV = 4;
 // 炮台类放在怪物通道上时的耐久（会挡路并被攻击）
 const LANE_HP = { sentry: [900, 1400, 2000, 2800], aa: [800, 1250, 1800, 2500] };
-const CAT_NAME = { floor: '地面', pad: '炮台位', wall: '墙壁', ceil: '天花板' };
+const CAT_NAME = { floor: '地面', pad: '炮台位', wall: '墙壁', ceil: '天花板', heavy: '重型炮台位', hfloor: '通道 2×2' };
 
 /* ---------- 武器 / 技能 ----------
  * 每名玩家开局只有脉冲步枪；其余武器用（全队共享的）金币在军械库购买，本局有效。
@@ -1553,12 +1570,12 @@ const MAPS = {
       { name: '疾行突袭', groups: [g('grunt', 7, 'A', 1.4, 0), g('grunt', 7, 'B', 1.4, 2), g('runner', 4, 'A', 0.9, 12), g('runner', 4, 'B', 0.9, 14)] },
       { name: '重装来袭', tip: '重装赛博格护甲厚、免疫一半击退', groups: [g('grunt', 8, 'A', 1.3, 0), g('grunt', 8, 'B', 1.3, 1), g('brute', 2, 'A', 5, 10), g('brute', 1, 'B', 5, 14)] },
       { name: '空中威胁', tip: '浮游无人机无视地面陷阱，需要防空导弹、岗哨机枪或墙壁陷阱', groups: [g('grunt', 8, 'A', 1.2, 0), g('grunt', 8, 'B', 1.2, 0), g('flyer', 5, 'A', 1.5, 8), g('flyer', 5, 'B', 1.5, 10)] },
-      { name: '狂猩出笼', tip: '精英「狂猩赛博格」半血后狂暴，攻速与移速大增', groups: [g('grunt', 8, 'A', 1.1, 0), g('grunt', 8, 'B', 1.1, 0), g('runner', 5, 'A', 0.8, 10), g('runner', 5, 'B', 0.8, 10), g('elite', 1, 'A', 0, 18)] },
-      { name: '自爆潮', tip: '自爆蜘蛛遇到阻挡会引爆，击杀它会炸伤周围怪物', groups: [g('runner', 12, 'A', 0.6, 0), g('runner', 12, 'B', 0.6, 2), g('bomber', 4, 'A', 2, 8), g('bomber', 4, 'B', 2, 10)] },
-      { name: '钢铁洪流', tip: '火线射手会停下来射击玩家，别站在它们的视线里硬拼', groups: [g('grunt', 10, 'A', 1, 0), g('grunt', 10, 'B', 1, 0), g('brute', 4, 'A', 4, 6), g('brute', 4, 'B', 4, 8), g('gunner', 2, 'A', 3, 10), g('gunner', 2, 'B', 3, 11), g('flyer', 7, 'A', 1.2, 14), g('flyer', 7, 'B', 1.2, 16)] },
-      { name: '全面进攻', tip: '幽影刺客会隐身，炮台锁定不到它；踩到减速器、受到攻击或靠近玩家时才会现形', groups: [g('stalker', 3, 'A', 2, 3), g('stalker', 3, 'B', 2, 4), g('runner', 10, 'A', 0.6, 0), g('runner', 10, 'B', 0.6, 0), g('bomber', 6, 'A', 1.6, 6), g('bomber', 6, 'B', 1.6, 7), g('brute', 3, 'A', 4, 12), g('brute', 3, 'B', 4, 14), g('flyer', 5, 'A', 1, 18), g('flyer', 5, 'B', 1, 20)] },
-      { name: '双王', tip: '两只狂猩分别从两路出现；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('sapper', 2, 'A', 4, 4), g('sapper', 2, 'B', 4, 6), g('grunt', 12, 'A', 0.9, 0), g('grunt', 12, 'B', 0.9, 0), g('brute', 5, 'A', 3.5, 5), g('brute', 5, 'B', 3.5, 6), g('flyer', 8, 'A', 1, 12), g('flyer', 8, 'B', 1, 12), g('elite', 1, 'A', 0, 20), g('elite', 1, 'B', 0, 26)] },
-      { name: '终焉降临', boss: true, tip: 'BOSS 会周期性释放 EMP 瘫痪附近陷阱，并召唤援军', groups: [g('grunt', 10, 'A', 1, 0), g('grunt', 10, 'B', 1, 0), g('flyer', 5, 'A', 1.2, 6), g('flyer', 5, 'B', 1.2, 6), g('boss', 1, 'A', 0, 12), g('brute', 3, 'B', 4, 16), g('runner', 8, 'A', 0.6, 30), g('runner', 8, 'B', 0.6, 30)] },
+      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾，护盾会先吸收伤害（包括中毒和灼烧）；精英「狂猩赛博格」半血后狂暴，攻速与移速大增', groups: [g('grunt', 8, 'A', 1.1, 0), g('grunt', 8, 'B', 1.1, 0), g('runner', 5, 'A', 0.8, 10), g('runner', 5, 'B', 0.8, 10), g('elite', 1, 'A', 0, 18), g('shield', 2, 'AB', 6, 4)] },
+      { name: '自爆潮', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；自爆蜘蛛遇到阻挡会引爆，击杀它会炸伤周围怪物', groups: [g('runner', 12, 'A', 0.6, 0), g('runner', 12, 'B', 0.6, 2), g('bomber', 4, 'A', 2, 8), g('bomber', 4, 'B', 2, 10), g('blinker', 4, 'AB', 2.5, 4)] },
+      { name: '钢铁洪流', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台让它瘫痪——重型轨道电磁炮专克它；火线射手会停下来射击玩家，别站在它们的视线里硬拼', groups: [g('grunt', 10, 'A', 1, 0), g('grunt', 10, 'B', 1, 0), g('brute', 4, 'A', 4, 6), g('brute', 4, 'B', 4, 8), g('gunner', 2, 'A', 3, 10), g('gunner', 2, 'B', 3, 11), g('flyer', 7, 'A', 1.2, 14), g('flyer', 7, 'B', 1.2, 16), g('tank', 1, 'A', 0, 16), g('tank', 1, 'B', 0, 22)] },
+      { name: '全面进攻', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；幽影刺客会隐身，炮台锁定不到它；踩到减速器、受到攻击或靠近玩家时才会现形', groups: [g('stalker', 3, 'A', 2, 3), g('stalker', 3, 'B', 2, 4), g('runner', 10, 'A', 0.6, 0), g('runner', 10, 'B', 0.6, 0), g('bomber', 6, 'A', 1.6, 6), g('bomber', 6, 'B', 1.6, 7), g('brute', 3, 'A', 4, 12), g('brute', 3, 'B', 4, 14), g('flyer', 5, 'A', 1, 18), g('flyer', 5, 'B', 1, 20), g('gunship', 2, 'AB', 8, 14), g('shield', 2, 'AB', 5, 8)] },
+      { name: '双王', tip: '两只狂猩分别从两路出现；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('sapper', 2, 'A', 4, 4), g('sapper', 2, 'B', 4, 6), g('grunt', 12, 'A', 0.9, 0), g('grunt', 12, 'B', 0.9, 0), g('brute', 5, 'A', 3.5, 5), g('brute', 5, 'B', 3.5, 6), g('flyer', 8, 'A', 1, 12), g('flyer', 8, 'B', 1, 12), g('elite', 1, 'A', 0, 20), g('elite', 1, 'B', 0, 26), g('tank', 2, 'AB', 8, 10), g('blinker', 6, 'AB', 2, 6)] },
+      { name: '终焉降临', boss: true, tip: 'BOSS 会周期性释放 EMP 瘫痪附近陷阱，并召唤援军', groups: [g('grunt', 10, 'A', 1, 0), g('grunt', 10, 'B', 1, 0), g('flyer', 5, 'A', 1.2, 6), g('flyer', 5, 'B', 1.2, 6), g('boss', 1, 'A', 0, 12), g('brute', 3, 'B', 4, 16), g('runner', 8, 'A', 0.6, 30), g('runner', 8, 'B', 0.6, 30), g('shield', 4, 'AB', 4, 14), g('gunship', 2, 'AB', 10, 20), g('tank', 2, 'AB', 10, 26)] },
     ],
   },
   fortress: {
@@ -1582,14 +1599,14 @@ const MAPS = {
       { name: '疾行突袭', groups: [g('grunt', 15, '*', 1.3, 0), g('runner', 9, '*', 0.8, 12)] },
       { name: '重装来袭', tip: '重装赛博格护甲厚、免疫一半击退', groups: [g('grunt', 18, '*', 1.1, 0), g('brute', 3, '*', 4, 10)] },
       { name: '空中威胁', tip: '浮游无人机无视地面陷阱；火线射手会远程射击玩家', groups: [g('grunt', 15, '*', 1.1, 0), g('flyer', 12, '*', 1.4, 8), g('gunner', 3, '*', 3, 12)] },
-      { name: '狂猩出笼', tip: '狂猩从北门出现', groups: [g('grunt', 18, '*', 1.1, 0), g('runner', 12, '*', 0.8, 10), g('elite', 1, 'B', 0, 18)] },
-      { name: '自爆潮', tip: '骇客工兵会骇入附近陷阱让它瘫痪 10 秒，优先击杀', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 9, '*', 2, 8), g('sapper', 3, '*', 4, 10)] },
-      { name: '维修部队', tip: '修复无人机会持续治疗周围怪物，优先击落', groups: [g('grunt', 18, '*', 1, 0), g('brute', 6, '*', 4, 6), g('healer', 3, '*', 3, 10)] },
-      { name: '钢铁洪流', tip: '幽影刺客隐身潜入，减速器能让它现形', groups: [g('grunt', 21, '*', 0.9, 4), g('brute', 9, '*', 3.5, 0), g('flyer', 15, '*', 1.2, 10), g('stalker', 6, '*', 2, 12)] },
-      { name: '混编突击', tip: '钻地虫会钻入地下越过一段陷阱，期间无敌', groups: [g('runner', 21, '*', 0.6, 0), g('bomber', 12, '*', 1.6, 6), g('healer', 6, '*', 2.5, 12), g('flyer', 9, '*', 1, 18), g('burrower', 3, '*', 3, 8)] },
-      { name: '三王', tip: '三只狂猩分别从三道门出现', groups: [g('grunt', 24, '*', 0.9, 0), g('brute', 6, '*', 3.5, 6), g('elite', 3, '*', 6, 14), g('healer', 3, '*', 3, 16), g('gunner', 6, '*', 2.5, 10)] },
-      { name: '决战前夜', groups: [g('brute', 12, '*', 3, 0), g('flyer', 18, '*', 1, 0), g('bomber', 12, '*', 1.4, 8), g('runner', 18, '*', 0.6, 20), g('sapper', 3, '*', 4, 12)] },
-      { name: '破城', boss: true, tip: '攻城机甲「破城者」从北门压境，会炮击远处的炮台和磁暴塔；西门有狂猩策应', groups: [g('grunt', 24, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'B', 0, 12), g('brute', 6, '*', 4, 16), g('healer', 2, '*', 3, 24), g('gunner', 3, '*', 3, 20), g('elite', 1, 'A', 0, 45)] },
+      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾，护盾会先吸收伤害（包括中毒和灼烧）；狂猩从北门出现', groups: [g('grunt', 18, '*', 1.1, 0), g('runner', 12, '*', 0.8, 10), g('elite', 1, 'B', 0, 18), g('shield', 3, '*', 4, 6)] },
+      { name: '自爆潮', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；骇客工兵会骇入附近陷阱让它瘫痪 10 秒，优先击杀', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 9, '*', 2, 8), g('sapper', 3, '*', 4, 10), g('blinker', 6, '*', 2, 4)] },
+      { name: '维修部队', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台——轨道电磁炮专克它；修复无人机会持续治疗周围怪物，优先击落', groups: [g('grunt', 18, '*', 1, 0), g('brute', 6, '*', 4, 6), g('healer', 3, '*', 3, 10), g('tank', 2, 'AC', 8, 14)] },
+      { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；幽影刺客隐身潜入，减速器能让它现形', groups: [g('grunt', 21, '*', 0.9, 4), g('brute', 9, '*', 3.5, 0), g('flyer', 15, '*', 1.2, 10), g('stalker', 6, '*', 2, 12), g('gunship', 3, '*', 6, 16)] },
+      { name: '混编突击', tip: '钻地虫会钻入地下越过一段陷阱，期间无敌', groups: [g('runner', 21, '*', 0.6, 0), g('bomber', 12, '*', 1.6, 6), g('healer', 6, '*', 2.5, 12), g('flyer', 9, '*', 1, 18), g('burrower', 3, '*', 3, 8), g('blinker', 6, '*', 2, 4), g('shield', 3, '*', 5, 10)] },
+      { name: '三王', tip: '三只狂猩分别从三道门出现', groups: [g('grunt', 24, '*', 0.9, 0), g('brute', 6, '*', 3.5, 6), g('elite', 3, '*', 6, 14), g('healer', 3, '*', 3, 16), g('gunner', 6, '*', 2.5, 10), g('tank', 3, '*', 6, 8)] },
+      { name: '决战前夜', groups: [g('brute', 12, '*', 3, 0), g('flyer', 18, '*', 1, 0), g('bomber', 12, '*', 1.4, 8), g('runner', 18, '*', 0.6, 20), g('sapper', 3, '*', 4, 12), g('gunship', 4, '*', 5, 6), g('shield', 3, '*', 4, 10), g('tank', 3, '*', 6, 16)] },
+      { name: '破城', boss: true, tip: '攻城机甲「破城者」从北门压境，会炮击远处的炮台和磁暴塔；西门有狂猩策应', groups: [g('grunt', 24, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'B', 0, 12), g('brute', 6, '*', 4, 16), g('healer', 2, '*', 3, 24), g('gunner', 3, '*', 3, 20), g('elite', 1, 'A', 0, 45), g('tank', 3, '*', 8, 20), g('shield', 3, '*', 5, 14), g('gunship', 3, '*', 8, 26)] },
     ],
   },
   furnace: {
@@ -1616,14 +1633,14 @@ const MAPS = {
       { name: '疾行突袭', groups: [g('grunt', 14, '*', 1.2, 0), g('runner', 8, '*', 0.8, 10)] },
       { name: '重装来袭', tip: '钻地虫会钻入地下越过一段陷阱，期间无敌且不受地面陷阱影响', groups: [g('grunt', 16, '*', 1.1, 0), g('brute', 3, '*', 4, 10), g('burrower', 4, '*', 3, 6)] },
       { name: '南门洞开', tip: '西南出怪口开启，南侧也需要布防', groups: [g('grunt', 16, '*', 1, 0), g('flyer', 9, '*', 1.4, 6)] },
-      { name: '狂猩出笼', tip: '幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('grunt', 18, '*', 1, 0), g('runner', 12, '*', 0.7, 10), g('stalker', 4, '*', 2, 6), g('elite', 1, 'A', 0, 18)] },
-      { name: '四面楚歌', tip: '东南出怪口开启，四个方向同时进攻', groups: [g('runner', 28, '*', 0.6, 0), g('bomber', 8, '*', 2, 8)] },
-      { name: '维修部队', tip: '骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 6, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10)] },
-      { name: '钢铁洪流', groups: [g('grunt', 20, '*', 0.9, 0), g('flyer', 16, '*', 1.2, 0), g('brute', 6, '*', 3.5, 10)] },
-      { name: '双王', groups: [g('bomber', 12, '*', 1.4, 0), g('runner', 20, '*', 0.6, 8), g('healer', 2, '*', 3, 12), g('elite', 2, 'AB', 12, 20), g('gunner', 6, '*', 2.5, 4), g('burrower', 6, '*', 3, 14)] },
-      { name: '熔流', groups: [g('grunt', 24, '*', 0.8, 4), g('brute', 8, '*', 3, 0), g('flyer', 12, '*', 1, 0), g('healer', 4, '*', 2.5, 10), g('stalker', 6, '*', 2, 8)] },
-      { name: '狂猩巢穴', tip: '四只狂猩从四个角落轮番冲出', groups: [g('runner', 24, '*', 0.5, 0), g('elite', 4, '*', 10, 10), g('bomber', 8, '*', 1.4, 14)] },
-      { name: '熔炉巨像', boss: true, tip: '熔炉巨像从西北压境，走过的地面化作熔岩；东南有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('colossus', 1, 'A', 0, 16), g('brute', 4, '*', 4, 14), g('healer', 2, '*', 3, 24), g('elite', 1, 'D', 0, 40)] },
+      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾，护盾会先吸收伤害（包括中毒和灼烧）；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('grunt', 18, '*', 1, 0), g('runner', 12, '*', 0.7, 10), g('stalker', 4, '*', 2, 6), g('elite', 1, 'A', 0, 18), g('shield', 3, '*', 4, 8)] },
+      { name: '四面楚歌', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；东南出怪口开启，四个方向同时进攻', groups: [g('runner', 28, '*', 0.6, 0), g('bomber', 8, '*', 2, 8), g('blinker', 8, '*', 1.6, 4)] },
+      { name: '维修部队', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台——轨道电磁炮专克它；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 6, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('tank', 1, 'A', 0, 14)] },
+      { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛', groups: [g('grunt', 20, '*', 0.9, 0), g('flyer', 16, '*', 1.2, 0), g('brute', 6, '*', 3.5, 10), g('gunship', 2, 'AB', 6, 12), g('shield', 2, '*', 4, 6)] },
+      { name: '双王', groups: [g('bomber', 12, '*', 1.4, 0), g('runner', 20, '*', 0.6, 8), g('healer', 2, '*', 3, 12), g('elite', 2, 'AB', 12, 20), g('gunner', 6, '*', 2.5, 4), g('burrower', 6, '*', 3, 14), g('tank', 2, 'CD', 10, 16)] },
+      { name: '熔流', groups: [g('grunt', 24, '*', 0.8, 4), g('brute', 8, '*', 3, 0), g('flyer', 12, '*', 1, 0), g('healer', 4, '*', 2.5, 10), g('stalker', 6, '*', 2, 8), g('blinker', 8, '*', 1.6, 6), g('gunship', 4, '*', 6, 14)] },
+      { name: '狂猩巢穴', tip: '四只狂猩从四个角落轮番冲出', groups: [g('runner', 24, '*', 0.5, 0), g('elite', 4, '*', 10, 10), g('bomber', 8, '*', 1.4, 14), g('tank', 4, '*', 6, 4), g('shield', 4, '*', 4, 8)] },
+      { name: '熔炉巨像', boss: true, tip: '熔炉巨像从西北压境，走过的地面化作熔岩；东南有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('colossus', 1, 'A', 0, 16), g('brute', 4, '*', 4, 14), g('healer', 2, '*', 3, 24), g('elite', 1, 'D', 0, 40), g('tank', 2, 'BC', 10, 22), g('shield', 4, '*', 5, 12), g('gunship', 2, 'AD', 8, 28)] },
     ],
   },
   abyss: {
@@ -1655,16 +1672,16 @@ const MAPS = {
       { name: '北门开启', tip: '北侧出怪口开启；噬晶蛛又小又快', groups: [g('grunt', 18, '*', 1.1, 0), g('brute', 3, '*', 4, 10), g('mite', 12, '*', 0.4, 6)] },
       { name: '空中威胁', groups: [g('grunt', 15, '*', 1.1, 0), g('flyer', 12, '*', 1.4, 8)] },
       { name: '南门开启', tip: '南侧出怪口开启，狂猩从西北出现', groups: [g('grunt', 20, '*', 1, 0), g('runner', 16, '*', 0.7, 8), g('elite', 1, 'A', 0, 18)] },
-      { name: '自爆潮', tip: '幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 10, '*', 2, 8), g('stalker', 6, '*', 2, 4)] },
-      { name: '维修部队', tip: '骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 8, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10)] },
-      { name: '深渊之门', tip: '西侧直道开启！这条路最短，疾行猎犬会直扑主干道', groups: [g('runner', 30, '*', 0.5, 0), g('grunt', 20, '*', 1, 0), g('flyer', 10, '*', 1.2, 10)] },
-      { name: '钢铁洪流', tip: '钻地虫会钻入地下越过一段陷阱', groups: [g('brute', 10, '*', 3.5, 0), g('flyer', 20, '*', 1, 6), g('bomber', 10, '*', 1.5, 12), g('burrower', 6, '*', 2.5, 4)] },
-      { name: '双王', groups: [g('grunt', 30, '*', 0.8, 0), g('healer', 5, '*', 2.5, 10), g('elite', 2, 'AC', 0, 18), g('gunner', 6, '*', 2.5, 6)] },
-      { name: '自爆狂潮', groups: [g('bomber', 20, '*', 1.2, 0), g('runner', 30, '*', 0.5, 6), g('brute', 10, '*', 3, 14)] },
-      { name: '遮天蔽日', groups: [g('grunt', 30, '*', 0.8, 4), g('flyer', 30, '*', 0.9, 0), g('healer', 5, '*', 2.5, 6), g('mite', 20, '*', 0.3, 10)] },
-      { name: '狂猩巢穴', groups: [g('brute', 15, '*', 3, 0), g('elite', 3, '*', 6, 10), g('bomber', 10, '*', 1.4, 16), g('sapper', 4, '*', 4, 6), g('stalker', 6, '*', 2, 12)] },
-      { name: '决战前夜', groups: [g('runner', 40, '*', 0.4, 0), g('flyer', 20, '*', 1, 8), g('brute', 10, '*', 3, 14), g('healer', 5, '*', 2, 18), g('burrower', 6, '*', 2.5, 4), g('gunner', 6, '*', 2.5, 10)] },
-      { name: '深渊母巢', boss: true, tip: '深渊母巢从西北压境，不断孵化噬晶蛛，击破后分裂成两只母巢裂体；西南有狂猩策应', groups: [g('grunt', 30, '*', 0.9, 0), g('flyer', 15, '*', 1.1, 6), g('brood', 1, 'A', 0, 10), g('brute', 8, '*', 3.5, 16), g('healer', 3, '*', 3, 20), g('elite', 1, 'C', 0, 50)] },
+      { name: '自爆潮', tip: '棱盾守卫会给周围的怪套上能量护盾（会吸收中毒和灼烧）；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 10, '*', 2, 8), g('stalker', 6, '*', 2, 4), g('shield', 3, '*', 4, 8)] },
+      { name: '维修部队', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 8, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('blinker', 6, '*', 2, 4)] },
+      { name: '深渊之门', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，会炮击炮台——轨道电磁炮专克它；西侧直道开启！这条路最短，疾行猎犬会直扑主干道', groups: [g('runner', 30, '*', 0.5, 0), g('grunt', 20, '*', 1, 0), g('flyer', 10, '*', 1.2, 10), g('tank', 2, 'AC', 10, 14)] },
+      { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；钻地虫会钻入地下越过一段陷阱', groups: [g('brute', 10, '*', 3.5, 0), g('flyer', 20, '*', 1, 6), g('bomber', 10, '*', 1.5, 12), g('burrower', 6, '*', 2.5, 4), g('gunship', 4, '*', 5, 10), g('shield', 4, '*', 4, 14)] },
+      { name: '双王', groups: [g('grunt', 30, '*', 0.8, 0), g('healer', 5, '*', 2.5, 10), g('elite', 2, 'AC', 0, 18), g('gunner', 6, '*', 2.5, 6), g('tank', 3, '*', 6, 10), g('blinker', 8, '*', 1.6, 4)] },
+      { name: '自爆狂潮', groups: [g('bomber', 20, '*', 1.2, 0), g('runner', 30, '*', 0.5, 6), g('brute', 10, '*', 3, 14), g('shield', 5, '*', 3, 4), g('gunship', 3, '*', 6, 16)] },
+      { name: '遮天蔽日', groups: [g('grunt', 30, '*', 0.8, 4), g('flyer', 30, '*', 0.9, 0), g('healer', 5, '*', 2.5, 6), g('mite', 20, '*', 0.3, 10), g('gunship', 6, '*', 4, 8)] },
+      { name: '狂猩巢穴', groups: [g('brute', 15, '*', 3, 0), g('elite', 3, '*', 6, 10), g('bomber', 10, '*', 1.4, 16), g('sapper', 4, '*', 4, 6), g('stalker', 6, '*', 2, 12), g('tank', 4, '*', 5, 6), g('blinker', 8, '*', 1.6, 2)] },
+      { name: '决战前夜', groups: [g('runner', 40, '*', 0.4, 0), g('flyer', 20, '*', 1, 8), g('brute', 10, '*', 3, 14), g('healer', 5, '*', 2, 18), g('burrower', 6, '*', 2.5, 4), g('gunner', 6, '*', 2.5, 10), g('tank', 4, '*', 6, 16), g('shield', 5, '*', 4, 6), g('gunship', 4, '*', 6, 20)] },
+      { name: '深渊母巢', boss: true, tip: '深渊母巢从西北压境，不断孵化噬晶蛛，击破后分裂成两只母巢裂体；西南有狂猩策应', groups: [g('grunt', 30, '*', 0.9, 0), g('flyer', 15, '*', 1.1, 6), g('brood', 1, 'A', 0, 10), g('brute', 8, '*', 3.5, 16), g('healer', 3, '*', 3, 20), g('elite', 1, 'C', 0, 50), g('tank', 4, '*', 8, 24), g('shield', 5, '*', 4, 14), g('gunship', 4, '*', 8, 30)] },
     ],
   },
 };
@@ -1685,6 +1702,10 @@ function genWave(n, lanes) {
   if (k % 4 === 3) gr.push(g('gunner', 3 + Math.floor(k / 2), '*', 2.5, 6));
   if (k >= 8 && k % 2) gr.push(g('sapper', 2 + Math.floor(k / 5), '*', 4, 10));
   if (k % 3 === 2) gr.push(g('mite', 10 + k * 2, '*', 0.3, 2));
+  gr.push(g('shield', 2 + Math.floor(k / 3), '*', 4, 8));
+  if (k % 2 === 1) gr.push(g('tank', 1 + Math.floor(k / 4), '*', 7, 14));
+  if (k % 3 === 0) gr.push(g('gunship', 2 + Math.floor(k / 4), '*', 6, 16));
+  if (k % 3 === 1) gr.push(g('blinker', 4 + k, '*', 1.6, 4));
   const boss = k % 5 === 0;
   const BT = ['boss', 'siege', 'colossus', 'brood'];
   if (boss) gr.push(g(BT[Math.floor(k / 5) % 4], 1 + Math.floor(k / 15), '*', 25, 12));
@@ -1937,6 +1958,17 @@ class Sim {
   slotFromHit(cat, hit) {
     if (!hit) return null;
     const tt = this.tileAt(hit.x, hit.z);
+    if (BIG_CATS[cat]) {
+      if (hit.kind !== 'floor') return null;
+      // 落在炮台平台上：直接吸附整块平台
+      if (cat === 'heavy') for (const [px, pz] of this.def.platforms || []) if (hit.x >= px && hit.x <= px + 1 && hit.z >= pz && hit.z <= pz + 1) return { kind: 'floor', x: px, z: pz };
+      const fx = hit.px / T - hit.x, fz = hit.pz / T - hit.z;
+      const x0 = fx < 0.5 ? hit.x - 1 : hit.x, z0 = fz < 0.5 ? hit.z - 1 : hit.z;
+      const cands = [[x0, z0], [x0 === hit.x ? hit.x - 1 : hit.x, z0], [x0, z0 === hit.z ? hit.z - 1 : hit.z], [x0 === hit.x ? hit.x - 1 : hit.x, z0 === hit.z ? hit.z - 1 : hit.z]];
+      for (const [x, z] of cands) if (this.bigFits(cat, x, z) && !this.bigTaken(x, z)) return { kind: 'floor', x, z };
+      for (const [x, z] of cands) if (this.bigFits(cat, x, z)) return { kind: 'floor', x, z };
+      return null;
+    }
     if (cat === 'floor') return hit.kind === 'floor' && tt === TILE.LANE ? { kind: 'floor', x: hit.x, z: hit.z } : null;
     if (cat === 'pad') return hit.kind === 'floor' && (tt === TILE.PAD || tt === TILE.FLOOR || tt === TILE.LANE) ? { kind: 'floor', x: hit.x, z: hit.z } : null;
     if (cat === 'wall') return hit.kind === 'wall' && tt === TILE.LANE ? { kind: 'wall', x: hit.x, z: hit.z, dir: hit.dir } : null;
@@ -1947,12 +1979,36 @@ class Sim {
     const i = slot.z * this.W + slot.x;
     return slot.kind === 'wall' ? 'w' + (i * 4 + slot.dir) : (slot.kind === 'ceil' ? 'c' + i : 'f' + i);
   }
-  trapAtSlot(slot) { return this.occ.get(this.slotKey(slot)) || null; }
+  isBig(tr) { return !!(tr && TRAP[tr.type] && TRAP[tr.type].big); }
+  // 陷阱占用的格子（2×2 陷阱占 4 格）
+  tilesOf(tr) { const i = tr.z * this.W + tr.x; return this.isBig(tr) ? [i, i + 1, i + this.W, i + this.W + 1] : [i]; }
+  occKeys(tr) { return this.isBig(tr) ? this.tilesOf(tr).map(i => 'f' + i) : [this.slotKey(tr)]; }
+  // 2×2 范围的地形是否合适：重型炮台放平台 / 空地，2×2 地面陷阱放通道
+  bigFits(cat, x, z) {
+    for (let dz = 0; dz < 2; dz++) for (let dx = 0; dx < 2; dx++) {
+      const t = this.tileAt(x + dx, z + dz);
+      if (cat === 'hfloor' ? t !== TILE.LANE : (t !== TILE.PAD && t !== TILE.FLOOR)) return false;
+      if ((this.def.devices || []).some(dv => dv.lever[0] === x + dx && dv.lever[1] === z + dz)) return false;
+    }
+    return true;
+  }
+  bigTaken(x, z) {
+    for (let dz = 0; dz < 2; dz++) for (let dx = 0; dx < 2; dx++) { const t = this.occ.get('f' + ((z + dz) * this.W + x + dx)); if (t) return t; }
+    return null;
+  }
+  trapAtSlot(slot, type) {
+    if (type && TRAP[type] && TRAP[type].big) return this.bigTaken(slot.x, slot.z);
+    return this.occ.get(this.slotKey(slot)) || null;
+  }
   _rebuildOcc() {
     this.occ = new Map();
-    for (const tr of this.s.traps) this.occ.set(this.slotKey(tr), tr);
+    for (const tr of this.s.traps) for (const k of this.occKeys(tr)) this.occ.set(k, tr);
   }
   trapWorld(tr) {
+    if (tr.type && TRAP[tr.type] && TRAP[tr.type].big) {
+      const cx = (tr.x + 1) * T, cz = (tr.z + 1) * T;
+      return { x: cx, y: this.plat.has(tr.z * this.W + tr.x) && this.plat.has((tr.z + 1) * this.W + tr.x + 1) ? PLAT_H : 0, z: cz };
+    }
     const cx = (tr.x + 0.5) * T, cz = (tr.z + 0.5) * T;
     if (tr.kind === 'wall') { const d = DIRS[tr.dir]; return { x: cx + d[0] * T * 0.5, y: 1.5, z: cz + d[1] * T * 0.5 }; }
     if (tr.kind === 'ceil') return { x: cx, y: WALL_H, z: cz };
@@ -1977,12 +2033,15 @@ class Sim {
     const out = [];
     for (let z = 0; z < this.H; z++) for (let x = 0; x < this.W; x++) {
       const t = this.tileAt(x, z);
+      if (cat === 'heavy') continue;
+      if (cat === 'hfloor') { if (this.bigFits('hfloor', x, z)) out.push({ kind: 'floor', x, z }); continue; }
       if (cat === 'floor' || cat === 'ceil') { if (t === TILE.LANE) out.push({ kind: cat, x, z }); }
       else if (cat === 'pad') { if (t === TILE.PAD || t === TILE.FLOOR) out.push({ kind: 'floor', x, z }); }
       else if (cat === 'wall' && t === TILE.LANE) {
         for (let d = 0; d < 4; d++) if (this.solid(x + DIRS[d][0], z + DIRS[d][1])) out.push({ kind: 'wall', x, z, dir: d });
       }
     }
+    if (cat === 'heavy') for (const [x, z] of this.def.platforms || []) if (this.bigFits('heavy', x, z)) out.push({ kind: 'floor', x, z });
     return out;
   }
 
@@ -1998,11 +2057,14 @@ class Sim {
     if (!slot) {
       return { ok: false, reason: '对准' + CAT_NAME[def.cat] + (def.cat === 'pad' ? '（琥珀色炮台平台 / 空地；放在通道上会挡路并被攻击）' : '（怪物通道）') };
     }
-    if (this.trapAtSlot(slot)) return { ok: false, reason: '该位置已有陷阱' };
+    if (def.big) {
+      if (slot.kind !== 'floor' || !this.bigFits(def.cat, slot.x, slot.z)) return { ok: false, reason: def.cat === 'heavy' ? '需要 2×2 的空地（琥珀色炮台平台最合适）' : '需要通道上 2×2 的空位' };
+    }
+    if (this.trapAtSlot(slot, type)) return { ok: false, reason: def.big ? '2×2 范围内已有陷阱' : '该位置已有陷阱' };
     if (slot.kind === 'floor' && (this.def.devices || []).some(dv => dv.lever[0] === slot.x && dv.lever[1] === slot.z)) return { ok: false, reason: '这里是机关控制台' };
     const p = s.players[pid];
     if (p) {
-      const w = this.trapWorld(slot);
+      const w = this.trapWorld({ type, x: slot.x, z: slot.z, kind: slot.kind, dir: slot.dir });
       if (Math.hypot(w.x - p.x, w.z - p.z) > 20) return { ok: false, reason: '距离太远' };
     }
     if (def.block || this.laneTurret(type, slot)) {
@@ -2197,7 +2259,7 @@ class Sim {
         if (this.laneTurret(cmd.trap, sl)) { tr.lane = true; tr.hp = tr.maxHp = LANE_HP[cmd.trap][0]; }
         if (sl.kind === 'wall') tr.line = this.wallLine(sl.x, sl.z, sl.dir);
         const w = this.trapWorld(tr); tr.wx = w.x; tr.wy = w.y; tr.wz = w.z;
-        s.traps.push(tr); this.occ.set(this.slotKey(tr), tr);
+        s.traps.push(tr); for (const k of this.occKeys(tr)) this.occ.set(k, tr);
         s.gold -= r.cost; s.stats.built++; s.stats.spent += r.cost;
         this.ev('build', { id: tr.id, trap: tr.type, pid: cmd.pid, x: tr.wx, y: tr.wy, z: tr.wz });
         return { ok: true, id: tr.id };
@@ -2220,7 +2282,7 @@ class Sim {
         const i = s.traps.findIndex(t => t.id === cmd.id);
         if (i < 0) return { ok: false, reason: '陷阱不存在' };
         const tr = s.traps[i], refund = this.refundOf(tr, cmd.pid);
-        s.traps.splice(i, 1); this.occ.delete(this.slotKey(tr));
+        s.traps.splice(i, 1); for (const k of this.occKeys(tr)) if (this.occ.get(k) === tr) this.occ.delete(k);
         s.gold += refund;
         this.ev('sell', { id: tr.id, refund, x: tr.wx, y: tr.wy, z: tr.wz });
         return { ok: true, refund };
@@ -2314,7 +2376,8 @@ class Sim {
   _spawn(type, lane, d) {
     const def = MON[type], s = this.s, tmp = this._tmp;
     const extra = s.wave > this.waves.length ? Math.pow(1.06, s.wave - this.waves.length) : 1;
-    const hpMul = def.boss ? DIFFS[s.diff].hp * extra * (this.def.bossMul || 1) : DIFFS[s.diff].hp * (1 + 0.13 * (Math.max(1, s.wave) - 1)) * extra;
+    const DF = DIFFS[s.diff] || DIFFS.normal;
+    const hpMul = def.boss ? DF.hp * extra * (this.def.bossMul || 1) : DF.hp * (1 + (DF.grow || 0.13) * (Math.max(1, s.wave) - 1)) * extra;
     const off = def.fly ? (this.rand() * 2 - 1) * 0.5 * T : (this.rand() * 2 - 1) * Math.max(0, 0.78 * T - def.r * 0.7);
     const path = this.paths[lane];
     pathAt(path, d, tmp);
@@ -2323,8 +2386,12 @@ class Sim {
       id: s.nextId++, type, lane, d, off, x, y, z, ox: x, oy: y, oz: z, fx: tmp.dx, fz: tmp.dz,
       hp: def.hp * hpMul, maxHp: def.hp * hpMul, slowAmt: 0, slowT: 0, poisonT: 0, poisonDps: 0, burnT: 0, burnDps: 0,
       stunT: 0, launchT: 0, hitT: 0, atkT: 1, state: 'move', enraged: false, dead: false, leaked: false,
-      seed: this.rand() * 100, born: s.time,
+      seed: this.rand() * 100, born: s.time, hpMul,
     };
+    if (def.aura) { m.auraT = 1.5; m.shield = 0; }
+    if (def.cannon) m.canT = 3;
+    if (def.blink) m.blinkT = def.blink.every * (0.5 + this.rand() * 0.5);
+    if (def.drop) m.dropT = def.drop.every * 0.6;
     if (def.boss) { m.empT = 9; m.sumT = 14; m.stompT = 6; m.artT = 5; m.lavaT = 0; m.waveT = 7; m.broodT = 3; s.bossId = m.id; this.ev('boss', { id: m.id, mtype: type, lane, laneName: this.def.laneNames[lane] || lane }); }
     if (this.hasMut('champions') && !def.boss && !def.elite && this.rand() < 0.12) { m.champ = true; m.hp = m.maxHp = m.maxHp * 2.5; }
     if (def.stealth) { m.cloak = true; m.revealT = 0; }
@@ -2351,7 +2418,10 @@ class Sim {
       if (!(m.airFx > this.s.time)) { m.airFx = this.s.time + 0.8; this.ev('combo', { k: 'air', x: m.x, y: m.y + def.body[0], z: m.z }); }
     }
     if (src === 'trap') a *= 1 + 0.08 * this.techLv('overclock');
-    m.hp -= a; m.hitT = 0.12;
+    m.hitT = 0.12;
+    // 能量护盾：先吸收伤害
+    if (m.shield > 0) { const ab = Math.min(m.shield, a); m.shield -= ab; a -= ab; if (m.shield <= 0) { m.shield = 0; this.ev('shieldBreak', { id: m.id, x: m.x, y: m.y + def.body[0], z: m.z }); } if (a <= 0) return 0; }
+    m.hp -= a;
     if (src === 'gun') this.s.stats.dmgGun += a; else this.s.stats.dmgTrap += a;
     if (pid) { const p = this.s.players[pid]; if (p) { p.dmg += a; if (src === 'gun') p.energy = Math.min(100, p.energy + a * 0.012 * (1 + 0.2 * ((p.tal && p.tal.energy) || 0) + (p.cls === 'support' ? 0.4 : 0)) / (this.hasMut('glass') ? 2 : 1)); } }
     if (m.hp <= 0) { m.hp = 0; m.dead = true; m.killer = pid || null; }
@@ -2597,6 +2667,89 @@ class Sim {
           this.ev('trap', { kind: 'crusher', id: tr.id, x: tr.wx, y: 0.1, z: tr.wz });
           break;
         }
+        case 'rail': {
+          if (tr.cd > 0) break;
+          const R = def.range, ox = tr.wx, oy = tr.wy + 2.3, oz = tr.wz;
+          // 优先级：BOSS > 精英 / 重甲 > 离水晶最近
+          const cand = [];
+          for (const m of s.monsters) {
+            if (m.dead || !this.canLock(m)) continue;
+            const md = MON[m.type], cy = m.y + md.body[0];
+            if (Math.hypot(m.x - ox, cy - oy, m.z - oz) > R) continue;
+            cand.push({ m, cy, sc: (md.boss ? 3e6 : md.elite || md.heavy ? 2e6 : 0) + m.maxHp * (md.boss || md.elite || md.heavy ? 1 : 0) - (this.paths[m.lane].len - m.d) });
+          }
+          if (!cand.length) { tr.cd = 0; break; }
+          cand.sort((a, b) => b.sc - a.sc);
+          let tg = null;
+          for (let i = 0; i < cand.length && i < 6; i++) if (this._los(ox, oy, oz, cand[i].m.x, cand[i].cy, cand[i].m.z)) { tg = cand[i]; break; }
+          if (!tg) { tr.cd = 0.2; break; }
+          let dx = tg.m.x - ox, dy = tg.cy - oy, dz = tg.m.z - oz;
+          const L0 = Math.hypot(dx, dy, dz) || 1; dx /= L0; dy /= L0; dz /= L0;
+          const hw = this.raycast(ox, oy, oz, dx, dy, dz, R), Lm = hw ? Math.max(L0 + 0.5, hw.t) : R;
+          const dmg = def.dmg[lv - 1] * (br === 'a' ? 1.6 : 1);
+          let n = 0;
+          for (const m of s.monsters) {
+            if (m.dead || m.burrow) continue;
+            const md = MON[m.type], cy = m.y + md.body[0];
+            const lx = m.x - ox, ly = cy - oy, lz = m.z - oz, u = lx * dx + ly * dy + lz * dz;
+            if (u < 0 || u > Lm) continue;
+            const px = lx - dx * u, py = ly - dy * u, pz = lz - dz * u;
+            if (px * px + py * py + pz * pz > (md.r + 0.55) * (md.r + 0.55)) continue;
+            this.damage(m, dmg, 'trap', null, true); n++;
+            if (br === 'a' && !md.boss) m.stunT = Math.max(m.stunT, 0.8);
+          }
+          tr.aimYaw = Math.atan2(-dx, -dz);
+          tr.cd = def.cd[lv - 1] * (br === 'b' ? 0.55 : 1); tr.fireT = s.time;
+          this.ev('rail', { id: tr.id, x: ox, y: oy, z: oz, x2: ox + dx * Lm, y2: oy + dy * Lm, z2: oz + dz * Lm, n });
+          break;
+        }
+        case 'mortar': {
+          if (tr.cd > 0) break;
+          const R = def.range, rr = def.splash, g = [];
+          for (const m of s.monsters) {
+            if (m.dead || m.burrow || (MON[m.type].fly && !(m.pullT > 0)) || (m.cloak && !(m.revealT > 0))) continue;
+            const d = Math.hypot(m.x - tr.wx, m.z - tr.wz);
+            if (d >= def.minRange && d <= R) g.push(m);
+          }
+          if (!g.length) { tr.cd = 0; break; }
+          // 找怪最密集的落点（同等密度优先离水晶近的）
+          let best = null, bs = -1;
+          for (let i = 0; i < g.length && i < 60; i++) {
+            const a = g[i]; let sc = 0;
+            for (const o of g) if (Math.hypot(o.x - a.x, o.z - a.z) < rr) sc += MON[o.type].heavy || MON[o.type].elite ? 3 : 1;
+            sc -= (this.paths[a.lane].len - a.d) * 0.002;
+            if (sc > bs) { bs = sc; best = a; }
+          }
+          // 预判：按怪物当前速度往前打一点
+          const mdb = MON[best.type], fl = 1.2, ahead = best.stunT > 0 || best.state !== 'move' ? 0 : mdb.spd * (1 - best.slowAmt) * fl * 0.8;
+          const t2 = this._tmp2; pathAt(this.paths[best.lane], Math.min(this.paths[best.lane].len, best.d + ahead), t2);
+          const tx = t2.x - t2.dz * best.off, tz = t2.z + t2.dx * best.off;
+          s.shells.push({ x: tr.wx, z: tr.wz, tx, tz, t: fl, k: 'm', dmg: def.dmg[lv - 1], r: rr, br });
+          tr.aimYaw = Math.atan2(-(tx - tr.wx), -(tz - tr.wz));
+          tr.cd = def.cd[lv - 1]; tr.fireT = s.time;
+          this.ev('shellFire', { x: tr.wx, z: tr.wz, tx, tz, t: fl, k: 'm', y: tr.wy + 2.2 });
+          break;
+        }
+        case 'grinder': {
+          tr.tick = (tr.tick || 0) - dt;
+          if (tr.tick > 0) break;
+          tr.tick = 0.25;
+          const tiles = [];
+          if (br === 'b') { for (let dz = -1; dz <= 2; dz++) for (let dx = -1; dx <= 2; dx++) if (!this.solid(tr.x + dx, tr.z + dz)) tiles.push((tr.z + dz) * this.W + tr.x + dx); }
+          else tiles.push(...this.tilesOf(tr));
+          if (br === 'b') for (const m of s.monsters) if (!m.dead && MON[m.type].fly && !MON[m.type].boss && Math.hypot(m.x - tr.wx, m.z - tr.wz) < 5) m.pullT = Math.max(m.pullT || 0, 0.5);
+          for (const i of tiles) this._ground(i, list);
+          if (!list.length) break;
+          const core = new Set(this.tilesOf(tr)), dmg = def.dps[lv - 1] * 0.25 * (br === 'a' ? 1.6 : 1), sl = def.slow[lv - 1];
+          for (const m of list) {
+            const inCore = core.has(this.idxOf(m.x, m.z));
+            if (inCore) this.damage(m, dmg, 'trap', null, true);
+            m.slowAmt = Math.max(m.slowAmt, inCore ? sl : sl * 0.7); m.slowT = Math.max(m.slowT, 0.35);
+          }
+          tr.activeT = 0.4;
+          if (s.time - tr.fireT > 0.9) { tr.fireT = s.time; this.ev('trap', { kind: 'grinder', id: tr.id, x: tr.wx, y: tr.wy, z: tr.wz }); }
+          break;
+        }
       }
     }
   }
@@ -2718,7 +2871,7 @@ class Sim {
     if (tr.hp <= 0) {
       const i = this.s.traps.indexOf(tr);
       if (i >= 0) this.s.traps.splice(i, 1);
-      this.occ.delete(this.slotKey(tr));
+      for (const k of this.occKeys(tr)) if (this.occ.get(k) === tr) this.occ.delete(k);
       this.ev('trapBroken', { id: tr.id, trap: tr.type, x: tr.wx, y: tr.wy, z: tr.wz });
     }
   }
@@ -2760,13 +2913,73 @@ class Sim {
       if (m.burnT > 0) { m.burnT -= dt; this.damage(m, m.burnDps * dt, 'trap', null, true); }
       if (m.dead) continue;
       if (m.slowT > 0) { m.slowT -= dt; if (m.slowT <= 0) m.slowAmt = 0; }
+      // 眩晕抗性：新施加的眩晕时间按比例缩短
+      if (def.stunRes && m.stunT > (m._st || 0)) m.stunT = (m._st || 0) + (m.stunT - (m._st || 0)) * (1 - def.stunRes);
       if (def.elite && !m.enraged && m.hp < m.maxHp * 0.5) { m.enraged = true; this.ev('enrage', { id: m.id, x: m.x, z: m.z }); }
       let spd = def.spd * (m.enraged ? 1.6 : 1) * (1 - m.slowAmt * (1 - (def.slowRes || 0))) * (this.hasMut('swift') ? 1.25 : 1) * (m.champ ? 0.9 : 1);
       if (this.hasMut('regen') && s.time - (m.lastHitT || 0) > 2 && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.015 * dt);
       if (m.stunT > 0) { m.stunT -= dt; spd = 0; }
       if (m.launchT > 0) m.launchT -= dt;
+      m._st = m.stunT;
       const path = this.paths[m.lane];
       m.state = 'move';
+      // 棱盾守卫：周期性给周围的怪（含自己）套上能量护盾
+      if (def.aura) {
+        m.auraT -= dt;
+        if (m.auraT <= 0 && m.stunT <= 0) {
+          m.auraT = def.aura.every;
+          const amt = def.aura.amt * (m.hpMul || 1), ids = [];
+          for (const o of s.monsters) {
+            if (o.dead || o.burrow || Math.hypot(o.x - m.x, o.z - m.z) > def.aura.r) continue;
+            const cap = o.maxHp * (MON[o.type].boss ? 0.08 : 0.6);
+            o.shield = Math.max(o.shield || 0, Math.min(amt, cap)); ids.push(o.id);
+          }
+          this.ev('aura', { id: m.id, x: m.x, z: m.z, r: def.aura.r, n: ids.length });
+        }
+      }
+      // 铁蹄坦克：炮击射程内的炮台 / 阻挡物，命中处的陷阱短暂瘫痪
+      if (def.cannon) {
+        m.canT -= dt;
+        if (m.canT <= 0 && m.stunT <= 0) {
+          const C = def.cannon;
+          let best = null, bd = C.range;
+          for (const tr of s.traps) {
+            const cat = TRAP[tr.type].cat;
+            if (!(cat === 'pad' || cat === 'heavy' || this.isBlocker(tr)) || tr.disT > 1) continue;
+            const d = Math.hypot(tr.wx - m.x, tr.wz - m.z);
+            if (d < bd) { bd = d; best = tr; }
+          }
+          if (best) {
+            m.canT = C.every;
+            const tx = best.wx + (this.rand() - 0.5) * 0.8, tz = best.wz + (this.rand() - 0.5) * 0.8;
+            s.shells.push({ x: m.x, z: m.z, tx, tz, t: 0.9, k: 't', dmg: C.dmg * Math.min(2, m.hpMul || 1), dis: C.dis });
+            this.ev('shellFire', { x: m.x, z: m.z, tx, tz, t: 0.9, k: 't', y: 2.0 });
+          } else m.canT = 0.6;
+        }
+      }
+      // 相位行者：每隔几秒沿路线向前瞬移，越过陷阱和阻挡
+      if (def.blink) {
+        m.blinkT -= dt;
+        if (m.blinkT <= 0 && m.stunT <= 0 && m.launchT <= 0 && !(m.frozenT > 0)) {
+          m.blinkT = def.blink.every;
+          const nd = Math.min(path.len - 6, m.d + def.blink.dist);
+          if (nd > m.d + 1) {
+            const x0 = m.x, z0 = m.z;
+            m.d = nd; pathAt(path, m.d, tmp);
+            m.x = m.ox = tmp.x - tmp.dz * m.off; m.z = m.oz = tmp.z + tmp.dx * m.off;
+            this.ev('blink', { id: m.id, x: x0, z: z0, x2: m.x, z2: m.z });
+          }
+        }
+      }
+      // 天穹炮艇：空投噬晶蛛
+      if (def.drop) {
+        m.dropT -= dt;
+        if (m.dropT <= 0) {
+          m.dropT = def.drop.every;
+          for (let i = 0; i < def.drop.n; i++) { const c = this._spawn(def.drop.type, m.lane, Math.max(0, m.d - i * 0.8)); c.off = Math.max(-1.2, Math.min(1.2, m.off + (i - 0.5))); }
+          this.ev('summon', { x: m.x, z: m.z, drop: true });
+        }
+      }
       // 隐身：靠近玩家 4.5 米内会暴露
       if (def.stealth) {
         m.revealT = Math.max(0, m.revealT - dt);
@@ -2931,7 +3144,7 @@ class Sim {
     m.artT -= dt;
     if (m.artT > 0) return;
     m.artT = 7;
-    const cand = s.traps.filter(t => (TRAP[t.type].cat === 'pad' || t.type === 'tesla') && Math.hypot(t.wx - m.x, t.wz - m.z) < 28).sort((a, b) => Math.hypot(a.wx - m.x, a.wz - m.z) - Math.hypot(b.wx - m.x, b.wz - m.z));
+    const cand = s.traps.filter(t => (TRAP[t.type].cat === 'pad' || TRAP[t.type].cat === 'heavy' || t.type === 'tesla') && Math.hypot(t.wx - m.x, t.wz - m.z) < 28).sort((a, b) => Math.hypot(a.wx - m.x, a.wz - m.z) - Math.hypot(b.wx - m.x, b.wz - m.z));
     const tgts = cand.slice(0, 3).map(t => [t.wx, t.wz]);
     if (!tgts.length) for (const id in s.players) { const q = s.players[id]; if (!q.dead && Math.hypot(q.x - m.x, q.z - m.z) < 28) { tgts.push([q.x, q.z]); break; } }
     for (const [x, z] of tgts) {
@@ -2945,6 +3158,35 @@ class Sim {
     for (const sh of s.shells) {
       sh.t -= dt;
       if (sh.t > 0) continue;
+      if (sh.k === 'm') {   // 等离子迫击炮
+        const hit = (x, z, dmg, r) => {
+          for (const m of s.monsters) {
+            if (m.dead || m.burrow || (MON[m.type].fly && !(m.pullT > 0))) continue;
+            const d = Math.hypot(m.x - x, m.z - z) - MON[m.type].r * 0.5;
+            if (d > r) continue;
+            this.damage(m, dmg * (1 - 0.45 * Math.max(0, d) / r), 'trap');
+            if (sh.br === 'a' && !MON[m.type].burnImmune) { const bd = dmg * 0.09; m.burnDps = m.burnT > 0 ? Math.max(m.burnDps, bd) : bd; m.burnT = 4; }
+          }
+        };
+        hit(sh.tx, sh.tz, sh.dmg, sh.r);
+        this.ev('boom', { x: sh.tx, y: 0.4, z: sh.tz, r: sh.r, small: false });
+        if (sh.br === 'b') for (let i = 0; i < 4; i++) {
+          const a = i * Math.PI / 2 + 0.6, bx = sh.tx + Math.cos(a) * 2.8, bz = sh.tz + Math.sin(a) * 2.8;
+          hit(bx, bz, sh.dmg * 0.35, 2.2); this.ev('boom', { x: bx, y: 0.3, z: bz, r: 2.2, small: true });
+        }
+        if (sh.br === 'a') this.ev('combo', { k: 'napalm', x: sh.tx, y: 0.2, z: sh.tz });
+        continue;
+      }
+      if (sh.k === 't') {   // 坦克炮弹：瘫痪附近陷阱，伤到阻挡物与玩家
+        for (const tr of s.traps.slice()) {
+          if (Math.hypot(tr.wx - sh.tx, tr.wz - sh.tz) > (this.isBig(tr) ? 3.2 : 2.2)) continue;
+          tr.disT = Math.max(tr.disT, sh.dis * this.disMul());
+          if (this.isBlocker(tr)) this._hurtTrap(tr, sh.dmg);
+        }
+        for (const id in s.players) { const p = s.players[id]; if (!p.dead && Math.hypot(p.x - sh.tx, p.z - sh.tz) < 2.6) this.hurtPlayer(p, 22, 'shell', sh.tx, sh.tz); }
+        this.ev('boom', { x: sh.tx, y: 0.4, z: sh.tz, r: 2.2, small: false });
+        continue;
+      }
       for (const tr of s.traps.slice()) {
         if (Math.hypot(tr.wx - sh.tx, tr.wz - sh.tz) > 2.6) continue;
         tr.disT = Math.max(tr.disT, 6 * this.disMul());
@@ -2987,7 +3229,7 @@ class Sim {
     let any = false;
     for (const k in s.lava) { s.lava[k] -= dt; if (s.lava[k] <= 0) delete s.lava[k]; else any = true; }
     if (!any) return;
-    for (const tr of s.traps) if (tr.kind === 'floor' && TRAP[tr.type].cat === 'floor' && s.lava[tr.idx]) tr.disT = Math.max(tr.disT, 0.3);
+    for (const tr of s.traps) if (tr.kind === 'floor' && (TRAP[tr.type].cat === 'floor' || TRAP[tr.type].cat === 'hfloor') && this.tilesOf(tr).some(i => s.lava[i])) tr.disT = Math.max(tr.disT, 0.3);
     for (const id in s.players) {
       const p = s.players[id];
       if (p.dead || p.y > 0.3 || !s.lava[this.idxOf(p.x, p.z)]) continue;
@@ -3182,7 +3424,7 @@ class Sim {
 
 }
 
-const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
+const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.TD = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -3206,7 +3448,7 @@ else root.TD = api;
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 10;
+const VERSION = 11;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
@@ -3242,7 +3484,7 @@ function packMonsters(list) {
     u[o] = id & 255; u[o + 1] = (id >> 8) & 255; u[o + 2] = (id >> 16) & 255;
     u[o + 3] = MTYPES.indexOf(m.type);
     u[o + 4] = (m.slowAmt > 0 ? 1 : 0) | (m.poisonT > 0 ? 2 : 0) | (m.burnT > 0 ? 4 : 0) | (m.stunT > 0 ? 8 : 0) | (m.enraged ? 16 : 0) | (m.hitT > 0 ? 32 : 0) | (m.launchT > 0 ? 64 : 0) | (m.cloak ? 128 : 0);
-    u[o + 12] = Math.max(0, STATES.indexOf(m.state)) | (m.burrow ? 4 : 0) | (m.aiming ? 8 : 0) | (m.frozenT > 0 ? 16 : 0) | (m.champ ? 32 : 0);
+    u[o + 12] = Math.max(0, STATES.indexOf(m.state)) | (m.burrow ? 4 : 0) | (m.aiming ? 8 : 0) | (m.frozenT > 0 ? 16 : 0) | (m.champ ? 32 : 0) | (m.shield > 0 ? 64 : 0);
     const x = clamp(Math.round(m.x * 100), 0, 65535), z = clamp(Math.round(m.z * 100), 0, 65535);
     u[o + 5] = x & 255; u[o + 6] = x >> 8; u[o + 7] = z & 255; u[o + 8] = z >> 8;
     u[o + 9] = clamp(Math.round(m.y * 40), 0, 255);
@@ -3287,7 +3529,7 @@ const SCHEMA = {
   trapBroken: ['id', 'trap', 'x', 'y', 'z'],
   heal: ['id', 'x', 'y', 'z', 'ids'],
   emp: ['x', 'z', 'r', 'n'],
-  summon: ['x', 'z'],
+  summon: ['x', 'z', 'brood', 'drop'],
   stomp: ['x', 'z', 'r'],
   enrage: ['id', 'x', 'z'],
   phurt: ['pid', 'dmg', 'sx', 'sz'],
@@ -3298,7 +3540,7 @@ const SCHEMA = {
   waveClear: ['wave', 'bonus'],
   boss: ['id', 'mtype', 'lane', 'laneName'],
   burrow: ['id', 'x', 'z'], surface: ['id', 'x', 'z'], hacked: ['id', 'trap', 'x', 'y', 'z'], hackStart: ['id', 'tr'],
-  mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], shellFire: ['x', 'z', 'tx', 'tz', 't'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
+  mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
   laneOpen: ['lanes', 'names'],
   victory: [], defeat: [],
   pjoin: ['name'], pleave: ['name'], pready: ['pid', 'on'],
@@ -3307,7 +3549,7 @@ const SCHEMA = {
   research: ['pid', 'tech', 'lv'], resupply: ['pid'],
 };
 // 高频装饰事件只发一次，其余事件在后续快照里重复两次以抵抗丢包（客户端按序号去重）
-const ONCE = new Set(['trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'hackStart', 'combo']);
+const ONCE = new Set(['trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak']);
 const encVal = v => typeof v === 'number' ? (v === Infinity ? -1 : r2(v)) : typeof v === 'boolean' ? (v ? 1 : 0) : v === undefined ? null : v;
 
 class EventOut {
@@ -3483,7 +3725,7 @@ function applySnap(sim, snap, ctx) {
     if (!tr) {
       changed = true;
       const x = trU[o + 4], z = trU[o + 5], dir = b6 & 3;
-      tr = { id, type, br: '', kind: def.cat === 'pad' ? 'floor' : def.cat, x, z, dir, lv, owner: null, invested: def.cost, cd: 0, activeT: 0, fireT: -99, disT: 0, hurtT: 0, tgt: 0, scanT: 0, aimYaw: 0, targets: [], idx: z * sim.W + x };
+      tr = { id, type, br: '', kind: TD.kindOfCat(def.cat), x, z, dir, lv, owner: null, invested: def.cost, cd: 0, activeT: 0, fireT: -99, disT: 0, hurtT: 0, tgt: 0, scanT: 0, aimYaw: 0, targets: [], idx: z * sim.W + x };
       if (tr.kind === 'wall') tr.line = sim.wallLine(x, z, dir);
       if (sim.laneTurret(type, tr)) tr.lane = true;
       const w = sim.trapWorld(tr); tr.wx = w.x; tr.wy = w.y; tr.wz = w.z;
@@ -3522,7 +3764,7 @@ function applySnap(sim, snap, ctx) {
     const f = mU[o + 4], f2 = mU[o + 12];
     m.state = STATES[f2 & 3] || 'move';
     m.slowAmt = f & 1 ? 0.4 : 0; m.poisonT = f & 2 ? 1 : 0; m.burnT = f & 4 ? 1 : 0; m.stunT = f & 8 ? 1 : 0; m.enraged = !!(f & 16); m.launchT = f & 64 ? 0.3 : 0;
-    m.cloak = !!(f & 128); m.burrow = !!(f2 & 4); m.aiming = !!(f2 & 8); m.frozenT = f2 & 16 ? 0.3 : 0; m.champ = !!(f2 & 32);
+    m.cloak = !!(f & 128); m.burrow = !!(f2 & 4); m.aiming = !!(f2 & 8); m.frozenT = f2 & 16 ? 0.3 : 0; m.champ = !!(f2 & 32); m.shield = f2 & 64 ? 1 : 0;
     if (f & 32) m.hitT = 0.12;
     const a = bAng(mU[o + 10]);
     if (m.aiming) { m.ax = Math.sin(a); m.az = Math.cos(a); } else { m.fx = Math.sin(a); m.fz = Math.cos(a); }
@@ -3825,7 +4067,7 @@ const KEY_ACTIONS = [
   ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
   ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
 ];
-const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit0', 'Minus', 'Equal', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
 let keyInv = new Map(), keyAway = new Set();
 function rebuildKeys() {
   keyInv = new Map(); keyAway = new Set();
@@ -4302,7 +4544,7 @@ function c(r, g, b, a, emit, flash, add, nofog) {
   SC[0] = r; SC[1] = g; SC[2] = b; SC[3] = a === undefined ? 1 : a; SC[4] = emit || 0; SC[5] = flash || 0; SC[6] = 0; SC[7] = !!add; SC[8] = !!nofog;
   return SC;
 }
-const CAT_COL = { floor: [0.31, 0.84, 0.77], pad: [1.0, 0.71, 0.28], wall: [1.0, 0.42, 0.55], ceil: [0.71, 0.55, 1.0] };
+const CAT_COL = { floor: [0.31, 0.84, 0.77], pad: [1.0, 0.71, 0.28], wall: [1.0, 0.42, 0.55], ceil: [0.71, 0.55, 1.0], heavy: [1.0, 0.45, 0.22], hfloor: [0.55, 1.0, 0.4] };
 
 /* ============================================================
  * 音效（WebAudio 合成，无外部资源）
@@ -4401,6 +4643,12 @@ const Snd = {
       case 'burrow': this.hiss(0.4, 'lowpass', 600, 120, 1, 0.3 * v, p); this.tone('sine', 70, 40, 0.3, 0.25 * v, p); break;
       case 'hack': [0, 0.08, 0.16].forEach((d, i) => this.tone('square', 1200 - i * 300, 900 - i * 300, 0.07, 0.1 * v + 0.03, p, d)); break;
       case 'mshot': this.hiss(0.05, 'bandpass', 2600, 1400, 1, 0.22 * v, p); this.tone('square', 260, 120, 0.05, 0.08 * v, p); break;
+      case 'rail': this.tone('sawtooth', 1800, 120, 0.35, 0.22 * v, p); this.tone('sine', 220, 60, 0.5, 0.5 * v, p); this.hiss(0.4, 'highpass', 6000, 1500, 1, 0.3 * v, p); break;
+      case 'mortar': this.tone('sine', 70, 35, 0.5, 0.7 * v, p); this.hiss(0.5, 'lowpass', 900, 150, 1, 0.45 * v, p); this.tone('triangle', 500, 900, 0.25, 0.08 * v, p, 0.05); break;
+      case 'grinder': this.hiss(0.3, 'bandpass', 2500, 1800, 3, 0.14 * v, p); this.tone('sawtooth', 160, 150, 0.3, 0.06 * v, p); break;
+      case 'blink': this.tone('sine', 300, 1400, 0.18, 0.18 * v, p); this.hiss(0.2, 'highpass', 4000, 3000, 1, 0.12 * v, p); break;
+      case 'aura': this.tone('sine', 420, 640, 0.35, 0.12 * v, p); this.tone('sine', 630, 960, 0.35, 0.06 * v, p); break;
+      case 'shieldBreak': this.tone('square', 900, 200, 0.2, 0.1 * v, p); this.hiss(0.25, 'highpass', 3000, 1200, 1, 0.18 * v, p); break;
       case 'shellFire': this.tone('sine', 90, 50, 0.4, 0.5 * v, p); this.hiss(0.4, 'lowpass', 1500, 200, 1, 0.4 * v, p); break;
       case 'strike': this.tone('sine', 80, 25, 1.4, 0.8 * v + 0.2, p); this.hiss(1.6, 'lowpass', 3000, 80, 0.6, 0.7 * v + 0.2, p); this.tone('sawtooth', 300, 40, 0.8, 0.25 * v, p); break;
       case 'tick': this.tone('sine', 1800, 1500, 0.04, 0.12 * v, p); break;
@@ -4908,6 +5156,80 @@ function drawMonster(m, a) {
       LIMB('box', 0.92, 2.45, -0.3, 2.2, 0.42, 0.45, (atk ? -0.9 - atk * 0.9 : sw * 0.7) - 0.25, mc(0.24, 0.21, 0.23));
       top = 3.4; break;
     }
+    case 'shield': case 'blinker': {
+      const sh = m.type === 'shield', sc = sh ? 1.2 : 0.95;
+      if (hasModel('robot')) {
+        let clip = sh ? 'walk' : 'run', rate = def.spd / (sh ? 2.6 * sc : 4.4);
+        if (m.state === 'block' && m.stunT <= 0) { clip = 'punch'; rate = 1.15; }
+        else if (m.stunT > 0 || m.state === 'queue') { clip = 'idle'; rate = 1; }
+        rate *= 1 - m.slowAmt * 0.55;
+        animClip('robot', clip, timeNow * rate + m.seed);
+        const tn = sh ? [0.38, 0.62, 0.75] : [0.5, 0.36, 0.85];
+        E.push('robot', x, y, z, yaw, sc * born, sc * born, sc * born, mc(tn[0], tn[1], tn[2], 0));
+        if (!sh) {   // 相位残影
+          const g = Math.sin(t * 11) > 0.3 ? 0.18 : 0.08;
+          E.push('robot', x + m.fx * 0.35, y, z + m.fz * 0.35, yaw, sc, sc, sc, c(0.6, 0.4, 1, g, 1, 0, true));
+          E.push('robot', x + m.fx * 0.7, y, z + m.fz * 0.7, yaw, sc, sc, sc, c(0.4, 0.8, 1, g * 0.6, 1, 0, true));
+        }
+        E.anim();
+      }
+      if (sh) {
+        const pu = 0.5 + 0.5 * Math.sin(t * 4);
+        P('box', 0, 1.3, 0.42, 0.62, 0.72, 0.32, mc(0.22, 0.24, 0.28));
+        P('cyl', 0, 1.82, 0.45, 0.16, 0.36, 0.16, mc(0.3, 0.32, 0.36));
+        P('sphere', 0, 2.08, 0.45, 0.3, 0.3, 0.3, c(0.4, 0.85, 1, 1, 0.6 + 0.4 * pu, TN.flash));
+        // 前方的六边形能量盾牌
+        P('box', 0.22, 0.98, -0.72, 0.95, 1.1, 0.05, c(0.3, 0.7, 1, 0.07 + 0.04 * pu, 0.5, 0, true));
+        for (const [ox, oy, w, h] of [[0.22, 1.53, 0.95, 0.05], [0.22, 0.43, 0.95, 0.05], [-0.25, 0.98, 0.05, 1.1], [0.69, 0.98, 0.05, 1.1]]) P('box', ox, oy, -0.72, w, h, 0.06, c(0.45, 0.85, 1, 1, 0.7, TN.flash));
+        top = 2.45;
+      } else {
+        P('box', 0, 1.52, -0.36, 0.34, 0.06, 0.04, c(0.75, 0.5, 1, 1, 1, TN.flash));
+        for (const sd of [-1, 1]) P('box', sd * 0.3, 1.0, 0.32, 0.08, 0.7, 0.08, c(0.4, 0.85, 1, 1, 0.7 + 0.3 * Math.sin(t * 9 + sd)));
+        top = 2.0;
+      }
+      break;
+    }
+    case 'tank': {
+      MX.s = 1;
+      const tk = moving ? (timeNow * 1.8) % 1 : 0;
+      for (const sd of [-1, 1]) {
+        P('box', sd * 0.98, 0.42, 0, 0.55, 0.84, 2.9, mc(0.12, 0.12, 0.13));
+        for (let i = 0; i < 5; i++) P('box', sd * 1.27, 0.42, -1.2 + ((i + tk) % 5) * 0.6, 0.02, 0.72, 0.1, mc(0.28, 0.28, 0.28));
+        for (let i = 0; i < 4; i++) PR('cyl', sd * 1.0, 0.36, -1.05 + i * 0.7, 0, Math.PI / 2, 0.56, 0.6, 0.56, mc(0.2, 0.2, 0.21));
+      }
+      P('box', 0, 0.98, 0.1, 1.75, 0.62, 2.6, mc(0.36, 0.38, 0.31));
+      PR('box', 0, 0.92, -1.25, -0.6, 0, 1.75, 0.5, 0.5, mc(0.32, 0.34, 0.28));
+      for (const sd of [-1, 1]) P('box', sd * 0.95, 1.05, 0.1, 0.12, 0.5, 2.2, mc(0.45, 0.43, 0.3));
+      P('box', 0, 1.55, 0.15, 1.25, 0.55, 1.35, mc(0.42, 0.44, 0.36));
+      P('box', 0, 1.88, 0.35, 0.7, 0.14, 0.6, mc(0.3, 0.31, 0.26));
+      P('sphere', 0, 1.75, -0.6, 0.55, 0.36, 0.3, c(1, 0.35, 0.2, 1, 0.8 + 0.2 * Math.sin(t * 5), TN.flash));
+      const rec = m.canT !== undefined && def.cannon && m.canT > def.cannon.every - 0.3 ? 0.25 : 0;
+      const b0 = LOCAL(0, 1.45, -0.5 + rec), b1 = LOCAL(0, 1.5, -2.5 + rec);
+      E.pushBeam('cyl', b0[0], b0[1], b0[2], b1[0], b1[1], b1[2], 0.24, 0.24, mc(0.18, 0.18, 0.2), true);
+      E.push('cyl', b1[0], b1[1], b1[2], 0, 0.34, 0.3, 0.34, mc(0.15, 0.15, 0.16));
+      P('box', 0.5, 2.05, 0.55, 0.06, 0.5, 0.06, mc(0.2, 0.2, 0.2));
+      top = 2.3; break;
+    }
+    case 'gunship': {
+      MX.s = 1;
+      const tilt = Math.sin(t * 1.1) * 0.08;
+      if (m.aiming) { MX.yaw = Math.atan2(-m.ax, -m.az); MX.cy = Math.cos(MX.yaw); MX.sy = Math.sin(MX.yaw); }
+      P('box', 0, 0, 0.25, 1.1, 0.62, 2.7, mc(0.3, 0.32, 0.37));
+      PR('box', 0, 0.05, -0.85, 0.35, tilt, 0.95, 0.55, 0.8, mc(0.26, 0.28, 0.33));
+      P('sphere', 0, 0.3, -1.15, 0.85, 0.62, 0.85, c(1, 0.5, 0.2, 1, 0.8 + 0.2 * Math.sin(t * 6), TN.flash));
+      PR('box', 0, 0.02, 0.35, 0, tilt, 3.6, 0.12, 0.85, mc(0.24, 0.26, 0.3));
+      P('box', 0, 0.45, 1.45, 0.1, 0.7, 0.7, mc(0.24, 0.26, 0.3));
+      for (const sd of [-1, 1]) {
+        P('cyl', sd * 1.8, 0.05 + sd * tilt, 0.35, 0.7, 0.5, 0.7, mc(0.2, 0.21, 0.24));
+        P('disc', sd * 1.8, 0.34 + sd * tilt, 0.35, 1.9, 1, 1.9, c(0.6, 0.65, 0.75, 0.35, 0.3, 0, true), t * 25 * sd);
+        P('sphere', sd * 1.8, -0.22, 0.35, 0.35, 0.2, 0.35, c(1, 0.45, 0.2, 1, 1));
+      }
+      const g0 = LOCAL(0, -0.45, -0.7), g1 = LOCAL(0, -0.5, -1.6);
+      E.pushBeam('cyl', g0[0], g0[1], g0[2], g1[0], g1[1], g1[2], 0.14, 0.14, mc(0.15, 0.15, 0.17), true);
+      if (m.aiming) E.pushBeam('box', g1[0], g1[1], g1[2], g1[0] + m.ax * 14, g1[1] - 2.2, g1[2] + m.az * 14, 0.02, 0.02, c(1, 0.3, 0.2, 0.5, 1, 0, true));
+      if (Math.random() < 0.4) particle({ x: x + rnd(-0.3, 0.3), y: y - 0.4, z: z + rnd(-0.3, 0.3), vy: -2, life: 0.3, s0: 0.15, s1: 0, c: [1, 0.5, 0.2] });
+      top = 1.0; break;
+    }
     case 'colossus': case 'boss': {
       MX.s = 1;
       const bob = moving ? Math.abs(Math.cos(ph)) * 0.18 : 0;
@@ -4951,8 +5273,14 @@ function drawMonster(m, a) {
     }
   }
   if (m.slowAmt > 0 && !def.fly) E.push('ring', x, 0.05, z, timeNow, def.r * 1.6, 1, def.r * 1.6, c(0.5, 0.8, 1, 0.6, 1, 0, true));
+  // 能量护盾
+  if (m.shield > 0) {
+    const cy = def.fly ? y : y + top * 0.5, rr = def.r * 2.4 + 0.5, pu = 0.5 + 0.5 * Math.sin(timeNow * 6 + m.seed);
+    E.push('sphere', x, cy, z, timeNow, rr, def.fly ? rr * 0.8 : top * 1.15, rr, c(0.4, 0.85, 1, 0.1 + 0.05 * pu, 1, 0, true));
+    E.push('ring', x, cy, z, timeNow * 2, rr * 0.52, 1, rr * 0.52, c(0.5, 0.9, 1, 0.35 + 0.2 * pu, 1, 0, true));
+  }
   // 血条
-  if (!def.boss && m.hp < m.maxHp) {
+  if (!def.boss && (m.hp < m.maxHp || m.shield > 0)) {
     const dd = Math.hypot(x - cam.x, z - cam.z);
     if (dd < 45) {
       const w = clamp(def.r * 1.6, 0.8, 1.8), f = m.hp / m.maxHp, by = y + top + 0.35;
@@ -4960,6 +5288,7 @@ function drawMonster(m, a) {
       const off = -(w - w * f) / 2;
       E.push('box', x + cam.rx * off - cam.fx * 0.02, by, z + cam.rz * off - cam.fz * 0.02, cam.rYaw, w * f, 0.08, 0.03,
         c(f > 0.5 ? lerp(1, 0.35, (f - 0.5) * 2) : 1, f > 0.5 ? 0.92 : lerp(0.25, 0.92, f * 2), 0.3, 1, 1, 0, false, true));
+      if (m.shield > 0) E.push('box', x - cam.fx * 0.03, by + 0.1, z - cam.fz * 0.03, cam.rYaw, w, 0.05, 0.03, c(0.45, 0.88, 1, 1, 1, 0, false, true));
     }
   }
 }
@@ -5149,6 +5478,72 @@ function drawTrap(S, tr, ghost) {
       void tip;
       break;
     }
+    case 'rail': {
+      // 轨道电磁炮：八角底座 + 旋转炮塔 + 双导轨，充能线圈随冷却逐渐点亮
+      Q('cyl', 0, 0.3, 0, 3.7, 0.6, 3.7, tc(0.19, 0.2, 0.23));
+      Q('cyl', 0, 0.66, 0, 3.0, 0.12, 3.0, tc(0.26, 0.27, 0.31));
+      Q('ring', 0, 0.62, 0, 1.86, 1, 1.86, tc(1, 0.5, 0.2, 1));
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; Q('box', Math.cos(a) * 1.75, 0.45, Math.sin(a) * 1.75, 0.5, 0.9, 0.5, tc(0.24, 0.25, 0.28), -a); }
+      const cdv = TRAP.rail.cd[lv - 1] * (TBR === 'b' ? 0.55 : 1), chg = GHOST ? 0.6 : clamp(since / cdv, 0, 1);
+      const yaw = GHOST ? 0 : (tr.cAim || 0);
+      TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      const rec = since < 0.15 ? (0.15 - since) * 3 : 0;
+      Q('cyl', 0, 1.0, 0, 1.6, 0.6, 1.6, tc(0.22, 0.23, 0.26));
+      Q('box', 0, 1.65, 0.35 + rec, 1.5, 0.9, 2.0, tc(0.52, 0.54, 0.6)); Q('box', 0, 1.65, -0.66 + rec, 1.52, 0.12, 0.04, tc(1, 0.5, 0.2, 1));
+      Q('box', 0, 2.15, 0.6 + rec, 1.1, 0.25, 1.2, tc(0.4, 0.42, 0.47));
+      Q('cyl', 0, 1.7, 1.42 + rec, 0.9, 0.5, 0.9, tc(0.24, 0.25, 0.29));
+      Q('ring', 0, 1.97, 1.42 + rec, 0.42, 1, 0.42, tc(0.4, 0.8, 1, 0.3 + chg * 0.6), timeNow * 3);
+      for (const sd of [-1, 1]) {
+        Q('box', sd * 0.4, 2.05, -1.0 + rec, 0.24, 0.5, 4.4, tc(0.6, 0.62, 0.68));
+        Q('box', sd * 0.4, 2.32, -1.0 + rec, 0.12, 0.05, 4.3, tc(0.4, 0.8, 1, 0.4 + chg * 0.6));
+        Q('box', sd * 0.4, 2.05, -1.0 + rec, 0.06, 0.54, 4.3, tc(0.4, 0.75, 1, chg * 0.9));
+        for (let k = 0; k < 4; k++) { const on = chg >= (k + 1) / 4; Q('box', sd * 0.36, 2.0, -0.2 - k * 0.75 + rec, 0.34, 0.56, 0.16, on ? tc(0.5, 0.85, 1, 1) : tc(0.2, 0.22, 0.26)); }
+      }
+      Q('box', 0, 1.62, -0.7 + rec, 0.6, 0.18, 1.2, tc(0.18, 0.19, 0.22));
+      if (!GHOST && chg >= 1) Q('sphere', 0, 2.0, -3.0, 0.25 + 0.05 * Math.sin(timeNow * 20), 0.25, 0.25, c(0.6, 0.9, 1, 0.9, 1, 0, true));
+      TX.yaw = 0; TX.cy = 1; TX.sy = 0;
+      lvPips(lv, 0, 0.75, 1.55, true);
+      break;
+    }
+    case 'mortar': {
+      // 等离子迫击炮：方形炮座 + 高仰角粗炮管，发射后后坐
+      Q('box', 0, 0.3, 0, 3.8, 0.6, 3.8, tc(0.21, 0.22, 0.24));
+      Q('box', 0, 0.62, 0, 3.4, 0.06, 3.4, tc(0.28, 0.27, 0.25));
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { Q('box', ox * 1.7, 0.66, oz * 1.7, 0.4, 0.1, 0.4, tc(1, 0.5, 0.2, 1)); Q('cyl', ox * 1.45, 0.95, oz * 1.45, 0.42, 0.6, 0.42, tc(0.3, 0.3, 0.32)); }
+      const yaw = GHOST ? 0 : (tr.cAim || 0);
+      TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      Q('cyl', 0, 0.85, 0, 2.2, 0.45, 2.2, tc(0.25, 0.26, 0.29));
+      Q('box', 0, 1.35, 0.25, 1.7, 0.75, 1.5, tc(0.55, 0.52, 0.48)); Q('box', 0, 1.35, -0.51, 1.72, 0.1, 0.04, tc(0.6, 0.45, 1, 1));
+      for (const sd of [-1, 1]) Q('box', sd * 0.95, 1.55, 0, 0.22, 1.1, 1.0, tc(0.26, 0.26, 0.28));
+      const rec = since < 0.35 ? (0.35 - since) * 1.4 : 0, pit = 0.95, L = 2.6;
+      const bx0 = 0, by0 = 1.55, bz0 = 0.1 + rec * Math.cos(pit), by1 = by0 + Math.sin(pit) * L - rec * Math.sin(pit), bz1 = bz0 - Math.cos(pit) * L;
+      const W0 = [TX.x + TX.sy * bz0, TX.y + by0, TX.z + TX.cy * bz0], W1 = [TX.x + TX.sy * bz1, TX.y + by1, TX.z + TX.cy * bz1];
+      E.pushBeam('cyl', W0[0], W0[1], W0[2], W1[0], W1[1], W1[2], 0.82, 0.82, tc(0.42, 0.42, 0.46), true);
+      const Wm = [lerp(W0[0], W1[0], 0.45), lerp(W0[1], W1[1], 0.45), lerp(W0[2], W1[2], 0.45)];
+      E.pushBeam('cyl', Wm[0], Wm[1], Wm[2], lerp(Wm[0], W1[0], 0.2), lerp(Wm[1], W1[1], 0.2), lerp(Wm[2], W1[2], 0.2), 0.98, 0.98, tc(0.55, 0.4, 1, since < 0.5 ? 1 : 0.5), true);
+      E.push('sphere', W1[0], W1[1], W1[2], 0, 0.62, 0.62, 0.62, GHOST ? tc(0, 0, 0) : c(0.55, 0.4, 1, since < 0.25 ? 1 : 0.6, 1, 0, true));
+      for (let i = 0; i < 3; i++) Q('sphere', 0.62, 1.05, 0.95 - i * 0.32, 0.26, 0.26, 0.26, tc(0.6, 0.45, 1, 0.8));
+      TX.yaw = 0; TX.cy = 1; TX.sy = 0;
+      lvPips(lv, 0, 0.7, 1.75, true);
+      break;
+    }
+    case 'grinder': {
+      // 碎骨绞盘：四片锯盘嵌在通道地面里，转动时缝隙透出绿光
+      const on = GHOST ? false : tr.activeT > 0, spin = (GHOST ? 0 : timeNow) * (on ? 9 : 1.2) + tr.x;
+      Q('box', 0, 0.06, 0, T * 1.94, 0.12, T * 1.94, tc(0.17, 0.18, 0.2));
+      for (const [ex, ez, sx, sz] of [[0, -T * 0.95, T * 1.94, 0.14], [0, T * 0.95, T * 1.94, 0.14], [-T * 0.95, 0, 0.14, T * 1.94], [T * 0.95, 0, 0.14, T * 1.94]]) Q('box', ex, 0.14, ez, sx, 0.06, sz, tc(0.55, 1, 0.35, 1));
+      for (const [qx, qz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const dir = qx * qz, x0 = qx * T * 0.48, z0 = qz * T * 0.48;
+        Q('cyl', x0, 0.13, z0, 2.0, 0.04, 2.0, tc(0.55, 1, 0.35, on ? 0.9 : 0.35));
+        Q('cyl', x0, 0.17, z0, 1.75, 0.08, 1.75, tc(0.52, 0.54, 0.58), spin * dir);
+        for (let i = 0; i < 8; i++) { const a = spin * dir + i * Math.PI / 4; Q('box', x0 + Math.cos(a) * 0.86, 0.24, z0 + Math.sin(a) * 0.86, 0.28, 0.16, 0.1, tc(0.75, 0.75, 0.72), -a); }
+        Q('cyl', x0, 0.24, z0, 0.42, 0.12, 0.42, tc(0.25, 0.26, 0.29));
+      }
+      Q('cyl', 0, 0.2, 0, 0.6, 0.16, 0.6, tc(0.55, 1, 0.35, on ? 1 : 0.4));
+      if (on && Math.random() < 0.6) particle({ x: TX.x + rnd(-2, 2), y: TX.y + 0.3, z: TX.z + rnd(-2, 2), vx: rnd(-3, 3), vy: rnd(2, 5), vz: rnd(-3, 3), life: 0.35, s0: 0.06, s1: 0, c: [1, 0.85, 0.5], grav: 14 });
+      lvPips(lv, 0, 0.22, T * 0.9, true);
+      break;
+    }
     case 'crusher': {
       Q('box', 0, -0.2, 0, T * 0.9, 0.4, T * 0.9, tc(0.22, 0.23, 0.26));
       let yy = WALL_H - 1.45;
@@ -5184,6 +5579,7 @@ function drawTrap(S, tr, ghost) {
 
 /* ---------- 陷阱进阶外观：每个分支一套专属造型 + 底座光环 ---------- */
 const EVO_COL = {
+  rail: { a: [0.55, 0.85, 1], b: [1, 0.6, 0.25] }, mortar: { a: [1, 0.5, 0.15], b: [0.75, 0.5, 1] }, grinder: { a: [1, 0.3, 0.2], b: [0.7, 0.4, 1] },
   slow: { a: [0.75, 0.95, 1], b: [0.3, 0.85, 1] }, spike: { a: [0.35, 1, 0.35], b: [1, 0.7, 0.25] },
   push: { a: [1, 0.45, 0.2], b: [0.3, 0.9, 1] }, tesla: { a: [0.7, 0.55, 1], b: [1, 0.85, 0.25] },
   sentry: { a: [1, 0.6, 0.2], b: [1, 0.25, 0.3] }, aa: { a: [1, 0.8, 0.3], b: [1, 0.45, 0.15] },
@@ -5199,12 +5595,45 @@ function evoFx(S, tr, since) {
   TX.cy = Math.cos(TX.yaw); TX.sy = Math.sin(TX.yaw);
   const cat = TRAP[tr.type].cat, spark = (x, y, z, n, o) => { if (!TDIS && Math.random() < n) particle(Object.assign({ x, y, z, vx: rnd(-0.6, 0.6), vy: rnd(0.8, 2), vz: rnd(-0.6, 0.6), life: rnd(0.5, 1), s0: 0.07, s1: 0, c: col, grav: -0.5, drag: 0.5 }, o || {})); };
   // 底座光环（地面 / 炮台类）
-  if (cat === 'floor' || cat === 'pad') {
-    const r = T * (tr.type === 'tesla' || cat === 'pad' ? 0.5 : 0.47);
+  if (cat === 'floor' || cat === 'pad' || cat === 'heavy' || cat === 'hfloor') {
+    const r = T * (cat === 'heavy' || cat === 'hfloor' ? 1.0 : tr.type === 'tesla' || cat === 'pad' ? 0.5 : 0.47);
     Q('ring', 0, 0.035, 0, r, 1, r, G(0.75), t * 0.6);
     for (let i = 0; i < 4; i++) { const a = t * 0.6 + i * Math.PI / 2; Q('box', Math.cos(a) * r, 0.05, Math.sin(a) * r, 0.16, 0.04, 0.16, C(1), -a); }
   }
   switch (tr.type + br) {
+    case 'raila': {   // 超载线圈：两侧电容组 + 环绕电弧
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-1, 1]) { Q('cyl', sd * 0.95, 1.75, 0.6, 0.45, 1.0, 0.45, tc(0.25, 0.26, 0.3)); Q('ring', sd * 0.95, 1.75 + Math.sin(t * 4) * 0.35, 0.6, 0.32, 1, 0.32, C(1), t * 5); }
+      if (!TDIS && Math.random() < 0.3) { const a = [TX.x - TX.cy * 0.95 + TX.sy * 0.6, TX.y + 2.2, TX.z + TX.sy * 0.95 + TX.cy * 0.6], b = [TX.x + TX.cy * 0.95 + TX.sy * 0.6, TX.y + 2.2, TX.z - TX.sy * 0.95 + TX.cy * 0.6]; E.pushBeam('box', a[0], a[1] + rnd(-0.2, 0.2), a[2], b[0], b[1] + rnd(-0.2, 0.2), b[2], 0.03, 0.03, c(0.8, 0.9, 1, 1, 1, 0, true)); }
+      break;
+    }
+    case 'railb': {   // 速射轨道：炮管外加旋转散热环
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (let k = 0; k < 3; k++) Q('ring', 0, 2.0, -1.0 - k * 0.8, 0.62, 1, 0.62, C(0.7 + 0.3 * Math.sin(t * 8 + k)), t * 6);
+      for (const sd of [-1, 1]) for (let k = 0; k < 4; k++) Q('box', sd * 0.82, 1.6, 0.9 - k * 0.22, 0.05, 0.6, 0.14, tc(0.32, 0.33, 0.37));
+      break;
+    }
+    case 'mortara': { // 燃烧弹：两侧燃料罐 + 炮口火苗
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-1, 1]) { Q('cyl', sd * 1.25, 1.35, 0.6, 0.55, 1.0, 0.55, tc(0.55, 0.22, 0.1)); Q('box', sd * 1.25, 1.35, 0.32, 0.4, 0.08, 0.02, C(1)); }
+      spark(TX.x - TX.sy * 1.6, TX.y + 3.6, TX.z - TX.cy * 1.6, 0.4, { c: [1, 0.55, 0.15], s0: 0.14, vy: rnd(1, 2) });
+      break;
+    }
+    case 'mortarb': { // 集束弹：炮管两侧挂载子弹药舱
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-1, 1]) { Q('box', sd * 0.75, 2.3, -0.35, 0.35, 0.55, 0.9, tc(0.3, 0.29, 0.27)); for (let k = 0; k < 2; k++) Q('sphere', sd * 0.75, 2.45 - k * 0.3, -0.82, 0.16, 0.16, 0.16, C(1)); }
+      break;
+    }
+    case 'grindera': { // 锯刃风暴：锯盘外圈加装红热刀刃
+      const spin = timeNow * (tr.activeT > 0 ? 9 : 1.2) + tr.x;
+      for (const [qx, qz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const dir = qx * qz; for (let i = 0; i < 6; i++) { const a = -spin * dir + i * Math.PI / 3; Q('cone', qx * T * 0.48 + Math.cos(a) * 0.55, 0.32, qz * T * 0.48 + Math.sin(a) * 0.55, 0.14, 0.32, 0.14, C(0.9)); } }
+      break;
+    }
+    case 'grinderb': { // 引力漩涡：上升的紫色引力环
+      for (let k = 0; k < 3; k++) { const ph = (t * 0.6 + k / 3) % 1; Q('ring', 0, 0.2 + ph * 4, 0, T * (1.3 - ph * 0.9), 1, T * (1.3 - ph * 0.9), G(0.5 * (1 - ph)), t * 2); }
+      Q('sphere', 0, 0.35, 0, 0.5, 0.5, 0.5, C(1));
+      break;
+    }
     case 'slowa': {   // 冰封力场：四角升起冰晶，寒雾
       for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         Q('oct', ox * T * 0.33, 0.55 + Math.sin(t * 2 + ox + oz) * 0.05, oz * T * 0.33, 0.22, 0.75, 0.22, c(0.75, 0.95, 1, 0.85, TDIS ? 0.1 : 0.8), t * 0.5);
@@ -5669,8 +6098,8 @@ function computeAim() {
   let best = null, bt = hit ? hit.t : 20;
   for (const tr of sim.s.traps) {
     const def = TRAP[tr.type];
-    const h = def.block ? 1.6 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? WALL_H - 1 : (tr.kind === 'wall' ? 1.5 : 0.3)));
-    const r = def.block ? 1.0 : (def.cat === 'pad' ? 0.9 : 0.75);
+    const h = def.block ? 1.6 : def.cat === 'heavy' ? 1.5 : def.cat === 'hfloor' ? 0.3 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? WALL_H - 1 : (tr.kind === 'wall' ? 1.5 : 0.3)));
+    const r = def.block ? 1.0 : def.big ? 1.7 : (def.cat === 'pad' ? 0.9 : 0.75);
     const lx = tr.wx - ex, ly = h + (tr.kind === 'floor' ? tr.wy : 0) - ey, lz = tr.wz - ez;
     const tca = lx * dx + ly * dy + lz * dz;
     if (tca < 0 || tca > bt + 0.5) continue;
@@ -5692,12 +6121,13 @@ function computeAim() {
 function drawBuildOverlay() {
   if (!sim || tool === 'gun' || mode !== 'play') return;
   const def = TRAP[tool], cc = CAT_COL[def.cat];
-  if (!slotCache) { slotCache = {}; for (const k of ['floor', 'pad', 'wall', 'ceil']) slotCache[k] = sim.listSlots(k); }
+  if (!slotCache) { slotCache = {}; for (const k of ['floor', 'pad', 'wall', 'ceil', 'heavy']) slotCache[k] = sim.listSlots(k); slotCache.hfloor = slotCache.floor; }
   const p = sim.s.players[PID];
   for (const sl of slotCache[def.cat]) {
-    const w = sim.trapWorld(sl);
+    const big = def.cat === 'heavy', w = sim.trapWorld(big ? { type: tool, x: sl.x, z: sl.z, kind: 'floor' } : sl);
     if (Math.abs(w.x - p.x) > 22 || Math.abs(w.z - p.z) > 22) continue;
-    if (sim.trapAtSlot(sl)) continue;
+    if (big ? sim.trapAtSlot(sl, tool) : sim.trapAtSlot(sl)) continue;
+    if (big) { E.push('box', w.x, w.y + 0.04, w.z, 0, T * 1.86, 0.01, T * 1.86, c(cc[0], cc[1], cc[2], 0.1, 1, 0, true)); continue; }
     if (sl.kind === 'wall') {
       const alongX = DIRS[sl.dir][1] !== 0;
       E.push('box', w.x - DIRS[sl.dir][0] * 0.03, 1.5, w.z - DIRS[sl.dir][1] * 0.03, 0, alongX ? T * 0.8 : 0.02, 2.2, alongX ? 0.02 : T * 0.8, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
@@ -5709,7 +6139,8 @@ function drawBuildOverlay() {
   if (aim && aim.slot) {
     const ok = aim.can && aim.can.ok;
     const gc = ok ? [0.35, 1.0, 0.55] : [1.0, 0.32, 0.32];
-    const w = sim.trapWorld(aim.slot);
+    const w = sim.trapWorld({ type: tool, kind: aim.slot.kind, x: aim.slot.x, z: aim.slot.z, dir: aim.slot.dir });
+    if (def.big) E.push('box', w.x, w.y + 0.05, w.z, 0, T * 1.94, 0.02, T * 1.94, c(gc[0], gc[1], gc[2], 0.22, 1, 0, true));
     const ghost = { type: tool, kind: aim.slot.kind, x: aim.slot.x, z: aim.slot.z, dir: aim.slot.dir || 0, lv: 1, wx: w.x, wy: w.y, wz: w.z, activeT: 0, fireT: -9, disT: 0, laneGhost: sim.laneTurret(tool, aim.slot) };
     drawTrap(sim, ghost, gc);
     if (aim.slot.kind === 'wall') {
@@ -5755,12 +6186,46 @@ function drawShells(dt) {
   for (let i = shellFx.length - 1; i >= 0; i--) {
     const f = shellFx[i]; f.t += dt;
     if (f.t >= f.T) { shellFx.splice(i, 1); continue; }
-    const k = f.t / f.T, x = lerp(f.x, f.tx, k), z = lerp(f.z, f.tz, k), y = lerp(4.2, 0.4, k) + Math.sin(k * Math.PI) * 5;
-    E.push('sphere', x, Math.min(WALL_H - 0.3, y), z, 0, 0.35, 0.35, 0.35, c(1, 0.6, 0.25, 1, 1, 0, true));
-    particle({ x, y: Math.min(WALL_H - 0.3, y), z, vy: 0.3, life: 0.6, s0: 0.25, s1: 0.7, c: [0.5, 0.48, 0.45], add: false, a0: 0.4 });
-    E.push('ring', f.tx, 0.06, f.tz, timeNow * 3, 2.6 * (1.2 - k * 0.3), 1, 2.6 * (1.2 - k * 0.3), c(1, 0.35, 0.2, 0.8, 1, 0, true));
+    const k = f.t / f.T, x = lerp(f.x, f.tx, k), z = lerp(f.z, f.tz, k), y = lerp(f.y || 4.2, 0.4, k) + Math.sin(k * Math.PI) * (f.k === 't' ? 2.2 : 5);
+    const pc = f.k === 'm' ? [0.6, 0.45, 1] : f.k === 't' ? [1, 0.8, 0.35] : [1, 0.6, 0.25], R = f.k === 'm' ? 3.8 : f.k === 't' ? 2.2 : 2.6;
+    E.push('sphere', x, Math.min(WALL_H - 0.3, y), z, 0, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, c(pc[0], pc[1], pc[2], 1, 1, 0, true));
+    particle({ x, y: Math.min(WALL_H - 0.3, y), z, vy: 0.3, life: 0.6, s0: 0.25, s1: 0.7, c: f.k === 'm' ? [0.55, 0.45, 0.9] : [0.5, 0.48, 0.45], add: f.k === 'm', a0: 0.4 });
+    E.push('ring', f.tx, 0.06, f.tz, timeNow * 3, R * (1.2 - k * 0.3), 1, R * (1.2 - k * 0.3), f.k === 'm' ? c(0.6, 0.45, 1, 0.8, 1, 0, true) : c(1, 0.35, 0.2, 0.8, 1, 0, true));
+  }
+  // 轨道电磁炮的贯穿光束
+  for (let i = railFx.length - 1; i >= 0; i--) {
+    const f = railFx[i]; f.t += dt;
+    if (f.t >= 0.5) { railFx.splice(i, 1); continue; }
+    const k = 1 - f.t / 0.5;
+    E.pushBeam('box', f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, 0.12 * k + 0.02, 0.12 * k + 0.02, c(0.9, 0.97, 1, k, 1, 0, true));
+    E.pushBeam('box', f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, 0.7 * k, 0.7 * k, c(0.35, 0.7, 1, 0.3 * k, 1, 0, true));
+    for (let j = 0; j < 4; j++) { const u = (f.t * 3 + j / 4) % 1; E.push('ring', lerp(f.x1, f.x2, u), lerp(f.y1, f.y2, u), lerp(f.z1, f.z2, u), 0, 0.45 * k, 1, 0.45 * k, c(0.6, 0.85, 1, 0.6 * k, 1, 0, true)); }
+  }
+  // 相位行者瞬移残影
+  for (let i = blinkFx.length - 1; i >= 0; i--) {
+    const f = blinkFx[i]; f.t += dt;
+    if (f.t >= 0.6) { blinkFx.splice(i, 1); continue; }
+    const k = 1 - f.t / 0.6;
+    E.pushBeam('box', f.x, 1.0, f.z, f.x2, 1.0, f.z2, 0.5 * k, 1.6 * k, c(0.6, 0.4, 1, 0.25 * k, 1, 0, true));
+    E.push('sphere', f.x, 1.0, f.z, 0, 1.2 * k, 2 * k, 1.2 * k, c(0.6, 0.4, 1, 0.3 * k, 1, 0, true));
+  }
+  // 棱盾守卫的护盾脉冲
+  for (let i = auraFx.length - 1; i >= 0; i--) {
+    const f = auraFx[i]; f.t += dt;
+    if (f.t >= 0.7) { auraFx.splice(i, 1); continue; }
+    const k = f.t / 0.7;
+    E.push('ring', f.x, 0.15 + k * 0.6, f.z, 0, f.r * k, 1, f.r * k, c(0.4, 0.85, 1, 0.8 * (1 - k), 1, 0, true));
+  }
+  // 燃烧弹的火海
+  for (let i = fireFx.length - 1; i >= 0; i--) {
+    const f = fireFx[i]; f.t += dt;
+    if (f.t >= 4) { fireFx.splice(i, 1); continue; }
+    const k = f.t < 3.4 ? 1 : (4 - f.t) / 0.6;
+    E.push('disc', f.x, 0.05, f.z, 0, 3.6, 1, 3.6, c(1, 0.4, 0.1, 0.22 * k, 1, 0, true));
+    if (Math.random() < 0.8 * k) particle({ x: f.x + rnd(-3, 3), y: 0.2, z: f.z + rnd(-3, 3), vy: rnd(1, 2.5), life: rnd(0.4, 0.8), s0: rnd(0.2, 0.4), s1: 0.6, c: [1, rnd(0.35, 0.6), 0.1], drag: 1, a0: 0.7 });
   }
 }
+const railFx = [], blinkFx = [], auraFx = [], fireFx = [];
 function drawStrikes(dt) {
   for (let i = strikeFx.length - 1; i >= 0; i--) {
     const f = strikeFx[i];
@@ -5963,6 +6428,7 @@ function handleEvents(S) {
         break;
       }
       case 'combo': {
+        if (e.k === 'napalm') { fireFx.push({ x: e.x, z: e.z, t: 0 }); break; }
         const C = { shatter: ['碎冰 ×2', [0.6, 0.9, 1]], ignite: ['爆燃！', [1, 0.5, 0.15]], air: ['空中连击', [1, 0.8, 0.3]], spread: ['毒素扩散', [0.4, 1, 0.4]] }[e.k];
         if (!C) break;
         floatNum(e.x, e.y + 0.8, e.z, C[0], 'combo');
@@ -6035,7 +6501,18 @@ function handleEvents(S) {
         Snd.play('mshot', e.x, e.z);
         break;
       }
-      case 'shellFire': shellFx.push({ x: e.x, z: e.z, tx: e.tx, tz: e.tz, t: 0, T: e.t || 1.3 }); Snd.play('shellFire', e.x, e.z, { range: 90 }); break;
+      case 'shellFire': shellFx.push({ x: e.x, z: e.z, tx: e.tx, tz: e.tz, t: 0, T: e.t || 1.3, k: e.k || '', y: e.y || 4.2 }); Snd.play(e.k === 'm' ? 'mortar' : 'shellFire', e.x, e.z, { range: 90 }); break;
+      case 'rail': {
+        railFx.push({ x1: e.x, y1: e.y, z1: e.z, x2: e.x2, y2: e.y2, z2: e.z2, t: 0 });
+        burst(e.x2, e.y2, e.z2, 10, { c: [0.6, 0.85, 1], sp0: 2, sp1: 6, s0: 0.12, l0: 0.2, l1: 0.5 });
+        burst(e.x, e.y, e.z, 8, { c: [0.7, 0.9, 1], sp0: 1, sp1: 4, s0: 0.18, l0: 0.15, l1: 0.35 });
+        Snd.play('rail', e.x, e.z, { range: 110 });
+        const d = Math.hypot(e.x - cam.x, e.z - cam.z); if (d < 10) shake(0.15 * (1 - d / 10));
+        break;
+      }
+      case 'blink': blinkFx.push({ x: e.x, z: e.z, x2: e.x2, z2: e.z2, t: 0 }); burst(e.x2, 1, e.z2, 10, { c: [0.65, 0.45, 1], sp0: 1, sp1: 4, s0: 0.15, l0: 0.2, l1: 0.5 }); Snd.play('blink', e.x2, e.z2); break;
+      case 'aura': auraFx.push({ x: e.x, z: e.z, r: e.r || 6, t: 0 }); Snd.play('aura', e.x, e.z); break;
+      case 'shieldBreak': burst(e.x, e.y, e.z, 12, { c: [0.45, 0.85, 1], sp0: 2, sp1: 5, s0: 0.1, l0: 0.2, l1: 0.45, g: 'box' }); Snd.play('shieldBreak', e.x, e.z); break;
       case 'fwave': {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         for (let i = 0; i < 60; i++) { const a = e.yaw + rnd(-0.55, 0.55), sp = rnd(8, 16); particle({ x: e.x + fx * 1.5, y: rnd(0.5, 3), z: e.z + fz * 1.5, vx: Math.sin(a) * sp, vy: rnd(-0.5, 1.5), vz: Math.cos(a) * sp, life: rnd(0.6, 1.0), s0: 0.4, s1: 1.6, c: [1, rnd(0.3, 0.6), 0.08], drag: 1.2, a0: 0.8 }); }
@@ -6066,7 +6543,7 @@ function handleEvents(S) {
         Snd.play('emp', e.x, e.z, { range: 80 });
         break;
       }
-      case 'summon': if (!e.brood) feed('BOSS 召唤了援军', 'bad'); burst(e.x, 1, e.z, 20, { c: [1, 0.3, 0.25], sp0: 2, sp1: 5, s0: 0.2 }); break;
+      case 'summon': if (!e.brood && !e.drop) feed('BOSS 召唤了援军', 'bad'); burst(e.x, 1, e.z, 20, { c: [1, 0.3, 0.25], sp0: 2, sp1: 5, s0: 0.2 }); break;
       case 'stomp': {
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: e.r, t: 0, life: 0.45, c: [1, 0.6, 0.3] });
         const d = Math.hypot(e.x - cam.x, e.z - cam.z); if (d < 20) shake(0.5 * (1 - d / 20));
@@ -6124,7 +6601,7 @@ function findTrap(id) { return trapIndex.get(id); }
  * ============================================================ */
 const cache = {};
 // 准星旁的竖向陷阱信息卡
-const CAT_CSS = { floor: '#4fd6c4', pad: '#ffb547', wall: '#ff6b8c', ceil: '#b58cff' };
+const CAT_CSS = { floor: '#4fd6c4', pad: '#ffb547', wall: '#ff6b8c', ceil: '#b58cff', heavy: '#ff7a3d', hfloor: '#8cff66' };
 function trapCardHTML(tr, d, up, gold) {
   const kb = act => TOUCH ? (act === 'KeyE' ? '▲' : '✕') : keyName(keyOf(act));
   const lvTxt = tr.lv >= MAX_LV ? 'MAX' : 'Lv' + tr.lv;
@@ -6201,6 +6678,9 @@ const ICONS = {
   laser: '<path d="M2 6v12M2 9h4v6H2M6 12h16" /><path d="M10 10v4M14 10v4M18 10v4" stroke-dasharray="1 1"/>',
   flame: '<path d="M2 8v8M2 10h4v4H2M6 12c4-3 6 1 8-2 0 3 3 2 4 0 1 3 2 4 4 4-3 2-8 3-16-2"/>',
   crusher: '<path d="M3 3h18M12 3v6M5 9h14v5H5zM5 20h14M8 17l-2 3M16 17l2 3"/>',
+  rail: '<path d="M3 21h18M6 21v-4h12v4M8 17l2-5h4l2 5M10 12l9-7M12 10l9-7M17 4l3 3"/>',
+  mortar: '<path d="M3 21h18M6 21l2-5h8l2 5M9 16l3-8 3 8M12 8a6 6 0 0 1 8-3M18 3l3 2-2 2"/>',
+  grinder: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="3"/><circle cx="15.5" cy="15.5" r="3"/><path d="M8.5 4v2M8.5 11v2M4 8.5h2M11 8.5h2M15.5 11v2M15.5 18v2M11 15.5h2M18 15.5h2"/>',
   rifle: '<path d="M2 10h14l2-2h4v4h-3l-1 2h-5l-1 4H8l1-4H2z"/>',
   shotgun: '<path d="M2 9h16v3H2zM2 13h12M18 10.5h4M14 12l1 6h3l-1-6"/>',
   sniper: '<path d="M1 12h22M8 12v3h5l1 4h3l-1-4M10 8h6v3h-6zM5 12l-1 3"/>',
@@ -6231,6 +6711,7 @@ function selectTool(id) {
 }
 function buildHelp() {
   const lvStat = t => {
+    if (t.dps) return '每秒伤害 ' + t.dps.join(' / ');
     if (t.slow) return '减速 ' + t.slow.map(v => Math.round(v * 100) + '%').join(' / ');
     if (t.block) return '耐久 ' + t.hp.join(' / ');
     const cd = Array.isArray(t.cd) ? t.cd : [t.cd, t.cd, t.cd, t.cd];
@@ -6238,7 +6719,7 @@ function buildHelp() {
   };
   const rows = TRAPS.map(t => `<tr><td><span class="kb">${t.key}</span></td><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td>${CAT_NAME[t.cat]}</td><td class="num">${t.cost}</td><td>${t.desc.split(' · ')[1] || t.desc}<div class="lv">Lv1→4 ${lvStat(t)}</div></td></tr>`).join('');
   $('trapTable').innerHTML = `<thead><tr><th>键</th><th>陷阱</th><th>位置</th><th>价格</th><th>作用</th></tr></thead><tbody>${rows}</tbody>`;
-  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
+  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.aura) tags.push('给周围敌人套能量护盾（会吸收中毒与灼烧）'); if (m.cannon) tags.push('炮击炮台与阻挡物使其瘫痪'); if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%'); if (m.blink) tags.push('周期性向前瞬移，越过阻挡'); if (m.drop) tags.push('空投噬晶蛛'); if (m.heavy) tags.push('重装单位·电磁炮优先锁定'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
   $('monList').innerHTML = mons;
   $('evoTable').innerHTML = `<thead><tr><th>陷阱</th><th>进阶·甲</th><th>进阶·乙</th></tr></thead><tbody>` + TRAPS.map(t => `<tr><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td><b>${EVO[t.id].a.name}</b><div class="lv">${EVO[t.id].a.desc}</div></td><td><b>${EVO[t.id].b.name}</b><div class="lv">${EVO[t.id].b.desc}</div></td></tr>`).join('') + '</tbody>';
   $('techList').innerHTML = TD.TECH.map((t, i) => `<li><b style="color:${TECH_CSS[i]}">${t.name}</b><span>${t.desc(1)}（每级叠加，最高 ${TD.TECH_MAX} 级） · ${t.cost.join(' / ')} 金币</span></li>`).join('');
@@ -6379,7 +6860,9 @@ function updateHUD(dt) {
     if (aim.trap && (tool === 'gun' || !aim.slot || (aim.can && !aim.can.ok))) {
       const tr = aim.trap, d = TRAP[tr.type];
       const up = sim.upgradeCost(tr, PID);
-      card = trapCardHTML(tr, d, up, s.gold); pr = ''; prCls = '';
+      // 信息卡只在 2 格以内显示，远处只高亮不弹卡
+      const near = p && Math.hypot(tr.wx - p.x, tr.wz - p.z) <= T * (d.big ? 2.6 : 2.1);
+      card = near ? trapCardHTML(tr, d, up, s.gold) : ''; pr = ''; prCls = '';
     }
   }
   const di = mode === 'play' ? nearDevice() : -1;
@@ -6565,6 +7048,7 @@ function onKey(code, e) {
   if (labOpen && code === 'Escape') { toggleLab(false); return; }
   if (d && shopOpen) { buyWeapon(+d[1] - 1); return; }
   if (d) { const t = TRAPS[+d[1] - 1]; if (t) selectTool(t.id); return; }
+  { const hk = { Digit0: '0', Minus: '-', Equal: '=' }[code]; if (hk) { const t = TRAPS.find(x => x.key === hk); if (t) selectTool(t.id); return; } }
   if (shopOpen && code === 'Escape') { toggleShop(false); return; }
   switch (code) {
     case 'KeyQ': if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
@@ -7109,7 +7593,7 @@ function newGame(state, prebuilt) {
   for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null;
   diff = sim.s.diff;
   trapIndex = new Map(); slotCache = null; pathDirCache.clear();
-  corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear();
+  corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;
   parts.length = 0; tracers.length = 0; rings.length = 0; lights.length = 0;
   const p = sim.s.players[PID]; cam.yaw = p ? p.yaw : 0; cam.pitch = 0;
   tool = 'gun'; buildHotbar(); selectTool('gun'); for (const el of $('hotbar').children) el.classList.toggle('sel', el.dataset.id === 'gun');
@@ -7380,6 +7864,7 @@ function makeDemo() {
   };
   let queue = [];
   const yieldSlot = (cat, sl) => queue.push([cat, sl]);
+  { const hv = demo.listSlots('heavy').map(sl => ({ sl, d: Math.min(...foci.map(f => Math.hypot((sl.x + 1) * T - f.x, (sl.z + 1) * T - f.z))) })).sort((a, b) => a.d - b.d)[0]; if (hv) put('rail', hv.sl); }
   pick('floor', 5); pick('ceil', 1); pick('pad', 3); pick('wall', 8);
   const plan = { floor: ['tesla', 'slow', 'spike', 'spike', 'push'], ceil: ['crusher'], pad: ['sentry', 'aa', 'sentry'], wall: ['laser', 'flame', 'laser', 'laser', 'flame', 'laser', 'laser', 'flame'] };
   const idx = { floor: 0, ceil: 0, pad: 0, wall: 0 };
@@ -7444,7 +7929,7 @@ function frame(now) {
   simNow = S.s.time + frameAlpha * STEP;
   trapIndex.clear(); for (const tr of S.s.traps) trapIndex.set(tr.id, tr);
   // 炮台客户端瞄准平滑
-  for (const tr of S.s.traps) if (tr.type === 'sentry' || tr.type === 'aa') {
+  for (const tr of S.s.traps) if (tr.type === 'sentry' || tr.type === 'aa' || tr.type === 'rail' || tr.type === 'mortar') {
     const tgt = tr.aimYaw || 0;
     if (tr.cAim === undefined) tr.cAim = tgt;
     let d = tgt - tr.cAim; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
@@ -7532,8 +8017,9 @@ function frame(now) {
       if (k >= 1) buildFx.delete(tr.id);
       else {
         const hy = tr.kind === 'ceil' ? WALL_H - 1.2 : (tr.kind === 'wall' ? 1.2 : 0), hh = TRAP[tr.type].block ? 3.2 : (TRAP[tr.type].cat === 'pad' ? 2 : 1.4);
-        E.push('box', tr.wx, tr.wy + hy + hh / 2 - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, T * 0.96, hh, T * 0.96, c(0.4, 1, 0.85, 0.1 * (1 - k), 1, 0, true));
-        E.push('box', tr.wx, tr.wy + hy + k * hh - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, T, 0.04, T, c(0.5, 1, 0.9, 1 - k, 1, 0, true));
+        const bw = TRAP[tr.type].big ? T * 2 : T;
+        E.push('box', tr.wx, tr.wy + hy + hh / 2 - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, bw * 0.96, hh, bw * 0.96, c(0.4, 1, 0.85, 0.1 * (1 - k), 1, 0, true));
+        E.push('box', tr.wx, tr.wy + hy + k * hh - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, bw, 0.04, bw, c(0.5, 1, 0.9, 1 - k, 1, 0, true));
       }
     }
   }
@@ -7561,7 +8047,7 @@ function frame(now) {
   if (mode === 'play' && aim && aim.trap && !(aim.slot && aim.can && aim.can.ok)) {
     const tr = aim.trap, yy = tr.kind === 'ceil' ? WALL_H - 0.05 : tr.wy + 0.05;
     if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, 0.05, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));
-    else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * 0.62, 1, T * 0.62, c(1, 0.75, 0.3, 0.8, 1, 0, true));
+    else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * (TRAP[tr.type].big ? 1.15 : 0.62), 1, T * (TRAP[tr.type].big ? 1.15 : 0.62), c(1, 0.75, 0.3, 0.8, 1, 0, true));
   }
   // 子弹轨迹
   for (let i = tracers.length - 1; i >= 0; i--) {

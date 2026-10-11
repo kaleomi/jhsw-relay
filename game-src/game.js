@@ -66,7 +66,7 @@ const KEY_ACTIONS = [
   ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
   ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
 ];
-const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit0', 'Minus', 'Equal', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
 let keyInv = new Map(), keyAway = new Set();
 function rebuildKeys() {
   keyInv = new Map(); keyAway = new Set();
@@ -543,7 +543,7 @@ function c(r, g, b, a, emit, flash, add, nofog) {
   SC[0] = r; SC[1] = g; SC[2] = b; SC[3] = a === undefined ? 1 : a; SC[4] = emit || 0; SC[5] = flash || 0; SC[6] = 0; SC[7] = !!add; SC[8] = !!nofog;
   return SC;
 }
-const CAT_COL = { floor: [0.31, 0.84, 0.77], pad: [1.0, 0.71, 0.28], wall: [1.0, 0.42, 0.55], ceil: [0.71, 0.55, 1.0] };
+const CAT_COL = { floor: [0.31, 0.84, 0.77], pad: [1.0, 0.71, 0.28], wall: [1.0, 0.42, 0.55], ceil: [0.71, 0.55, 1.0], heavy: [1.0, 0.45, 0.22], hfloor: [0.55, 1.0, 0.4] };
 
 /* ============================================================
  * 音效（WebAudio 合成，无外部资源）
@@ -642,6 +642,12 @@ const Snd = {
       case 'burrow': this.hiss(0.4, 'lowpass', 600, 120, 1, 0.3 * v, p); this.tone('sine', 70, 40, 0.3, 0.25 * v, p); break;
       case 'hack': [0, 0.08, 0.16].forEach((d, i) => this.tone('square', 1200 - i * 300, 900 - i * 300, 0.07, 0.1 * v + 0.03, p, d)); break;
       case 'mshot': this.hiss(0.05, 'bandpass', 2600, 1400, 1, 0.22 * v, p); this.tone('square', 260, 120, 0.05, 0.08 * v, p); break;
+      case 'rail': this.tone('sawtooth', 1800, 120, 0.35, 0.22 * v, p); this.tone('sine', 220, 60, 0.5, 0.5 * v, p); this.hiss(0.4, 'highpass', 6000, 1500, 1, 0.3 * v, p); break;
+      case 'mortar': this.tone('sine', 70, 35, 0.5, 0.7 * v, p); this.hiss(0.5, 'lowpass', 900, 150, 1, 0.45 * v, p); this.tone('triangle', 500, 900, 0.25, 0.08 * v, p, 0.05); break;
+      case 'grinder': this.hiss(0.3, 'bandpass', 2500, 1800, 3, 0.14 * v, p); this.tone('sawtooth', 160, 150, 0.3, 0.06 * v, p); break;
+      case 'blink': this.tone('sine', 300, 1400, 0.18, 0.18 * v, p); this.hiss(0.2, 'highpass', 4000, 3000, 1, 0.12 * v, p); break;
+      case 'aura': this.tone('sine', 420, 640, 0.35, 0.12 * v, p); this.tone('sine', 630, 960, 0.35, 0.06 * v, p); break;
+      case 'shieldBreak': this.tone('square', 900, 200, 0.2, 0.1 * v, p); this.hiss(0.25, 'highpass', 3000, 1200, 1, 0.18 * v, p); break;
       case 'shellFire': this.tone('sine', 90, 50, 0.4, 0.5 * v, p); this.hiss(0.4, 'lowpass', 1500, 200, 1, 0.4 * v, p); break;
       case 'strike': this.tone('sine', 80, 25, 1.4, 0.8 * v + 0.2, p); this.hiss(1.6, 'lowpass', 3000, 80, 0.6, 0.7 * v + 0.2, p); this.tone('sawtooth', 300, 40, 0.8, 0.25 * v, p); break;
       case 'tick': this.tone('sine', 1800, 1500, 0.04, 0.12 * v, p); break;
@@ -1149,6 +1155,80 @@ function drawMonster(m, a) {
       LIMB('box', 0.92, 2.45, -0.3, 2.2, 0.42, 0.45, (atk ? -0.9 - atk * 0.9 : sw * 0.7) - 0.25, mc(0.24, 0.21, 0.23));
       top = 3.4; break;
     }
+    case 'shield': case 'blinker': {
+      const sh = m.type === 'shield', sc = sh ? 1.2 : 0.95;
+      if (hasModel('robot')) {
+        let clip = sh ? 'walk' : 'run', rate = def.spd / (sh ? 2.6 * sc : 4.4);
+        if (m.state === 'block' && m.stunT <= 0) { clip = 'punch'; rate = 1.15; }
+        else if (m.stunT > 0 || m.state === 'queue') { clip = 'idle'; rate = 1; }
+        rate *= 1 - m.slowAmt * 0.55;
+        animClip('robot', clip, timeNow * rate + m.seed);
+        const tn = sh ? [0.38, 0.62, 0.75] : [0.5, 0.36, 0.85];
+        E.push('robot', x, y, z, yaw, sc * born, sc * born, sc * born, mc(tn[0], tn[1], tn[2], 0));
+        if (!sh) {   // 相位残影
+          const g = Math.sin(t * 11) > 0.3 ? 0.18 : 0.08;
+          E.push('robot', x + m.fx * 0.35, y, z + m.fz * 0.35, yaw, sc, sc, sc, c(0.6, 0.4, 1, g, 1, 0, true));
+          E.push('robot', x + m.fx * 0.7, y, z + m.fz * 0.7, yaw, sc, sc, sc, c(0.4, 0.8, 1, g * 0.6, 1, 0, true));
+        }
+        E.anim();
+      }
+      if (sh) {
+        const pu = 0.5 + 0.5 * Math.sin(t * 4);
+        P('box', 0, 1.3, 0.42, 0.62, 0.72, 0.32, mc(0.22, 0.24, 0.28));
+        P('cyl', 0, 1.82, 0.45, 0.16, 0.36, 0.16, mc(0.3, 0.32, 0.36));
+        P('sphere', 0, 2.08, 0.45, 0.3, 0.3, 0.3, c(0.4, 0.85, 1, 1, 0.6 + 0.4 * pu, TN.flash));
+        // 前方的六边形能量盾牌
+        P('box', 0.22, 0.98, -0.72, 0.95, 1.1, 0.05, c(0.3, 0.7, 1, 0.07 + 0.04 * pu, 0.5, 0, true));
+        for (const [ox, oy, w, h] of [[0.22, 1.53, 0.95, 0.05], [0.22, 0.43, 0.95, 0.05], [-0.25, 0.98, 0.05, 1.1], [0.69, 0.98, 0.05, 1.1]]) P('box', ox, oy, -0.72, w, h, 0.06, c(0.45, 0.85, 1, 1, 0.7, TN.flash));
+        top = 2.45;
+      } else {
+        P('box', 0, 1.52, -0.36, 0.34, 0.06, 0.04, c(0.75, 0.5, 1, 1, 1, TN.flash));
+        for (const sd of [-1, 1]) P('box', sd * 0.3, 1.0, 0.32, 0.08, 0.7, 0.08, c(0.4, 0.85, 1, 1, 0.7 + 0.3 * Math.sin(t * 9 + sd)));
+        top = 2.0;
+      }
+      break;
+    }
+    case 'tank': {
+      MX.s = 1;
+      const tk = moving ? (timeNow * 1.8) % 1 : 0;
+      for (const sd of [-1, 1]) {
+        P('box', sd * 0.98, 0.42, 0, 0.55, 0.84, 2.9, mc(0.12, 0.12, 0.13));
+        for (let i = 0; i < 5; i++) P('box', sd * 1.27, 0.42, -1.2 + ((i + tk) % 5) * 0.6, 0.02, 0.72, 0.1, mc(0.28, 0.28, 0.28));
+        for (let i = 0; i < 4; i++) PR('cyl', sd * 1.0, 0.36, -1.05 + i * 0.7, 0, Math.PI / 2, 0.56, 0.6, 0.56, mc(0.2, 0.2, 0.21));
+      }
+      P('box', 0, 0.98, 0.1, 1.75, 0.62, 2.6, mc(0.36, 0.38, 0.31));
+      PR('box', 0, 0.92, -1.25, -0.6, 0, 1.75, 0.5, 0.5, mc(0.32, 0.34, 0.28));
+      for (const sd of [-1, 1]) P('box', sd * 0.95, 1.05, 0.1, 0.12, 0.5, 2.2, mc(0.45, 0.43, 0.3));
+      P('box', 0, 1.55, 0.15, 1.25, 0.55, 1.35, mc(0.42, 0.44, 0.36));
+      P('box', 0, 1.88, 0.35, 0.7, 0.14, 0.6, mc(0.3, 0.31, 0.26));
+      P('sphere', 0, 1.75, -0.6, 0.55, 0.36, 0.3, c(1, 0.35, 0.2, 1, 0.8 + 0.2 * Math.sin(t * 5), TN.flash));
+      const rec = m.canT !== undefined && def.cannon && m.canT > def.cannon.every - 0.3 ? 0.25 : 0;
+      const b0 = LOCAL(0, 1.45, -0.5 + rec), b1 = LOCAL(0, 1.5, -2.5 + rec);
+      E.pushBeam('cyl', b0[0], b0[1], b0[2], b1[0], b1[1], b1[2], 0.24, 0.24, mc(0.18, 0.18, 0.2), true);
+      E.push('cyl', b1[0], b1[1], b1[2], 0, 0.34, 0.3, 0.34, mc(0.15, 0.15, 0.16));
+      P('box', 0.5, 2.05, 0.55, 0.06, 0.5, 0.06, mc(0.2, 0.2, 0.2));
+      top = 2.3; break;
+    }
+    case 'gunship': {
+      MX.s = 1;
+      const tilt = Math.sin(t * 1.1) * 0.08;
+      if (m.aiming) { MX.yaw = Math.atan2(-m.ax, -m.az); MX.cy = Math.cos(MX.yaw); MX.sy = Math.sin(MX.yaw); }
+      P('box', 0, 0, 0.25, 1.1, 0.62, 2.7, mc(0.3, 0.32, 0.37));
+      PR('box', 0, 0.05, -0.85, 0.35, tilt, 0.95, 0.55, 0.8, mc(0.26, 0.28, 0.33));
+      P('sphere', 0, 0.3, -1.15, 0.85, 0.62, 0.85, c(1, 0.5, 0.2, 1, 0.8 + 0.2 * Math.sin(t * 6), TN.flash));
+      PR('box', 0, 0.02, 0.35, 0, tilt, 3.6, 0.12, 0.85, mc(0.24, 0.26, 0.3));
+      P('box', 0, 0.45, 1.45, 0.1, 0.7, 0.7, mc(0.24, 0.26, 0.3));
+      for (const sd of [-1, 1]) {
+        P('cyl', sd * 1.8, 0.05 + sd * tilt, 0.35, 0.7, 0.5, 0.7, mc(0.2, 0.21, 0.24));
+        P('disc', sd * 1.8, 0.34 + sd * tilt, 0.35, 1.9, 1, 1.9, c(0.6, 0.65, 0.75, 0.35, 0.3, 0, true), t * 25 * sd);
+        P('sphere', sd * 1.8, -0.22, 0.35, 0.35, 0.2, 0.35, c(1, 0.45, 0.2, 1, 1));
+      }
+      const g0 = LOCAL(0, -0.45, -0.7), g1 = LOCAL(0, -0.5, -1.6);
+      E.pushBeam('cyl', g0[0], g0[1], g0[2], g1[0], g1[1], g1[2], 0.14, 0.14, mc(0.15, 0.15, 0.17), true);
+      if (m.aiming) E.pushBeam('box', g1[0], g1[1], g1[2], g1[0] + m.ax * 14, g1[1] - 2.2, g1[2] + m.az * 14, 0.02, 0.02, c(1, 0.3, 0.2, 0.5, 1, 0, true));
+      if (Math.random() < 0.4) particle({ x: x + rnd(-0.3, 0.3), y: y - 0.4, z: z + rnd(-0.3, 0.3), vy: -2, life: 0.3, s0: 0.15, s1: 0, c: [1, 0.5, 0.2] });
+      top = 1.0; break;
+    }
     case 'colossus': case 'boss': {
       MX.s = 1;
       const bob = moving ? Math.abs(Math.cos(ph)) * 0.18 : 0;
@@ -1192,8 +1272,14 @@ function drawMonster(m, a) {
     }
   }
   if (m.slowAmt > 0 && !def.fly) E.push('ring', x, 0.05, z, timeNow, def.r * 1.6, 1, def.r * 1.6, c(0.5, 0.8, 1, 0.6, 1, 0, true));
+  // 能量护盾
+  if (m.shield > 0) {
+    const cy = def.fly ? y : y + top * 0.5, rr = def.r * 2.4 + 0.5, pu = 0.5 + 0.5 * Math.sin(timeNow * 6 + m.seed);
+    E.push('sphere', x, cy, z, timeNow, rr, def.fly ? rr * 0.8 : top * 1.15, rr, c(0.4, 0.85, 1, 0.1 + 0.05 * pu, 1, 0, true));
+    E.push('ring', x, cy, z, timeNow * 2, rr * 0.52, 1, rr * 0.52, c(0.5, 0.9, 1, 0.35 + 0.2 * pu, 1, 0, true));
+  }
   // 血条
-  if (!def.boss && m.hp < m.maxHp) {
+  if (!def.boss && (m.hp < m.maxHp || m.shield > 0)) {
     const dd = Math.hypot(x - cam.x, z - cam.z);
     if (dd < 45) {
       const w = clamp(def.r * 1.6, 0.8, 1.8), f = m.hp / m.maxHp, by = y + top + 0.35;
@@ -1201,6 +1287,7 @@ function drawMonster(m, a) {
       const off = -(w - w * f) / 2;
       E.push('box', x + cam.rx * off - cam.fx * 0.02, by, z + cam.rz * off - cam.fz * 0.02, cam.rYaw, w * f, 0.08, 0.03,
         c(f > 0.5 ? lerp(1, 0.35, (f - 0.5) * 2) : 1, f > 0.5 ? 0.92 : lerp(0.25, 0.92, f * 2), 0.3, 1, 1, 0, false, true));
+      if (m.shield > 0) E.push('box', x - cam.fx * 0.03, by + 0.1, z - cam.fz * 0.03, cam.rYaw, w, 0.05, 0.03, c(0.45, 0.88, 1, 1, 1, 0, false, true));
     }
   }
 }
@@ -1390,6 +1477,72 @@ function drawTrap(S, tr, ghost) {
       void tip;
       break;
     }
+    case 'rail': {
+      // 轨道电磁炮：八角底座 + 旋转炮塔 + 双导轨，充能线圈随冷却逐渐点亮
+      Q('cyl', 0, 0.3, 0, 3.7, 0.6, 3.7, tc(0.19, 0.2, 0.23));
+      Q('cyl', 0, 0.66, 0, 3.0, 0.12, 3.0, tc(0.26, 0.27, 0.31));
+      Q('ring', 0, 0.62, 0, 1.86, 1, 1.86, tc(1, 0.5, 0.2, 1));
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; Q('box', Math.cos(a) * 1.75, 0.45, Math.sin(a) * 1.75, 0.5, 0.9, 0.5, tc(0.24, 0.25, 0.28), -a); }
+      const cdv = TRAP.rail.cd[lv - 1] * (TBR === 'b' ? 0.55 : 1), chg = GHOST ? 0.6 : clamp(since / cdv, 0, 1);
+      const yaw = GHOST ? 0 : (tr.cAim || 0);
+      TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      const rec = since < 0.15 ? (0.15 - since) * 3 : 0;
+      Q('cyl', 0, 1.0, 0, 1.6, 0.6, 1.6, tc(0.22, 0.23, 0.26));
+      Q('box', 0, 1.65, 0.35 + rec, 1.5, 0.9, 2.0, tc(0.52, 0.54, 0.6)); Q('box', 0, 1.65, -0.66 + rec, 1.52, 0.12, 0.04, tc(1, 0.5, 0.2, 1));
+      Q('box', 0, 2.15, 0.6 + rec, 1.1, 0.25, 1.2, tc(0.4, 0.42, 0.47));
+      Q('cyl', 0, 1.7, 1.42 + rec, 0.9, 0.5, 0.9, tc(0.24, 0.25, 0.29));
+      Q('ring', 0, 1.97, 1.42 + rec, 0.42, 1, 0.42, tc(0.4, 0.8, 1, 0.3 + chg * 0.6), timeNow * 3);
+      for (const sd of [-1, 1]) {
+        Q('box', sd * 0.4, 2.05, -1.0 + rec, 0.24, 0.5, 4.4, tc(0.6, 0.62, 0.68));
+        Q('box', sd * 0.4, 2.32, -1.0 + rec, 0.12, 0.05, 4.3, tc(0.4, 0.8, 1, 0.4 + chg * 0.6));
+        Q('box', sd * 0.4, 2.05, -1.0 + rec, 0.06, 0.54, 4.3, tc(0.4, 0.75, 1, chg * 0.9));
+        for (let k = 0; k < 4; k++) { const on = chg >= (k + 1) / 4; Q('box', sd * 0.36, 2.0, -0.2 - k * 0.75 + rec, 0.34, 0.56, 0.16, on ? tc(0.5, 0.85, 1, 1) : tc(0.2, 0.22, 0.26)); }
+      }
+      Q('box', 0, 1.62, -0.7 + rec, 0.6, 0.18, 1.2, tc(0.18, 0.19, 0.22));
+      if (!GHOST && chg >= 1) Q('sphere', 0, 2.0, -3.0, 0.25 + 0.05 * Math.sin(timeNow * 20), 0.25, 0.25, c(0.6, 0.9, 1, 0.9, 1, 0, true));
+      TX.yaw = 0; TX.cy = 1; TX.sy = 0;
+      lvPips(lv, 0, 0.75, 1.55, true);
+      break;
+    }
+    case 'mortar': {
+      // 等离子迫击炮：方形炮座 + 高仰角粗炮管，发射后后坐
+      Q('box', 0, 0.3, 0, 3.8, 0.6, 3.8, tc(0.21, 0.22, 0.24));
+      Q('box', 0, 0.62, 0, 3.4, 0.06, 3.4, tc(0.28, 0.27, 0.25));
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { Q('box', ox * 1.7, 0.66, oz * 1.7, 0.4, 0.1, 0.4, tc(1, 0.5, 0.2, 1)); Q('cyl', ox * 1.45, 0.95, oz * 1.45, 0.42, 0.6, 0.42, tc(0.3, 0.3, 0.32)); }
+      const yaw = GHOST ? 0 : (tr.cAim || 0);
+      TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      Q('cyl', 0, 0.85, 0, 2.2, 0.45, 2.2, tc(0.25, 0.26, 0.29));
+      Q('box', 0, 1.35, 0.25, 1.7, 0.75, 1.5, tc(0.55, 0.52, 0.48)); Q('box', 0, 1.35, -0.51, 1.72, 0.1, 0.04, tc(0.6, 0.45, 1, 1));
+      for (const sd of [-1, 1]) Q('box', sd * 0.95, 1.55, 0, 0.22, 1.1, 1.0, tc(0.26, 0.26, 0.28));
+      const rec = since < 0.35 ? (0.35 - since) * 1.4 : 0, pit = 0.95, L = 2.6;
+      const bx0 = 0, by0 = 1.55, bz0 = 0.1 + rec * Math.cos(pit), by1 = by0 + Math.sin(pit) * L - rec * Math.sin(pit), bz1 = bz0 - Math.cos(pit) * L;
+      const W0 = [TX.x + TX.sy * bz0, TX.y + by0, TX.z + TX.cy * bz0], W1 = [TX.x + TX.sy * bz1, TX.y + by1, TX.z + TX.cy * bz1];
+      E.pushBeam('cyl', W0[0], W0[1], W0[2], W1[0], W1[1], W1[2], 0.82, 0.82, tc(0.42, 0.42, 0.46), true);
+      const Wm = [lerp(W0[0], W1[0], 0.45), lerp(W0[1], W1[1], 0.45), lerp(W0[2], W1[2], 0.45)];
+      E.pushBeam('cyl', Wm[0], Wm[1], Wm[2], lerp(Wm[0], W1[0], 0.2), lerp(Wm[1], W1[1], 0.2), lerp(Wm[2], W1[2], 0.2), 0.98, 0.98, tc(0.55, 0.4, 1, since < 0.5 ? 1 : 0.5), true);
+      E.push('sphere', W1[0], W1[1], W1[2], 0, 0.62, 0.62, 0.62, GHOST ? tc(0, 0, 0) : c(0.55, 0.4, 1, since < 0.25 ? 1 : 0.6, 1, 0, true));
+      for (let i = 0; i < 3; i++) Q('sphere', 0.62, 1.05, 0.95 - i * 0.32, 0.26, 0.26, 0.26, tc(0.6, 0.45, 1, 0.8));
+      TX.yaw = 0; TX.cy = 1; TX.sy = 0;
+      lvPips(lv, 0, 0.7, 1.75, true);
+      break;
+    }
+    case 'grinder': {
+      // 碎骨绞盘：四片锯盘嵌在通道地面里，转动时缝隙透出绿光
+      const on = GHOST ? false : tr.activeT > 0, spin = (GHOST ? 0 : timeNow) * (on ? 9 : 1.2) + tr.x;
+      Q('box', 0, 0.06, 0, T * 1.94, 0.12, T * 1.94, tc(0.17, 0.18, 0.2));
+      for (const [ex, ez, sx, sz] of [[0, -T * 0.95, T * 1.94, 0.14], [0, T * 0.95, T * 1.94, 0.14], [-T * 0.95, 0, 0.14, T * 1.94], [T * 0.95, 0, 0.14, T * 1.94]]) Q('box', ex, 0.14, ez, sx, 0.06, sz, tc(0.55, 1, 0.35, 1));
+      for (const [qx, qz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        const dir = qx * qz, x0 = qx * T * 0.48, z0 = qz * T * 0.48;
+        Q('cyl', x0, 0.13, z0, 2.0, 0.04, 2.0, tc(0.55, 1, 0.35, on ? 0.9 : 0.35));
+        Q('cyl', x0, 0.17, z0, 1.75, 0.08, 1.75, tc(0.52, 0.54, 0.58), spin * dir);
+        for (let i = 0; i < 8; i++) { const a = spin * dir + i * Math.PI / 4; Q('box', x0 + Math.cos(a) * 0.86, 0.24, z0 + Math.sin(a) * 0.86, 0.28, 0.16, 0.1, tc(0.75, 0.75, 0.72), -a); }
+        Q('cyl', x0, 0.24, z0, 0.42, 0.12, 0.42, tc(0.25, 0.26, 0.29));
+      }
+      Q('cyl', 0, 0.2, 0, 0.6, 0.16, 0.6, tc(0.55, 1, 0.35, on ? 1 : 0.4));
+      if (on && Math.random() < 0.6) particle({ x: TX.x + rnd(-2, 2), y: TX.y + 0.3, z: TX.z + rnd(-2, 2), vx: rnd(-3, 3), vy: rnd(2, 5), vz: rnd(-3, 3), life: 0.35, s0: 0.06, s1: 0, c: [1, 0.85, 0.5], grav: 14 });
+      lvPips(lv, 0, 0.22, T * 0.9, true);
+      break;
+    }
     case 'crusher': {
       Q('box', 0, -0.2, 0, T * 0.9, 0.4, T * 0.9, tc(0.22, 0.23, 0.26));
       let yy = WALL_H - 1.45;
@@ -1425,6 +1578,7 @@ function drawTrap(S, tr, ghost) {
 
 /* ---------- 陷阱进阶外观：每个分支一套专属造型 + 底座光环 ---------- */
 const EVO_COL = {
+  rail: { a: [0.55, 0.85, 1], b: [1, 0.6, 0.25] }, mortar: { a: [1, 0.5, 0.15], b: [0.75, 0.5, 1] }, grinder: { a: [1, 0.3, 0.2], b: [0.7, 0.4, 1] },
   slow: { a: [0.75, 0.95, 1], b: [0.3, 0.85, 1] }, spike: { a: [0.35, 1, 0.35], b: [1, 0.7, 0.25] },
   push: { a: [1, 0.45, 0.2], b: [0.3, 0.9, 1] }, tesla: { a: [0.7, 0.55, 1], b: [1, 0.85, 0.25] },
   sentry: { a: [1, 0.6, 0.2], b: [1, 0.25, 0.3] }, aa: { a: [1, 0.8, 0.3], b: [1, 0.45, 0.15] },
@@ -1440,12 +1594,45 @@ function evoFx(S, tr, since) {
   TX.cy = Math.cos(TX.yaw); TX.sy = Math.sin(TX.yaw);
   const cat = TRAP[tr.type].cat, spark = (x, y, z, n, o) => { if (!TDIS && Math.random() < n) particle(Object.assign({ x, y, z, vx: rnd(-0.6, 0.6), vy: rnd(0.8, 2), vz: rnd(-0.6, 0.6), life: rnd(0.5, 1), s0: 0.07, s1: 0, c: col, grav: -0.5, drag: 0.5 }, o || {})); };
   // 底座光环（地面 / 炮台类）
-  if (cat === 'floor' || cat === 'pad') {
-    const r = T * (tr.type === 'tesla' || cat === 'pad' ? 0.5 : 0.47);
+  if (cat === 'floor' || cat === 'pad' || cat === 'heavy' || cat === 'hfloor') {
+    const r = T * (cat === 'heavy' || cat === 'hfloor' ? 1.0 : tr.type === 'tesla' || cat === 'pad' ? 0.5 : 0.47);
     Q('ring', 0, 0.035, 0, r, 1, r, G(0.75), t * 0.6);
     for (let i = 0; i < 4; i++) { const a = t * 0.6 + i * Math.PI / 2; Q('box', Math.cos(a) * r, 0.05, Math.sin(a) * r, 0.16, 0.04, 0.16, C(1), -a); }
   }
   switch (tr.type + br) {
+    case 'raila': {   // 超载线圈：两侧电容组 + 环绕电弧
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-1, 1]) { Q('cyl', sd * 0.95, 1.75, 0.6, 0.45, 1.0, 0.45, tc(0.25, 0.26, 0.3)); Q('ring', sd * 0.95, 1.75 + Math.sin(t * 4) * 0.35, 0.6, 0.32, 1, 0.32, C(1), t * 5); }
+      if (!TDIS && Math.random() < 0.3) { const a = [TX.x - TX.cy * 0.95 + TX.sy * 0.6, TX.y + 2.2, TX.z + TX.sy * 0.95 + TX.cy * 0.6], b = [TX.x + TX.cy * 0.95 + TX.sy * 0.6, TX.y + 2.2, TX.z - TX.sy * 0.95 + TX.cy * 0.6]; E.pushBeam('box', a[0], a[1] + rnd(-0.2, 0.2), a[2], b[0], b[1] + rnd(-0.2, 0.2), b[2], 0.03, 0.03, c(0.8, 0.9, 1, 1, 1, 0, true)); }
+      break;
+    }
+    case 'railb': {   // 速射轨道：炮管外加旋转散热环
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (let k = 0; k < 3; k++) Q('ring', 0, 2.0, -1.0 - k * 0.8, 0.62, 1, 0.62, C(0.7 + 0.3 * Math.sin(t * 8 + k)), t * 6);
+      for (const sd of [-1, 1]) for (let k = 0; k < 4; k++) Q('box', sd * 0.82, 1.6, 0.9 - k * 0.22, 0.05, 0.6, 0.14, tc(0.32, 0.33, 0.37));
+      break;
+    }
+    case 'mortara': { // 燃烧弹：两侧燃料罐 + 炮口火苗
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-1, 1]) { Q('cyl', sd * 1.25, 1.35, 0.6, 0.55, 1.0, 0.55, tc(0.55, 0.22, 0.1)); Q('box', sd * 1.25, 1.35, 0.32, 0.4, 0.08, 0.02, C(1)); }
+      spark(TX.x - TX.sy * 1.6, TX.y + 3.6, TX.z - TX.cy * 1.6, 0.4, { c: [1, 0.55, 0.15], s0: 0.14, vy: rnd(1, 2) });
+      break;
+    }
+    case 'mortarb': { // 集束弹：炮管两侧挂载子弹药舱
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-1, 1]) { Q('box', sd * 0.75, 2.3, -0.35, 0.35, 0.55, 0.9, tc(0.3, 0.29, 0.27)); for (let k = 0; k < 2; k++) Q('sphere', sd * 0.75, 2.45 - k * 0.3, -0.82, 0.16, 0.16, 0.16, C(1)); }
+      break;
+    }
+    case 'grindera': { // 锯刃风暴：锯盘外圈加装红热刀刃
+      const spin = timeNow * (tr.activeT > 0 ? 9 : 1.2) + tr.x;
+      for (const [qx, qz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { const dir = qx * qz; for (let i = 0; i < 6; i++) { const a = -spin * dir + i * Math.PI / 3; Q('cone', qx * T * 0.48 + Math.cos(a) * 0.55, 0.32, qz * T * 0.48 + Math.sin(a) * 0.55, 0.14, 0.32, 0.14, C(0.9)); } }
+      break;
+    }
+    case 'grinderb': { // 引力漩涡：上升的紫色引力环
+      for (let k = 0; k < 3; k++) { const ph = (t * 0.6 + k / 3) % 1; Q('ring', 0, 0.2 + ph * 4, 0, T * (1.3 - ph * 0.9), 1, T * (1.3 - ph * 0.9), G(0.5 * (1 - ph)), t * 2); }
+      Q('sphere', 0, 0.35, 0, 0.5, 0.5, 0.5, C(1));
+      break;
+    }
     case 'slowa': {   // 冰封力场：四角升起冰晶，寒雾
       for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
         Q('oct', ox * T * 0.33, 0.55 + Math.sin(t * 2 + ox + oz) * 0.05, oz * T * 0.33, 0.22, 0.75, 0.22, c(0.75, 0.95, 1, 0.85, TDIS ? 0.1 : 0.8), t * 0.5);
@@ -1910,8 +2097,8 @@ function computeAim() {
   let best = null, bt = hit ? hit.t : 20;
   for (const tr of sim.s.traps) {
     const def = TRAP[tr.type];
-    const h = def.block ? 1.6 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? WALL_H - 1 : (tr.kind === 'wall' ? 1.5 : 0.3)));
-    const r = def.block ? 1.0 : (def.cat === 'pad' ? 0.9 : 0.75);
+    const h = def.block ? 1.6 : def.cat === 'heavy' ? 1.5 : def.cat === 'hfloor' ? 0.3 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? WALL_H - 1 : (tr.kind === 'wall' ? 1.5 : 0.3)));
+    const r = def.block ? 1.0 : def.big ? 1.7 : (def.cat === 'pad' ? 0.9 : 0.75);
     const lx = tr.wx - ex, ly = h + (tr.kind === 'floor' ? tr.wy : 0) - ey, lz = tr.wz - ez;
     const tca = lx * dx + ly * dy + lz * dz;
     if (tca < 0 || tca > bt + 0.5) continue;
@@ -1933,12 +2120,13 @@ function computeAim() {
 function drawBuildOverlay() {
   if (!sim || tool === 'gun' || mode !== 'play') return;
   const def = TRAP[tool], cc = CAT_COL[def.cat];
-  if (!slotCache) { slotCache = {}; for (const k of ['floor', 'pad', 'wall', 'ceil']) slotCache[k] = sim.listSlots(k); }
+  if (!slotCache) { slotCache = {}; for (const k of ['floor', 'pad', 'wall', 'ceil', 'heavy']) slotCache[k] = sim.listSlots(k); slotCache.hfloor = slotCache.floor; }
   const p = sim.s.players[PID];
   for (const sl of slotCache[def.cat]) {
-    const w = sim.trapWorld(sl);
+    const big = def.cat === 'heavy', w = sim.trapWorld(big ? { type: tool, x: sl.x, z: sl.z, kind: 'floor' } : sl);
     if (Math.abs(w.x - p.x) > 22 || Math.abs(w.z - p.z) > 22) continue;
-    if (sim.trapAtSlot(sl)) continue;
+    if (big ? sim.trapAtSlot(sl, tool) : sim.trapAtSlot(sl)) continue;
+    if (big) { E.push('box', w.x, w.y + 0.04, w.z, 0, T * 1.86, 0.01, T * 1.86, c(cc[0], cc[1], cc[2], 0.1, 1, 0, true)); continue; }
     if (sl.kind === 'wall') {
       const alongX = DIRS[sl.dir][1] !== 0;
       E.push('box', w.x - DIRS[sl.dir][0] * 0.03, 1.5, w.z - DIRS[sl.dir][1] * 0.03, 0, alongX ? T * 0.8 : 0.02, 2.2, alongX ? 0.02 : T * 0.8, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
@@ -1950,7 +2138,8 @@ function drawBuildOverlay() {
   if (aim && aim.slot) {
     const ok = aim.can && aim.can.ok;
     const gc = ok ? [0.35, 1.0, 0.55] : [1.0, 0.32, 0.32];
-    const w = sim.trapWorld(aim.slot);
+    const w = sim.trapWorld({ type: tool, kind: aim.slot.kind, x: aim.slot.x, z: aim.slot.z, dir: aim.slot.dir });
+    if (def.big) E.push('box', w.x, w.y + 0.05, w.z, 0, T * 1.94, 0.02, T * 1.94, c(gc[0], gc[1], gc[2], 0.22, 1, 0, true));
     const ghost = { type: tool, kind: aim.slot.kind, x: aim.slot.x, z: aim.slot.z, dir: aim.slot.dir || 0, lv: 1, wx: w.x, wy: w.y, wz: w.z, activeT: 0, fireT: -9, disT: 0, laneGhost: sim.laneTurret(tool, aim.slot) };
     drawTrap(sim, ghost, gc);
     if (aim.slot.kind === 'wall') {
@@ -1996,12 +2185,46 @@ function drawShells(dt) {
   for (let i = shellFx.length - 1; i >= 0; i--) {
     const f = shellFx[i]; f.t += dt;
     if (f.t >= f.T) { shellFx.splice(i, 1); continue; }
-    const k = f.t / f.T, x = lerp(f.x, f.tx, k), z = lerp(f.z, f.tz, k), y = lerp(4.2, 0.4, k) + Math.sin(k * Math.PI) * 5;
-    E.push('sphere', x, Math.min(WALL_H - 0.3, y), z, 0, 0.35, 0.35, 0.35, c(1, 0.6, 0.25, 1, 1, 0, true));
-    particle({ x, y: Math.min(WALL_H - 0.3, y), z, vy: 0.3, life: 0.6, s0: 0.25, s1: 0.7, c: [0.5, 0.48, 0.45], add: false, a0: 0.4 });
-    E.push('ring', f.tx, 0.06, f.tz, timeNow * 3, 2.6 * (1.2 - k * 0.3), 1, 2.6 * (1.2 - k * 0.3), c(1, 0.35, 0.2, 0.8, 1, 0, true));
+    const k = f.t / f.T, x = lerp(f.x, f.tx, k), z = lerp(f.z, f.tz, k), y = lerp(f.y || 4.2, 0.4, k) + Math.sin(k * Math.PI) * (f.k === 't' ? 2.2 : 5);
+    const pc = f.k === 'm' ? [0.6, 0.45, 1] : f.k === 't' ? [1, 0.8, 0.35] : [1, 0.6, 0.25], R = f.k === 'm' ? 3.8 : f.k === 't' ? 2.2 : 2.6;
+    E.push('sphere', x, Math.min(WALL_H - 0.3, y), z, 0, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, c(pc[0], pc[1], pc[2], 1, 1, 0, true));
+    particle({ x, y: Math.min(WALL_H - 0.3, y), z, vy: 0.3, life: 0.6, s0: 0.25, s1: 0.7, c: f.k === 'm' ? [0.55, 0.45, 0.9] : [0.5, 0.48, 0.45], add: f.k === 'm', a0: 0.4 });
+    E.push('ring', f.tx, 0.06, f.tz, timeNow * 3, R * (1.2 - k * 0.3), 1, R * (1.2 - k * 0.3), f.k === 'm' ? c(0.6, 0.45, 1, 0.8, 1, 0, true) : c(1, 0.35, 0.2, 0.8, 1, 0, true));
+  }
+  // 轨道电磁炮的贯穿光束
+  for (let i = railFx.length - 1; i >= 0; i--) {
+    const f = railFx[i]; f.t += dt;
+    if (f.t >= 0.5) { railFx.splice(i, 1); continue; }
+    const k = 1 - f.t / 0.5;
+    E.pushBeam('box', f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, 0.12 * k + 0.02, 0.12 * k + 0.02, c(0.9, 0.97, 1, k, 1, 0, true));
+    E.pushBeam('box', f.x1, f.y1, f.z1, f.x2, f.y2, f.z2, 0.7 * k, 0.7 * k, c(0.35, 0.7, 1, 0.3 * k, 1, 0, true));
+    for (let j = 0; j < 4; j++) { const u = (f.t * 3 + j / 4) % 1; E.push('ring', lerp(f.x1, f.x2, u), lerp(f.y1, f.y2, u), lerp(f.z1, f.z2, u), 0, 0.45 * k, 1, 0.45 * k, c(0.6, 0.85, 1, 0.6 * k, 1, 0, true)); }
+  }
+  // 相位行者瞬移残影
+  for (let i = blinkFx.length - 1; i >= 0; i--) {
+    const f = blinkFx[i]; f.t += dt;
+    if (f.t >= 0.6) { blinkFx.splice(i, 1); continue; }
+    const k = 1 - f.t / 0.6;
+    E.pushBeam('box', f.x, 1.0, f.z, f.x2, 1.0, f.z2, 0.5 * k, 1.6 * k, c(0.6, 0.4, 1, 0.25 * k, 1, 0, true));
+    E.push('sphere', f.x, 1.0, f.z, 0, 1.2 * k, 2 * k, 1.2 * k, c(0.6, 0.4, 1, 0.3 * k, 1, 0, true));
+  }
+  // 棱盾守卫的护盾脉冲
+  for (let i = auraFx.length - 1; i >= 0; i--) {
+    const f = auraFx[i]; f.t += dt;
+    if (f.t >= 0.7) { auraFx.splice(i, 1); continue; }
+    const k = f.t / 0.7;
+    E.push('ring', f.x, 0.15 + k * 0.6, f.z, 0, f.r * k, 1, f.r * k, c(0.4, 0.85, 1, 0.8 * (1 - k), 1, 0, true));
+  }
+  // 燃烧弹的火海
+  for (let i = fireFx.length - 1; i >= 0; i--) {
+    const f = fireFx[i]; f.t += dt;
+    if (f.t >= 4) { fireFx.splice(i, 1); continue; }
+    const k = f.t < 3.4 ? 1 : (4 - f.t) / 0.6;
+    E.push('disc', f.x, 0.05, f.z, 0, 3.6, 1, 3.6, c(1, 0.4, 0.1, 0.22 * k, 1, 0, true));
+    if (Math.random() < 0.8 * k) particle({ x: f.x + rnd(-3, 3), y: 0.2, z: f.z + rnd(-3, 3), vy: rnd(1, 2.5), life: rnd(0.4, 0.8), s0: rnd(0.2, 0.4), s1: 0.6, c: [1, rnd(0.35, 0.6), 0.1], drag: 1, a0: 0.7 });
   }
 }
+const railFx = [], blinkFx = [], auraFx = [], fireFx = [];
 function drawStrikes(dt) {
   for (let i = strikeFx.length - 1; i >= 0; i--) {
     const f = strikeFx[i];
@@ -2204,6 +2427,7 @@ function handleEvents(S) {
         break;
       }
       case 'combo': {
+        if (e.k === 'napalm') { fireFx.push({ x: e.x, z: e.z, t: 0 }); break; }
         const C = { shatter: ['碎冰 ×2', [0.6, 0.9, 1]], ignite: ['爆燃！', [1, 0.5, 0.15]], air: ['空中连击', [1, 0.8, 0.3]], spread: ['毒素扩散', [0.4, 1, 0.4]] }[e.k];
         if (!C) break;
         floatNum(e.x, e.y + 0.8, e.z, C[0], 'combo');
@@ -2276,7 +2500,18 @@ function handleEvents(S) {
         Snd.play('mshot', e.x, e.z);
         break;
       }
-      case 'shellFire': shellFx.push({ x: e.x, z: e.z, tx: e.tx, tz: e.tz, t: 0, T: e.t || 1.3 }); Snd.play('shellFire', e.x, e.z, { range: 90 }); break;
+      case 'shellFire': shellFx.push({ x: e.x, z: e.z, tx: e.tx, tz: e.tz, t: 0, T: e.t || 1.3, k: e.k || '', y: e.y || 4.2 }); Snd.play(e.k === 'm' ? 'mortar' : 'shellFire', e.x, e.z, { range: 90 }); break;
+      case 'rail': {
+        railFx.push({ x1: e.x, y1: e.y, z1: e.z, x2: e.x2, y2: e.y2, z2: e.z2, t: 0 });
+        burst(e.x2, e.y2, e.z2, 10, { c: [0.6, 0.85, 1], sp0: 2, sp1: 6, s0: 0.12, l0: 0.2, l1: 0.5 });
+        burst(e.x, e.y, e.z, 8, { c: [0.7, 0.9, 1], sp0: 1, sp1: 4, s0: 0.18, l0: 0.15, l1: 0.35 });
+        Snd.play('rail', e.x, e.z, { range: 110 });
+        const d = Math.hypot(e.x - cam.x, e.z - cam.z); if (d < 10) shake(0.15 * (1 - d / 10));
+        break;
+      }
+      case 'blink': blinkFx.push({ x: e.x, z: e.z, x2: e.x2, z2: e.z2, t: 0 }); burst(e.x2, 1, e.z2, 10, { c: [0.65, 0.45, 1], sp0: 1, sp1: 4, s0: 0.15, l0: 0.2, l1: 0.5 }); Snd.play('blink', e.x2, e.z2); break;
+      case 'aura': auraFx.push({ x: e.x, z: e.z, r: e.r || 6, t: 0 }); Snd.play('aura', e.x, e.z); break;
+      case 'shieldBreak': burst(e.x, e.y, e.z, 12, { c: [0.45, 0.85, 1], sp0: 2, sp1: 5, s0: 0.1, l0: 0.2, l1: 0.45, g: 'box' }); Snd.play('shieldBreak', e.x, e.z); break;
       case 'fwave': {
         const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
         for (let i = 0; i < 60; i++) { const a = e.yaw + rnd(-0.55, 0.55), sp = rnd(8, 16); particle({ x: e.x + fx * 1.5, y: rnd(0.5, 3), z: e.z + fz * 1.5, vx: Math.sin(a) * sp, vy: rnd(-0.5, 1.5), vz: Math.cos(a) * sp, life: rnd(0.6, 1.0), s0: 0.4, s1: 1.6, c: [1, rnd(0.3, 0.6), 0.08], drag: 1.2, a0: 0.8 }); }
@@ -2307,7 +2542,7 @@ function handleEvents(S) {
         Snd.play('emp', e.x, e.z, { range: 80 });
         break;
       }
-      case 'summon': if (!e.brood) feed('BOSS 召唤了援军', 'bad'); burst(e.x, 1, e.z, 20, { c: [1, 0.3, 0.25], sp0: 2, sp1: 5, s0: 0.2 }); break;
+      case 'summon': if (!e.brood && !e.drop) feed('BOSS 召唤了援军', 'bad'); burst(e.x, 1, e.z, 20, { c: [1, 0.3, 0.25], sp0: 2, sp1: 5, s0: 0.2 }); break;
       case 'stomp': {
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: e.r, t: 0, life: 0.45, c: [1, 0.6, 0.3] });
         const d = Math.hypot(e.x - cam.x, e.z - cam.z); if (d < 20) shake(0.5 * (1 - d / 20));
@@ -2365,7 +2600,7 @@ function findTrap(id) { return trapIndex.get(id); }
  * ============================================================ */
 const cache = {};
 // 准星旁的竖向陷阱信息卡
-const CAT_CSS = { floor: '#4fd6c4', pad: '#ffb547', wall: '#ff6b8c', ceil: '#b58cff' };
+const CAT_CSS = { floor: '#4fd6c4', pad: '#ffb547', wall: '#ff6b8c', ceil: '#b58cff', heavy: '#ff7a3d', hfloor: '#8cff66' };
 function trapCardHTML(tr, d, up, gold) {
   const kb = act => TOUCH ? (act === 'KeyE' ? '▲' : '✕') : keyName(keyOf(act));
   const lvTxt = tr.lv >= MAX_LV ? 'MAX' : 'Lv' + tr.lv;
@@ -2442,6 +2677,9 @@ const ICONS = {
   laser: '<path d="M2 6v12M2 9h4v6H2M6 12h16" /><path d="M10 10v4M14 10v4M18 10v4" stroke-dasharray="1 1"/>',
   flame: '<path d="M2 8v8M2 10h4v4H2M6 12c4-3 6 1 8-2 0 3 3 2 4 0 1 3 2 4 4 4-3 2-8 3-16-2"/>',
   crusher: '<path d="M3 3h18M12 3v6M5 9h14v5H5zM5 20h14M8 17l-2 3M16 17l2 3"/>',
+  rail: '<path d="M3 21h18M6 21v-4h12v4M8 17l2-5h4l2 5M10 12l9-7M12 10l9-7M17 4l3 3"/>',
+  mortar: '<path d="M3 21h18M6 21l2-5h8l2 5M9 16l3-8 3 8M12 8a6 6 0 0 1 8-3M18 3l3 2-2 2"/>',
+  grinder: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="3"/><circle cx="15.5" cy="15.5" r="3"/><path d="M8.5 4v2M8.5 11v2M4 8.5h2M11 8.5h2M15.5 11v2M15.5 18v2M11 15.5h2M18 15.5h2"/>',
   rifle: '<path d="M2 10h14l2-2h4v4h-3l-1 2h-5l-1 4H8l1-4H2z"/>',
   shotgun: '<path d="M2 9h16v3H2zM2 13h12M18 10.5h4M14 12l1 6h3l-1-6"/>',
   sniper: '<path d="M1 12h22M8 12v3h5l1 4h3l-1-4M10 8h6v3h-6zM5 12l-1 3"/>',
@@ -2472,6 +2710,7 @@ function selectTool(id) {
 }
 function buildHelp() {
   const lvStat = t => {
+    if (t.dps) return '每秒伤害 ' + t.dps.join(' / ');
     if (t.slow) return '减速 ' + t.slow.map(v => Math.round(v * 100) + '%').join(' / ');
     if (t.block) return '耐久 ' + t.hp.join(' / ');
     const cd = Array.isArray(t.cd) ? t.cd : [t.cd, t.cd, t.cd, t.cd];
@@ -2479,7 +2718,7 @@ function buildHelp() {
   };
   const rows = TRAPS.map(t => `<tr><td><span class="kb">${t.key}</span></td><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td>${CAT_NAME[t.cat]}</td><td class="num">${t.cost}</td><td>${t.desc.split(' · ')[1] || t.desc}<div class="lv">Lv1→4 ${lvStat(t)}</div></td></tr>`).join('');
   $('trapTable').innerHTML = `<thead><tr><th>键</th><th>陷阱</th><th>位置</th><th>价格</th><th>作用</th></tr></thead><tbody>${rows}</tbody>`;
-  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
+  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.aura) tags.push('给周围敌人套能量护盾（会吸收中毒与灼烧）'); if (m.cannon) tags.push('炮击炮台与阻挡物使其瘫痪'); if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%'); if (m.blink) tags.push('周期性向前瞬移，越过阻挡'); if (m.drop) tags.push('空投噬晶蛛'); if (m.heavy) tags.push('重装单位·电磁炮优先锁定'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
   $('monList').innerHTML = mons;
   $('evoTable').innerHTML = `<thead><tr><th>陷阱</th><th>进阶·甲</th><th>进阶·乙</th></tr></thead><tbody>` + TRAPS.map(t => `<tr><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td><b>${EVO[t.id].a.name}</b><div class="lv">${EVO[t.id].a.desc}</div></td><td><b>${EVO[t.id].b.name}</b><div class="lv">${EVO[t.id].b.desc}</div></td></tr>`).join('') + '</tbody>';
   $('techList').innerHTML = TD.TECH.map((t, i) => `<li><b style="color:${TECH_CSS[i]}">${t.name}</b><span>${t.desc(1)}（每级叠加，最高 ${TD.TECH_MAX} 级） · ${t.cost.join(' / ')} 金币</span></li>`).join('');
@@ -2620,7 +2859,9 @@ function updateHUD(dt) {
     if (aim.trap && (tool === 'gun' || !aim.slot || (aim.can && !aim.can.ok))) {
       const tr = aim.trap, d = TRAP[tr.type];
       const up = sim.upgradeCost(tr, PID);
-      card = trapCardHTML(tr, d, up, s.gold); pr = ''; prCls = '';
+      // 信息卡只在 2 格以内显示，远处只高亮不弹卡
+      const near = p && Math.hypot(tr.wx - p.x, tr.wz - p.z) <= T * (d.big ? 2.6 : 2.1);
+      card = near ? trapCardHTML(tr, d, up, s.gold) : ''; pr = ''; prCls = '';
     }
   }
   const di = mode === 'play' ? nearDevice() : -1;
@@ -2806,6 +3047,7 @@ function onKey(code, e) {
   if (labOpen && code === 'Escape') { toggleLab(false); return; }
   if (d && shopOpen) { buyWeapon(+d[1] - 1); return; }
   if (d) { const t = TRAPS[+d[1] - 1]; if (t) selectTool(t.id); return; }
+  { const hk = { Digit0: '0', Minus: '-', Equal: '=' }[code]; if (hk) { const t = TRAPS.find(x => x.key === hk); if (t) selectTool(t.id); return; } }
   if (shopOpen && code === 'Escape') { toggleShop(false); return; }
   switch (code) {
     case 'KeyQ': if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
@@ -3350,7 +3592,7 @@ function newGame(state, prebuilt) {
   for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null;
   diff = sim.s.diff;
   trapIndex = new Map(); slotCache = null; pathDirCache.clear();
-  corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear();
+  corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;
   parts.length = 0; tracers.length = 0; rings.length = 0; lights.length = 0;
   const p = sim.s.players[PID]; cam.yaw = p ? p.yaw : 0; cam.pitch = 0;
   tool = 'gun'; buildHotbar(); selectTool('gun'); for (const el of $('hotbar').children) el.classList.toggle('sel', el.dataset.id === 'gun');
@@ -3621,6 +3863,7 @@ function makeDemo() {
   };
   let queue = [];
   const yieldSlot = (cat, sl) => queue.push([cat, sl]);
+  { const hv = demo.listSlots('heavy').map(sl => ({ sl, d: Math.min(...foci.map(f => Math.hypot((sl.x + 1) * T - f.x, (sl.z + 1) * T - f.z))) })).sort((a, b) => a.d - b.d)[0]; if (hv) put('rail', hv.sl); }
   pick('floor', 5); pick('ceil', 1); pick('pad', 3); pick('wall', 8);
   const plan = { floor: ['tesla', 'slow', 'spike', 'spike', 'push'], ceil: ['crusher'], pad: ['sentry', 'aa', 'sentry'], wall: ['laser', 'flame', 'laser', 'laser', 'flame', 'laser', 'laser', 'flame'] };
   const idx = { floor: 0, ceil: 0, pad: 0, wall: 0 };
@@ -3685,7 +3928,7 @@ function frame(now) {
   simNow = S.s.time + frameAlpha * STEP;
   trapIndex.clear(); for (const tr of S.s.traps) trapIndex.set(tr.id, tr);
   // 炮台客户端瞄准平滑
-  for (const tr of S.s.traps) if (tr.type === 'sentry' || tr.type === 'aa') {
+  for (const tr of S.s.traps) if (tr.type === 'sentry' || tr.type === 'aa' || tr.type === 'rail' || tr.type === 'mortar') {
     const tgt = tr.aimYaw || 0;
     if (tr.cAim === undefined) tr.cAim = tgt;
     let d = tgt - tr.cAim; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
@@ -3773,8 +4016,9 @@ function frame(now) {
       if (k >= 1) buildFx.delete(tr.id);
       else {
         const hy = tr.kind === 'ceil' ? WALL_H - 1.2 : (tr.kind === 'wall' ? 1.2 : 0), hh = TRAP[tr.type].block ? 3.2 : (TRAP[tr.type].cat === 'pad' ? 2 : 1.4);
-        E.push('box', tr.wx, tr.wy + hy + hh / 2 - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, T * 0.96, hh, T * 0.96, c(0.4, 1, 0.85, 0.1 * (1 - k), 1, 0, true));
-        E.push('box', tr.wx, tr.wy + hy + k * hh - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, T, 0.04, T, c(0.5, 1, 0.9, 1 - k, 1, 0, true));
+        const bw = TRAP[tr.type].big ? T * 2 : T;
+        E.push('box', tr.wx, tr.wy + hy + hh / 2 - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, bw * 0.96, hh, bw * 0.96, c(0.4, 1, 0.85, 0.1 * (1 - k), 1, 0, true));
+        E.push('box', tr.wx, tr.wy + hy + k * hh - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, bw, 0.04, bw, c(0.5, 1, 0.9, 1 - k, 1, 0, true));
       }
     }
   }
@@ -3802,7 +4046,7 @@ function frame(now) {
   if (mode === 'play' && aim && aim.trap && !(aim.slot && aim.can && aim.can.ok)) {
     const tr = aim.trap, yy = tr.kind === 'ceil' ? WALL_H - 0.05 : tr.wy + 0.05;
     if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, 0.05, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));
-    else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * 0.62, 1, T * 0.62, c(1, 0.75, 0.3, 0.8, 1, 0, true));
+    else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * (TRAP[tr.type].big ? 1.15 : 0.62), 1, T * (TRAP[tr.type].big ? 1.15 : 0.62), c(1, 0.75, 0.3, 0.8, 1, 0, true));
   }
   // 子弹轨迹
   for (let i = tracers.length - 1; i >= 0; i--) {

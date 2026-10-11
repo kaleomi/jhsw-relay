@@ -49,17 +49,19 @@ function run(mapId, opts) {
   sim.addPlayer('p1');
   const p = sim.s.players.p1;
   const foci = sim.def.foci.map(([x, z]) => ({ x: x * T, z: z * T }));
-  const near = (sl, f) => { const w = sim.trapWorld(sl); return Math.hypot(w.x - f.x, w.z - f.z); };
+  let curType = null;
+  const near = (sl, f) => { const w = sim.trapWorld(Object.assign({ type: curType }, sl)); return Math.hypot(w.x - f.x, w.z - f.z); };
   const slots = {};
-  for (const c of ['floor', 'pad', 'wall', 'ceil']) slots[c] = sim.listSlots(c);
+  for (const c of ['floor', 'pad', 'wall', 'ceil', 'heavy', 'hfloor']) slots[c] = sim.listSlots(c);
   let fOverride = null;
   const build = (type, fi, filter) => {
-    const def = TRAP[type], f = fOverride || foci[fi % foci.length];
-    const list = slots[def.cat].filter(sl => !sim.trapAtSlot(sl) && (!filter || filter(sl))).sort((a, b) => near(a, f) - near(b, f));
+    const def = TRAP[type], f = fOverride || foci[fi % foci.length]; curType = type;
+    const list = slots[def.cat].filter(sl => !sim.trapAtSlot(sl, type) && (!filter || filter(sl))).sort((a, b) => near(a, f) - near(b, f));
     for (const sl of list.slice(0, 40)) {
-      const w = sim.trapWorld(sl); p.x = w.x + T * 2; p.z = w.z;
+      const w = sim.trapWorld(Object.assign({ type }, sl)); p.x = w.x + T * 2; p.z = w.z;
       const r = sim.apply({ t: 'build', pid: 'p1', trap: type, slot: sl });
       if (r.ok) return true;
+      if (process.env.DBG && sim.s.wave >= 6) console.log('fail', type, sl.x, sl.z, r.reason, sim.s.gold);
       if (r.reason === '金币不足') return false;
     }
     return null;
@@ -90,13 +92,13 @@ function run(mapId, opts) {
       for (const f of foci) { let dmin = 1e9; for (let d = 0; d < pth.len; d += 1) { TD.pathAt(pth, d, tmp); dmin = Math.min(dmin, Math.hypot(tmp.x - f.x, tmp.z - f.z)); } if (!best || dmin < best.d) best = { f, d: dmin }; }
       fOverride = best.f;
     }
-    const want = [['tesla', 3 * nf], ['slow', 2 * nf], ['laser', 4 * nf], ['spike', 2 * nf], ['crusher', nf], ['aa', 2 * nf], ['sentry', nf], ['laser', 8 * nf], ['flame', 3 * nf], ['crusher', 2 * nf], ['spike', 4 * nf], ['sentry', 2 * nf], ['aa', 3 * nf], ['flame', 5 * nf], ['laser', 12 * nf], ['crusher', 4 * nf], ['laser', 20 * nf], ['flame', 10 * nf], ['spike', 8 * nf], ['crusher', 6 * nf], ['laser', 30 * nf]];
+    const want = [['tesla', 3 * nf], ['slow', 2 * nf], ['laser', 4 * nf], ['spike', 2 * nf], ['crusher', nf]].concat(process.env.NOHEAVY ? [] : [['rail', 1]]).concat([['aa', 2 * nf], ['sentry', nf]]).concat(process.env.NOHEAVY ? [] : [['grinder', nf], ['mortar', 1]]).concat([ ['laser', 8 * nf], ['flame', 3 * nf], ['crusher', 2 * nf], ['spike', 4 * nf], ['sentry', 2 * nf], ['aa', 3 * nf], ['flame', 5 * nf], ['laser', 12 * nf], ['crusher', 4 * nf], ['laser', 20 * nf], ['flame', 10 * nf], ['spike', 8 * nf], ['crusher', 6 * nf], ['laser', 30 * nf]]).concat(process.env.NOHEAVY ? [] : [['rail', 2 * nf], ['mortar', nf], ['grinder', 2 * nf]]);
     const cnt = t => sim.s.traps.filter(x => x.type === t).length;
     const upgradeRound = (cap) => {
       let progress = true;
       while (progress) {
         progress = false;
-        for (const tt of ['tesla', 'laser', 'crusher', 'aa', 'sentry', 'spike', 'flame', 'slow']) {
+        for (const tt of ['rail', 'tesla', 'laser', 'crusher', 'grinder', 'mortar', 'aa', 'sentry', 'spike', 'flame', 'slow']) {
           const tr = sim.s.traps.filter(x => x.type === tt && x.lv < cap).sort((a, b) => a.lv - b.lv)[0];
           if (tr && sim.s.gold >= sim.upgradeCost(tr) && sim.apply({ t: 'upgrade', pid: 'p1', id: tr.id, br: process.env.BR || (tr.id % 2 ? 'a' : 'b') }).ok) progress = true;
         }
@@ -110,10 +112,11 @@ function run(mapId, opts) {
           const fi = cnt(t) % nf; const sl = rows[fi].find(x => !sim.trapAtSlot(x)) || rows.flat().find(x => !sim.trapAtSlot(x)); if (!sl) break;
           const w = sim.trapWorld(sl); p.x = w.x + T * 3; p.z = w.z + T * 3;
           const r = sim.apply({ t: 'build', pid: 'p1', trap: 'tesla', slot: sl });
-          if (!r.ok) { if (r.reason === '金币不足') break outer; break; }
+          if (!r.ok) { if (process.env.DBG) console.log('tesla fail', r.reason, sim.s.wave, sim.s.gold); if (r.reason === '金币不足') break outer; break; }
           continue;
         }
         const r = build(t, cnt(t));
+        if (process.env.DBG && r !== true) console.log('build', t, r, sim.s.wave, sim.s.gold);
         if (r === false) break outer; if (r === null) break;
       }
       if (sim.s.traps.length >= 12 * nf) upgradeRound(sim.s.wave < 6 ? 2 : 3);
