@@ -414,6 +414,48 @@ body.touch .keys { display: none; }
 body.touch .menuIn { gap: 14px; padding-top: 16px; }
 body.touch h1 { font-size: 48px; }
 body.touch .pitch { font-size: 13px; }
+
+/* 暂停菜单 / 整页面板（设置、图鉴） */
+.pauseBox { width: min(380px, calc(100% - 32px)); }
+.pmBtns { display: grid; gap: 10px; }
+.pmBtns button { width: 100%; padding: 13px 18px; font-size: 16px; }
+.fullPage { background: rgba(3, 6, 10, .97) !important; backdrop-filter: none !important; z-index: 20; }
+.fpIn { width: 100%; min-height: 100%; display: flex; flex-direction: column; }
+.fpHead { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 10px calc(16px + env(safe-area-inset-left, 0px)); background: rgba(6, 10, 16, .98); border-bottom: 1px solid var(--line); }
+.fpHead h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 26px; letter-spacing: .12em; white-space: nowrap; }
+.fpTabs { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.fpTabs button { padding: 8px 14px; font-size: 14px; background: transparent; border: 1px solid transparent; color: var(--dim); cursor: pointer; }
+.fpTabs button[aria-selected="true"] { color: var(--crys); border-color: var(--crys); background: rgba(95, 227, 255, .1); }
+.fpClose { flex: none; padding: 10px 18px; font-size: 15px; font-weight: 600; letter-spacing: .1em; color: #04222c; background: var(--crys); border: 0; cursor: pointer; clip-path: var(--cut); }
+.fpBody { width: min(980px, 100%); box-sizing: border-box; margin: 0 auto; padding: 18px calc(16px + env(safe-area-inset-right, 0px)) 40px calc(16px + env(safe-area-inset-left, 0px)); display: grid; gap: 14px; }
+.fpBody section { display: grid; gap: 12px; align-content: start; }
+.setRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(120, 190, 225, .1); }
+.setRow > div { display: grid; gap: 2px; }
+.setRow b { font-weight: 500; font-size: 14px; }
+.keyList { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 18px; }
+.keyRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(120, 190, 225, .08); font-size: 14px; color: var(--dim); }
+.keyRow button { min-width: 74px; padding: 6px 10px; font-family: var(--f-num); font-size: 13px; color: var(--ink); background: rgba(255, 255, 255, .05); border: 1px solid var(--line); border-bottom-width: 2px; cursor: pointer; }
+.keyRow button.wait { color: var(--gold); border-color: var(--gold); animation: blink .6s infinite alternate; }
+.pClose { margin-left: auto; width: 34px; height: 34px; font-size: 16px; color: var(--ink); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); cursor: pointer; flex: none; }
+.pClose:hover { border-color: var(--crys); color: var(--crys); }
+#shop .shopHead, #lab .shopHead, #evo .shopHead, #qchat .shopHead { align-items: center; flex-wrap: nowrap; }
+#qchat { pointer-events: auto; }
+/* 触屏按钮编辑 */
+#touchUI { --tbs: 1; --tba: 1; }
+#touchUI .tb { opacity: var(--tba); }
+.tb { width: calc(54px * var(--tbs, 1)); height: calc(54px * var(--tbs, 1)); }
+.tb.big { width: calc(92px * var(--tbs, 1)); height: calc(92px * var(--tbs, 1)); }
+.tb.sm { width: calc(42px * var(--tbs, 1)); height: calc(42px * var(--tbs, 1)); }
+.tb.pill { height: calc(40px * var(--tbs, 1)); width: auto; }
+#touchUI.editing { pointer-events: auto; background: rgba(3, 6, 10, .55); z-index: 30; }
+#touchUI.editing #tzMove, #touchUI.editing #tzLook { display: none; }
+#touchUI.editing [data-drag] { outline: 2px dashed var(--gold); outline-offset: 3px; cursor: move; }
+#touchUI.editing #tbCtx .tb, #touchUI.editing #tbQuick { display: grid !important; }
+#touchUI.editing #tbCtx .tb { display: inline-grid !important; }
+body.tEditOnly #hud > :not(#touchUI) { visibility: hidden; }
+body.tEditOnly #hud { background: #05080c; }
+#teBar { display: none; position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel2); pointer-events: auto; z-index: 3; font-size: 13px; color: var(--dim); white-space: nowrap; }
+#touchUI.editing #teBar { display: flex; }
 /* 手机主菜单 */
 .mHead { display: none; }
 body.touch #menu { background: linear-gradient(180deg, rgba(4, 7, 11, .93), rgba(4, 7, 11, .86)); }
@@ -496,22 +538,22 @@ body.touch .mpRow input { padding: 10px; }
   <div id="alarm"></div>
   <div id="team" hidden></div>
   <div id="qchat" hidden>
-    <div class="shopHead"><h3>快捷消息</h3><span>按 1-6 发送 · V 关闭</span></div>
+    <div class="shopHead"><h3>快捷消息</h3><span>按 1-6 发送 · V / Esc 关闭</span><button type="button" class="pClose" data-close="qchat" aria-label="关闭">✕</button></div>
     <ol>
       <li><span class="kb">1</span>需要支援！</li><li><span class="kb">2</span>我来守这里</li><li><span class="kb">3</span>注意飞行敌人</li>
       <li><span class="kb">4</span>BOSS 来了，集火！</li><li><span class="kb">5</span>我去买枪 / 补陷阱</li><li><span class="kb">6</span>谢谢！</li>
     </ol>
   </div>
   <div id="evo" class="pick" hidden>
-    <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E 取消</span></div>
+    <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E / Esc 取消</span><button type="button" class="pClose" data-close="evo" aria-label="关闭">✕</button></div>
     <div id="evoList" class="pickList"></div>
   </div>
   <div id="shop" hidden>
-    <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B 关闭 · 金币全队共享</span></div>
+    <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
     <div id="shopList"></div>
   </div>
   <div id="lab" hidden>
-    <div class="shopHead"><h3>科研终端</h3><span>按 1-5 研究 · F / Esc 关闭 · 花全队共享金币，效果全队生效</span></div>
+    <div class="shopHead"><h3>科研终端</h3><span>按 1-5 研究 · F / Esc 关闭 · 花全队共享金币，效果全队生效</span><button type="button" class="pClose" data-close="lab" aria-label="关闭">✕</button></div>
     <div id="labList"></div>
   </div>
   <div id="deadMsg" hidden>你已阵亡 · <b id="respawnT">5</b> 秒后在基地复活</div>
@@ -532,6 +574,7 @@ body.touch .mpRow input { padding: 10px; }
       <button type="button" class="tb pill" data-k="KeyX" id="tbSell">拆除<small>X</small></button>
       <button type="button" class="tb pill go" data-k="KeyG" id="tbReady">开战<small>G</small></button>
     </div>
+    <div id="teBar"><span>拖动按钮调整位置</span><button type="button" class="ghostBtn small" id="teReset">恢复默认</button><button type="button" class="cta" id="teDone" style="padding:8px 18px;font-size:14px">完成</button></div>
     <button type="button" class="tb big" id="tbFire"><span id="tbFireL">开火</span></button>
     <button type="button" class="tb" id="tbJump" data-hold="Space">跳跃</button>
     <button type="button" class="tb" id="tbReload" data-k="KeyR"><b id="tbAmmo">30</b><small>换弹</small></button>
@@ -587,6 +630,7 @@ body.touch .mpRow input { padding: 10px; }
     <div class="row2">
       <button type="button" class="cta" id="startBtn">进入战场</button>
       <button type="button" class="ghostBtn" id="menuHelpBtn">陷阱与怪物图鉴</button>
+      <button type="button" class="ghostBtn" id="menuSetBtn">设置</button>
       <button type="button" class="ghostBtn" id="talentBtn">天赋 <span id="starTag"></span></button>
     </div>
     <section id="mpBox" class="mpBox" aria-label="联机合作">
@@ -626,17 +670,40 @@ body.touch .mpRow input { padding: 10px; }
 </div>
 
 <div id="pause" class="overlay" hidden>
-  <div class="modal">
+  <div class="modal pauseBox">
     <h2 id="pauseTitle">已暂停</h2>
     <p id="pauseNote" class="fine" style="margin:0" hidden>联机中游戏不会暂停，战斗仍在继续。</p>
-    <div class="slider"><label for="sens">鼠标灵敏度</label><input id="sens" type="range" min="0.3" max="2.5" step="0.1"><b id="sensV"></b></div>
-    <div class="slider"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.05"><b id="volV"></b></div>
-    <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
-    <div class="slider"><span>泛光特效</span><span class="fine">画面发光与柔和高光，低配电脑可关闭</span><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
-    <div class="row2">
+    <div class="pmBtns">
       <button type="button" class="cta" id="resumeBtn">继续</button>
+      <button type="button" class="ghostBtn" id="settingsBtn">设置</button>
       <button type="button" class="ghostBtn" id="helpBtn">图鉴</button>
       <button type="button" class="ghostBtn" id="quitBtn">返回主菜单</button>
+    </div>
+  </div>
+</div>
+
+<div id="settings" class="overlay fullPage" hidden>
+  <div class="fpIn">
+    <div class="fpHead"><h2>设置</h2><nav class="fpTabs" id="setTabs"><button type="button" data-stab="gen" aria-selected="true">通用</button><button type="button" data-stab="keys" id="setKeysTab">按键</button><button type="button" data-stab="touch" id="setTouchTab">触屏按钮</button></nav><button type="button" class="fpClose" id="settingsClose" aria-label="关闭设置">✕ 关闭</button></div>
+    <div class="fpBody">
+      <section data-stab="gen">
+        <div class="slider"><label for="sens">视角灵敏度</label><input id="sens" type="range" min="0.3" max="2.5" step="0.1"><b id="sensV"></b></div>
+        <div class="slider"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.05"><b id="volV"></b></div>
+        <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
+        <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
+        <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
+      </section>
+      <section data-stab="keys" hidden>
+        <p class="fine" style="margin:0 0 8px">点一个按键，再按下想用的新键（Esc 取消）。和其他功能冲突时会互换。数字键 1-9 固定用来选陷阱。</p>
+        <div id="keyList" class="keyList"></div>
+        <div class="row2" style="margin-top:12px"><button type="button" class="ghostBtn small" id="keysReset">恢复默认按键</button></div>
+      </section>
+      <section data-stab="touch" hidden>
+        <p class="fine" style="margin:0 0 8px">进入编辑后，直接拖动屏幕上的按钮到顺手的位置，完成后自动保存。</p>
+        <div class="slider"><label for="tbScale">按钮大小</label><input id="tbScale" type="range" min="0.75" max="1.4" step="0.05"><b id="tbScaleV"></b></div>
+        <div class="slider"><label for="tbAlpha">按钮透明度</label><input id="tbAlpha" type="range" min="0.3" max="1" step="0.05"><b id="tbAlphaV"></b></div>
+        <div class="row2" style="margin-top:12px"><button type="button" class="cta" id="touchEditBtn">编辑按钮位置</button><button type="button" class="ghostBtn" id="touchResetBtn">恢复默认布局</button></div>
+      </section>
     </div>
   </div>
 </div>
@@ -664,28 +731,31 @@ body.touch .mpRow input { padding: 10px; }
   </div>
 </div>
 
-<div id="help" class="overlay" hidden>
-  <div class="modal">
-    <h2>图鉴</h2>
-    <h3>陷阱</h3>
-    <div class="tblWrap"><table id="trapTable"></table></div>
+<div id="help" class="overlay fullPage" hidden>
+  <div class="fpIn">
+    <div class="fpHead"><h2>图鉴</h2><nav class="fpTabs" id="helpTabs">
+      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="evo">进阶联动</button><button type="button" data-htab="map">机关科研</button><button type="button" data-htab="wpn">武器技能</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
+    </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
+    <div class="fpBody">
+      <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在琥珀色的 2×2 炮台平台（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
-    <h3>陷阱进阶与联动</h3>
-    <div class="tblWrap"><table id="evoTable"></table></div>
+    </section>
+      <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
     <ul id="comboList" class="comboList"></ul>
-    <h3>地图机关</h3>
-    <ul id="devList" class="comboList"></ul>
-    <h3>科研舱</h3>
-    <p class="fine">每张地图都有一间科研舱（小地图上的紫色「科」标记）。走到<b>科研终端</b>旁按 F 打开研究面板，用全队共享的金币研究科技，效果全队生效、本局有效，房间里的服务器机柜每研究一级亮一盏灯；中央的全息沙盘实时显示整张地图的敌人位置。旁边的<b>补给柜</b>按 F 可补满生命、手雷和全部弹匣，并充能 25% 轨道打击，每人冷却 50 秒。</p>
+    </section>
+      <section data-htab="map" hidden><h3>地图机关</h3><ul id="devList" class="comboList"></ul>
+    <h3 style="margin-top:14px">科研舱</h3><p class="fine">每张地图都有一间科研舱（小地图上的紫色「科」标记）。走到<b>科研终端</b>旁按 F 打开研究面板，用全队共享的金币研究科技，效果全队生效、本局有效，房间里的服务器机柜每研究一级亮一盏灯；中央的全息沙盘实时显示整张地图的敌人位置。旁边的<b>补给柜</b>按 F 可补满生命、手雷和全部弹匣，并充能 25% 轨道打击，每人冷却 50 秒。</p>
     <ul id="techList" class="comboList"></ul>
-    <h3>武器与技能</h3>
-    <div class="tblWrap"><table id="wpnTable"></table></div>
+    </section>
+      <section data-htab="wpn" hidden><div class="tblWrap"><table id="wpnTable"></table></div>
     <p class="fine">B 打开军械库购买武器（花全队共享的金币，本局有效），Q 在已拥有的武器间切换。C 投掷电浆手雷（最多 2 枚，每 14 秒充能 1 枚）。用枪造成伤害和击杀会积攒能量，满 100% 后按 Z 对准地面呼叫轨道打击：1.3 秒后落下，大范围重创并眩晕敌人。</p>
-    <h3>敌人</h3>
-    <ul id="monList"></ul>
-    <h3>素材来源</h3>
-    <p class="fine credits">赛博格步兵 / 重装赛博格：RobotExpressive，作者 Tomás Laulhé（Quaternius），CC0。<br>疾行猎犬：Fox，模型 PixelMannen（CC0），绑定与动画 tomkranis（CC BY 4.0），glTF 转换 AsoboStudio 与 scurest（CC BY 4.0）。<br>浮游无人机、脉冲步枪、岗哨机枪枪身：Kenney Starter Kit FPS（MIT）。<br>其余模型、特效与音效为程序生成。</p>
-    <div class="row2"><button type="button" class="ghostBtn" id="helpClose">关闭</button></div>
+    </section>
+      <section data-htab="mon" hidden><ul id="monList"></ul>
+    </section>
+      <section data-htab="ctrl" hidden><div id="ctrlHelp" class="keys"></div><p id="ctrlTouch" class="fine" hidden>触屏：左半屏拖动移动（推到底冲刺），右半屏滑动转视角；右下角开火 / 跳跃 / 换弹 / 手雷 / 轨道打击 / 瞄准 / 切枪；顶部陷阱栏点选后按「放置」；走近机关或科研舱、对准陷阱时，屏幕下方会出现互动、升级、拆除按钮。按钮位置可以在 设置 → 触屏按钮 里调整。</p></section>
+      <section data-htab="credit" hidden><p class="fine credits">赛博格步兵 / 重装赛博格：RobotExpressive，作者 Tomás Laulhé（Quaternius），CC0。<br>疾行猎犬：Fox，模型 PixelMannen（CC0），绑定与动画 tomkranis（CC BY 4.0），glTF 转换 AsoboStudio 与 scurest（CC BY 4.0）。<br>浮游无人机、脉冲步枪、岗哨机枪枪身：Kenney Starter Kit FPS（MIT）。<br>其余模型、特效与音效为程序生成。</p>
+    </section>
+    </div>
   </div>
 </div>
 
@@ -1245,24 +1315,24 @@ const DIFFS = {
  * body/head: [相对脚底的高度, 命中球半径]
  */
 const MON = {
-  grunt: { name: '赛博格步兵', hp: 140, spd: 3.4, core: 5, bounty: 16, dps: 30, melee: 10, r: 0.45, body: [1.0, 0.45], head: [1.66, 0.32] },
+  grunt: { name: '赛博格步兵', hp: 140, spd: 3.4, core: 5, bounty: 16, dps: 30, melee: 10, r: 0.45, body: [0.82, 0.4], head: [1.55, 0.48] },
   runner: { name: '疾行猎犬', hp: 85, spd: 6.2, core: 3, bounty: 14, dps: 20, melee: 8, r: 0.45, body: [0.55, 0.5], head: [0.72, 0.24, 0.7] },
-  brute: { name: '重装赛博格', hp: 950, spd: 2.3, armor: 0.3, core: 15, bounty: 55, dps: 90, melee: 25, r: 0.8, knockRes: 0.5, body: [1.45, 0.62], head: [2.4, 0.46] },
+  brute: { name: '重装赛博格', hp: 950, spd: 2.3, armor: 0.3, core: 15, bounty: 55, dps: 90, melee: 25, r: 0.8, knockRes: 0.5, body: [1.2, 0.58], head: [2.25, 0.7] },
   flyer: { name: '浮游无人机', hp: 110, spd: 4.4, core: 5, bounty: 20, fly: true, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
-  bomber: { name: '自爆蜘蛛', hp: 190, spd: 4.0, core: 20, bounty: 24, bomb: true, r: 0.55, body: [0.55, 0.55], head: [0.6, 0.3] },
-  elite: { name: '狂猩赛博格', hp: 4200, spd: 2.7, armor: 0.2, core: 40, bounty: 400, dps: 130, melee: 35, r: 1.1, knockRes: 1, slowRes: 0.5, elite: true, body: [1.75, 1.05], head: [3.0, 0.45] },
+  bomber: { name: '自爆蜘蛛', hp: 190, spd: 4.0, core: 20, bounty: 24, bomb: true, r: 0.55, body: [0.55, 0.55], head: [0.68, 0.22, 0.5] },
+  elite: { name: '狂猩赛博格', hp: 4200, spd: 2.7, armor: 0.2, core: 40, bounty: 400, dps: 130, melee: 35, r: 1.1, knockRes: 1, slowRes: 0.5, elite: true, body: [1.85, 0.95], head: [2.62, 0.42, 0.72] },
   healer: { name: '修复无人机', hp: 160, spd: 3.8, core: 5, bounty: 32, fly: true, heal: 30, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
-  boss: { name: '泰坦·终焉', hp: 20000, spd: 1.5, armor: 0.2, core: 999, bounty: 0, dps: 300, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [3.1, 1.9], head: [5.4, 0.75] },
+  boss: { name: '泰坦·终焉', hp: 20000, spd: 1.5, armor: 0.2, core: 999, bounty: 0, dps: 300, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [3.1, 1.9], head: [5.68, 0.62, 0.1] },
   // —— 新敌人 ——
-  stalker: { name: '幽影刺客', hp: 340, spd: 4.4, core: 6, bounty: 30, dps: 40, melee: 14, r: 0.45, stealth: true, body: [1.0, 0.45], head: [1.62, 0.3] },
-  burrower: { name: '钻地虫', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.55, 0.6], head: [0.7, 0.35, 0.8] },
-  sapper: { name: '骇客工兵', hp: 420, spd: 2.8, core: 6, bounty: 42, dps: 25, melee: 8, r: 0.5, hack: true, body: [1.0, 0.5], head: [1.6, 0.32] },
-  gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 6, rate: 1.6, acc: 0.65 }, body: [1.05, 0.5], head: [1.7, 0.32] },
-  mite: { name: '噬晶蛛', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.35, 0.2] },
-  siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [2.8, 2.0], head: [4.6, 0.8] },
-  colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.6, 0.8] },
-  brood: { name: '深渊母巢', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.0, 2.0], head: [3.4, 0.8] },
-  broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.3, 1.3], head: [2.2, 0.55] },
+  stalker: { name: '幽影刺客', hp: 340, spd: 4.4, core: 6, bounty: 30, dps: 40, melee: 14, r: 0.45, stealth: true, body: [0.75, 0.37], head: [1.43, 0.44] },
+  burrower: { name: '钻地虫', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.5, 0.6], head: [0.55, 0.36, 0.55] },
+  sapper: { name: '骇客工兵', hp: 420, spd: 2.8, core: 6, bounty: 42, dps: 25, melee: 8, r: 0.5, hack: true, body: [0.75, 0.37], head: [1.43, 0.44] },
+  gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 6, rate: 1.6, acc: 0.65 }, body: [0.86, 0.42], head: [1.63, 0.5] },
+  mite: { name: '噬晶蛛', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.33, 0.17, 0.3] },
+  siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [1.4, 1.55], head: [2.62, 0.72, 0.2] },
+  colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.93, 0.62, 0.15] },
+  brood: { name: '深渊母巢', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.1, 1.6], head: [1.6, 0.66, 1.4] },
+  broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
 };
 const BOSS_TIP = {
   boss: '泰坦会周期性释放 EMP 瘫痪附近陷阱、召唤援军、践踏周围玩家',
@@ -3022,8 +3092,8 @@ class Sim {
       const th = raySphere(ox, oy, oz, dx, dy, dz, m.x + m.fx * hf, m.y + def.head[0], m.z + m.fz * hf, def.head[1]);
       const tb = raySphere(ox, oy, oz, dx, dy, dz, m.x, m.y + def.body[0], m.z, def.body[1]);
       let t = Infinity, head = false;
-      if (th > 0 && th < wallT) { t = th; head = true; }
-      if (tb > 0 && tb < wallT && tb < t) { t = tb; head = false; }
+      if (tb > 0 && tb < wallT) t = tb;
+      if (th > 0 && th < wallT) { t = Math.min(t, th); head = true; }
       if (t < Infinity) cand.push({ m, head, t });
     }
     cand.sort((a, b) => a.t - b.t);
@@ -3688,8 +3758,44 @@ function animClip(asset, clip, t) {
 function animStatic(asset) { const A = ASSETS[asset]; if (A) { const C = A.clips.bind || Object.values(A.clips)[0]; E.anim(C.row, C.row, 0); } }
 
 /* ---------------- 设置 ---------------- */
-const settings = { sens: 1.0, vol: 0.7, bloom: true, fov: 75 };
+const settings = { sens: 1.0, vol: 0.7, bloom: true, fov: 75, autoReady: false, keys: {}, tb: { pos: {}, scale: 1, alpha: 1 } };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('jhsw-settings') || '{}')); } catch (e) { /* 无存储 */ }
+if (!settings.keys || typeof settings.keys !== 'object') settings.keys = {};
+if (!settings.tb || typeof settings.tb !== 'object') settings.tb = { pos: {}, scale: 1, alpha: 1 };
+if (!settings.tb.pos) settings.tb.pos = {};
+/* ---------- 按键绑定：动作以默认键位命名，玩家改键后按「实际按键 → 默认键位」翻译 ---------- */
+const KEY_ACTIONS = [
+  ['KeyW', '前进'], ['KeyS', '后退'], ['KeyA', '左移'], ['KeyD', '右移'], ['Space', '跳跃'], ['ShiftLeft', '冲刺'],
+  ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
+  ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
+];
+const KEY_FIXED = new Set(['Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+let keyInv = new Map(), keyAway = new Set();
+function rebuildKeys() {
+  keyInv = new Map(); keyAway = new Set();
+  for (const [act] of KEY_ACTIONS) {
+    const b = settings.keys[act];
+    if (b && b !== act) { keyInv.set(b, act); keyAway.add(act); }
+  }
+  for (const b of keyInv.keys()) keyAway.delete(b);   // 被别的动作占用的默认键，以占用者为准
+}
+rebuildKeys();
+function remapKey(code) {
+  if (keyInv.has(code)) return keyInv.get(code);
+  if (keyAway.has(code)) return null;
+  if (code === 'ShiftRight' && keyAway.has('ShiftLeft')) return null;
+  return code;
+}
+function keyOf(act) { return settings.keys[act] || act; }
+function keyName(code) {
+  if (!code) return '—';
+  const N = { Space: '空格', ShiftLeft: '左 Shift', ShiftRight: '右 Shift', ControlLeft: '左 Ctrl', ControlRight: '右 Ctrl', AltLeft: '左 Alt', AltRight: '右 Alt', Tab: 'Tab', CapsLock: 'Caps', Enter: '回车', Backspace: '退格', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Mouse3: '鼠标中键', Mouse4: '鼠标侧键 1', Mouse5: '鼠标侧键 2' };
+  if (N[code]) return N[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (/^Numpad/.test(code)) return '小键盘 ' + code.slice(6);
+  return code;
+}
 function saveSettings() { try { localStorage.setItem('jhsw-settings', JSON.stringify(settings)); } catch (e) { /* 忽略 */ } }
 
 /* ============================================================
@@ -5942,6 +6048,7 @@ function drawMinimap(S) {
   }
 }
 
+const autoReady = { wave: -1, since: 0 };
 function updateHUD(dt) {
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
@@ -6045,6 +6152,12 @@ function updateHUD(dt) {
   if (TOUCH) pr = pr.replace('左键放置', '按「放置」放下').replace('左键放到', '按「放置」放到').replace(/\s*· 右键收起/, '');
   setText('prompt', pr); setClass($('prompt'), prCls);
   if (TOUCH) updateTouchHUD(p, lo, di);
+  // 自动准备：每波清除后稍等片刻自动按 G（同一波只触发一次，按 G 取消后不再自动）
+  if (s.phase === 'build') { if (!autoReady.since) autoReady.since = performance.now(); } else autoReady.since = 0;
+  if (settings.autoReady && mode === 'play' && s.phase === 'build' && s.wave > 0 && autoReady.wave !== s.wave && p && !p.ready && performance.now() - autoReady.since > 1500) {
+    autoReady.wave = s.wave;
+    netCmd({ t: 'ready', on: true }, r => { if (r.ok && r.bonus) toast(`自动准备：提前开战 +${r.bonus} 金币`); else if (r.ok && r.waiting) toast(`自动准备（${r.n}/${r.of}），等队友准备好就开战 · 按 G 取消`); });
+  }
   // 准星
   const spread = p ? 7 + p.bloom * 22 + (keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD ? 4 : 0) - cam.ads * 4 : 7;
   setStyle($('cross'), '--g', spread.toFixed(1) + 'px');
@@ -6108,9 +6221,28 @@ function enableFallback() {
 function lockFailed() { if (mode !== 'play') return; if (!hadLock) enableFallback(); }
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
-  if (locked) { hadLock = true; look.skip = 2; look.hist.fill(0); }
-  if (!locked && mode === 'play' && !fallbackLook) pauseGame();
+  if (locked) { hadLock = true; look.skip = 2; look.hist.fill(0); panelUnlock = false; }
+  if (!locked && mode === 'play' && !fallbackLook && !panelUnlock) pauseGame();
 });
+/* ---------- 游戏内面板（军械库 / 科研终端 / 进阶 / 快捷消息）：打开时释放鼠标，方便点选和关闭 ---------- */
+let panelUnlock = false;
+function anyPanel() { return shopOpen || labOpen || evoTrap !== null || quickOpen; }
+function panelOpened(needMouse) {
+  if (!needMouse || !locked) return;
+  panelUnlock = true;
+  try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
+}
+function panelClosed() {
+  if (anyPanel() || !panelUnlock) return;
+  panelUnlock = false;
+  if (mode === 'play' && !locked && !fallbackLook) requestLock();
+}
+function closePanels() {
+  if (shopOpen) toggleShop(false);
+  if (labOpen) toggleLab(false);
+  if (evoTrap !== null) closeEvo();
+  if (quickOpen) toggleQuick(false);
+}
 document.addEventListener('pointerlockerror', lockFailed);
 addEventListener('mousemove', e => {
   if (mode !== 'play') return;
@@ -6124,7 +6256,14 @@ addEventListener('mousemove', e => {
 canvas.addEventListener('mousedown', e => {
   if (mode !== 'play') return;
   Snd.init();
+  // 打开面板时鼠标已释放：点画面空白处 = 关闭面板并回到游戏
+  if (anyPanel()) { closePanels(); if (!locked && !fallbackLook) requestLock(); return; }
   if (!locked && !fallbackLook) { requestLock(); return; }
+  if (e.button === 1 || e.button === 3 || e.button === 4) {
+    const code = remapKey('Mouse' + (e.button === 1 ? 3 : e.button + 1));
+    if (code && !code.startsWith('Mouse')) { e.preventDefault(); onKey(code, { code, repeat: false, preventDefault() {} }); setTimeout(() => { keys[code] = false; }, 120); }
+    return;
+  }
   if (e.button === 0) {
     mouse.l = true;
     if (tool !== 'gun') tryPlace();
@@ -6144,22 +6283,34 @@ addEventListener('wheel', e => {
   selectTool(ids[i]);
 }, { passive: true });
 addEventListener('keydown', e => {
+  if (keyCapture) { e.preventDefault(); e.stopPropagation(); finishKeyCapture(e.code); return; }
+  const code = e.isTrusted ? remapKey(e.code) : e.code;
+  if (code === null) return;
+  onKey(code, e);
+});
+function onKey(code, e) {
   if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && mode === 'play') e.preventDefault();
-  if (e.repeat && !['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) { keys[e.code] = true; return; }
-  keys[e.code] = true;
-  if (mode === 'pause' && (e.code === 'Escape' || e.code === 'KeyP') && fallbackLook) { resumeGame(); return; }
+  // 整页浮层（设置 / 图鉴 / 天赋）优先响应 Esc
+  if (code === 'Escape' || (code === 'KeyH' && !$('help').hidden)) {
+    if (!$('settings').hidden) { closeSettings(); return; }
+    if (!$('help').hidden) { closeHelp(); return; }
+    if (!$('talents').hidden) { show('talents', false); return; }
+  }
+  if (e.repeat && !['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code)) { keys[code] = true; return; }
+  keys[code] = true;
+  if (mode === 'pause' && (code === 'Escape' || code === 'KeyP') && fallbackLook) { resumeGame(); return; }
   if (mode !== 'play') return;
-  const d = e.code.match(/^Digit([1-9])$/);
+  const d = code.match(/^Digit([1-9])$/);
   if (d && quickOpen) { sendQuick(+d[1] - 1); return; }
-  if (quickOpen && e.code === 'Escape') { toggleQuick(false); return; }
+  if (quickOpen && code === 'Escape') { toggleQuick(false); return; }
   if (d && evoTrap !== null) { if (d[1] === '1' || d[1] === '2') chooseEvo(d[1] === '1' ? 'a' : 'b'); return; }
-  if (evoTrap !== null && (e.code === 'Escape' || e.code === 'KeyE')) { closeEvo(); return; }
+  if (evoTrap !== null && (code === 'Escape' || code === 'KeyE')) { closeEvo(); return; }
   if (d && labOpen) { doResearch(+d[1] - 1); return; }
-  if (labOpen && e.code === 'Escape') { toggleLab(false); return; }
+  if (labOpen && code === 'Escape') { toggleLab(false); return; }
   if (d && shopOpen) { buyWeapon(+d[1] - 1); return; }
   if (d) { const t = TRAPS[+d[1] - 1]; if (t) selectTool(t.id); return; }
-  if (shopOpen && e.code === 'Escape') { toggleShop(false); return; }
-  switch (e.code) {
+  if (shopOpen && code === 'Escape') { toggleShop(false); return; }
+  switch (code) {
     case 'KeyQ': if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
     case 'KeyB': toggleShop(); break;
     case 'KeyF': useDevice(); break;
@@ -6182,10 +6333,10 @@ addEventListener('keydown', e => {
     }
     case 'KeyM': bigMap = !bigMap; $('mapWrap').classList.toggle('big', bigMap); break;
     case 'KeyH': case 'F1': e.preventDefault(); openHelp(); break;
-    case 'Escape': case 'KeyP': if (fallbackLook) pauseGame(); break;
+    case 'Escape': case 'KeyP': if (fallbackLook || code === 'KeyP') pauseGame(); break;
   }
-});
-addEventListener('keyup', e => { keys[e.code] = false; });
+}
+addEventListener('keyup', e => { const code = e.isTrusted ? remapKey(e.code) : e.code; if (code) keys[code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.l = mouse.r = mouse.any = false; });
 
 function tryPlace() {
@@ -6250,6 +6401,7 @@ function doPing() {
 function toggleQuick(on) {
   quickOpen = on === undefined ? !quickOpen : on;
   $('qchat').hidden = !quickOpen;
+  if (!quickOpen) panelClosed();
   if (quickOpen) { if (shopOpen) toggleShop(false); if (evoTrap !== null) closeEvo(); if (labOpen) toggleLab(false); }
 }
 function sendQuick(i) {
@@ -6490,6 +6642,7 @@ let labOpen = false;
 function toggleLab(on) {
   labOpen = on === undefined ? !labOpen : on;
   $('lab').hidden = !labOpen;
+  if (labOpen) panelOpened(true); else setTimeout(panelClosed, 0);
   if (labOpen) {
     if (shopOpen) toggleShop(false);
     if (evoTrap !== null) closeEvo();
@@ -6548,8 +6701,9 @@ function openEvo(tr) {
     box.appendChild(b);
   });
   $('evo').hidden = false;
+  panelOpened(true);
 }
-function closeEvo() { evoTrap = null; $('evo').hidden = true; }
+function closeEvo() { evoTrap = null; $('evo').hidden = true; panelClosed(); }
 function chooseEvo(k) {
   const tr = sim && sim.s.traps.find(t => t.id === evoTrap);
   closeEvo();
@@ -6579,6 +6733,7 @@ function toggleShop(on) {
   shopOpen = on === undefined ? !shopOpen : on;
   $('shop').hidden = !shopOpen;
   if (shopOpen && labOpen) toggleLab(false);
+  if (shopOpen) panelOpened(true); else panelClosed();
   if (shopOpen) { cache.shop = ''; renderShop(); }
 }
 function renderShop() {
@@ -6685,6 +6840,7 @@ function beginPlay(S, gesture) {
   banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向核心水晶 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
   if (gesture) requestLock();
   if (gesture && TOUCH) goFullscreen();
+  if (TOUCH) requestAnimationFrame(applyTouchLayout);
   if (MP.role === 'host') ensureBgTicker();
 }
 function pauseGame() {
@@ -6703,10 +6859,145 @@ function resumeGame() {
   Snd.init();
   requestLock();
 }
-function openHelp() {
+function openHelp(tab) {
   if (mode === 'play') { pauseGame(); }
+  if (tab) setHelpTab(tab);
   show('help', true);
+  $('help').scrollTop = 0;
   if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeHelp() { show('help', false); }
+function setHelpTab(id) {
+  for (const b of document.querySelectorAll('[data-htab]')) {
+    if (b.tagName === 'BUTTON') b.setAttribute('aria-selected', b.dataset.htab === id ? 'true' : 'false');
+    else b.hidden = b.dataset.htab !== id;
+  }
+  $('help').scrollTop = 0;
+}
+function openSettings(tab) {
+  if (mode === 'play') pauseGame();
+  setSetTab(tab || 'gen');
+  renderKeyList();
+  show('settings', true);
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeSettings() { cancelKeyCapture(); show('settings', false); }
+function setSetTab(id) {
+  for (const b of document.querySelectorAll('[data-stab]')) {
+    if (b.tagName === 'BUTTON') b.setAttribute('aria-selected', b.dataset.stab === id ? 'true' : 'false');
+    else b.hidden = b.dataset.stab !== id;
+  }
+}
+/* ---------- 改键 ---------- */
+let keyCapture = null;
+function renderKeyList() {
+  const box = $('keyList'); if (!box) return;
+  box.innerHTML = '';
+  for (const [act, label] of KEY_ACTIONS) {
+    const row = document.createElement('div'); row.className = 'keyRow';
+    const sp = document.createElement('span'); sp.textContent = label;
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.act = act; b.textContent = keyName(keyOf(act));
+    if (keyCapture === act) { b.classList.add('wait'); b.textContent = '按下新按键…'; }
+    b.addEventListener('click', ev => { ev.stopPropagation(); keyCapture = act; renderKeyList(); });
+    row.append(sp, b); box.appendChild(row);
+  }
+}
+function finishKeyCapture(code) {
+  const act = keyCapture; keyCapture = null;
+  if (!act || code === 'Escape') { renderKeyList(); return; }
+  if (KEY_FIXED.has(code)) { toast(`${keyName(code)} 不能用来改键`, true); renderKeyList(); return; }
+  // 冲突：和占用这个键的动作互换
+  const other = KEY_ACTIONS.map(a => a[0]).find(a => a !== act && keyOf(a) === code);
+  const old = keyOf(act);
+  if (other) settings.keys[other] = old;
+  settings.keys[act] = code;
+  for (const [a] of KEY_ACTIONS) if (settings.keys[a] === a) delete settings.keys[a];
+  rebuildKeys(); saveSettings(); renderKeyList(); fillCtrlHelp();
+  toast(other ? `${KEY_ACTIONS.find(a => a[0] === act)[1]} → ${keyName(code)}（与「${KEY_ACTIONS.find(a => a[0] === other)[1]}」互换）` : `${KEY_ACTIONS.find(a => a[0] === act)[1]} → ${keyName(code)}`);
+}
+function cancelKeyCapture() { if (keyCapture) { keyCapture = null; renderKeyList(); } }
+addEventListener('mousedown', e => {
+  if (!keyCapture || e.button === 0 || e.button === 2) return;
+  e.preventDefault(); finishKeyCapture('Mouse' + (e.button === 1 ? 3 : e.button + 1));
+}, true);
+function fillCtrlHelp() {
+  const box = $('ctrlHelp'); if (!box) return;
+  const K = a => `<span class="kb">${keyName(keyOf(a))}</span>`;
+  box.innerHTML = [
+    `${K('KeyW')}${K('KeyA')}${K('KeyS')}${K('KeyD')}移动 · ${K('ShiftLeft')}冲刺`, `${K('Space')}跳跃 · ${K('KeyR')}换弹`,
+    '<span class="kb">左键</span>射击 / 放置陷阱', '<span class="kb">右键</span>瞄准 / 收起陷阱',
+    `<span class="kb">1-9</span>选择陷阱 · ${K('KeyQ')}步枪 / 切枪`, `${K('KeyE')}升级 · ${K('KeyX')}拆除陷阱`,
+    `${K('KeyB')}军械库 · ${K('KeyF')}互动`, `${K('KeyC')}手雷 · ${K('KeyZ')}轨道打击`,
+    `${K('KeyT')}标记 · ${K('KeyV')}快捷消息`, `${K('KeyG')}提前开战 / 联机准备`,
+    `${K('KeyM')}大地图 · ${K('KeyH')}图鉴`, `<span class="kb">Esc</span>${K('KeyP')}暂停 / 设置`,
+  ].map(h => `<div>${h}</div>`).join('');
+  const mk = document.querySelector('#menu .keys');
+  if (mk) mk.innerHTML = box.innerHTML;
+}
+/* ---------- 触屏按钮：自定义位置 / 大小 / 透明度 ---------- */
+const TB_DRAG = ['tbFire', 'tbJump', 'tbReload', 'tbAds', 'tbNade', 'tbUlt', 'tbSwap', 'tbUtil', 'tbCtx'];
+let tbEdit = null, tbEditFrom = '';
+function applyTouchLayout() {
+  const ui = $('touchUI'); if (!ui) return;
+  ui.style.setProperty('--tbs', settings.tb.scale || 1);
+  ui.style.setProperty('--tba', settings.tb.alpha || 1);
+  for (const id of TB_DRAG) {
+    const el = $(id), pos = settings.tb.pos[id];
+    if (!el) continue;
+    if (!pos) { el.style.left = el.style.top = el.style.right = el.style.bottom = el.style.transform = ''; continue; }
+    if (!el.offsetWidth) continue;   // 界面未显示时尺寸未知，进入游戏后再排
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
+    el.style.left = clamp(pos[0] * innerWidth - w / 2, 0, Math.max(0, innerWidth - w)) + 'px';
+    el.style.top = clamp(pos[1] * innerHeight - h / 2, 0, Math.max(0, innerHeight - h)) + 'px';
+  }
+}
+function openTouchEditor() {
+  if (!TOUCH) return;
+  tbEditFrom = mode;
+  show('settings', false); show('pause', false);
+  if (mode === 'menu') { show('hud', true); document.body.classList.add('tEditOnly'); }
+  $('touchUI').classList.add('editing');
+  requestAnimationFrame(applyTouchLayout);
+}
+function closeTouchEditor() {
+  $('touchUI').classList.remove('editing');
+  document.body.classList.remove('tEditOnly');
+  if (tbEditFrom === 'menu') show('hud', false); else show('pause', true);
+  openSettings('touch');
+}
+function initTouchEditor() {
+  const ui = $('touchUI');
+  for (const id of TB_DRAG) { const el = $(id); if (el) el.dataset.drag = id; }
+  ui.addEventListener('pointerdown', e => {
+    if (!ui.classList.contains('editing')) return;
+    if (e.target.closest('#teBar')) return;
+    const el = e.target.closest('[data-drag]');
+    e.stopPropagation(); e.preventDefault();
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    tbEdit = { el, id: el.dataset.drag, dx: e.clientX - r.left, dy: e.clientY - r.top, pid: e.pointerId };
+    el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
+    el.style.left = r.left + 'px'; el.style.top = r.top + 'px';
+  }, true);
+  addEventListener('pointermove', e => {
+    if (!tbEdit || e.pointerId !== tbEdit.pid) return;
+    const el = tbEdit.el, w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = clamp(e.clientX - tbEdit.dx, 0, innerWidth - w) + 'px';
+    el.style.top = clamp(e.clientY - tbEdit.dy, 0, innerHeight - h) + 'px';
+  });
+  const up = e => {
+    if (!tbEdit || e.pointerId !== tbEdit.pid) return;
+    const r = tbEdit.el.getBoundingClientRect();
+    settings.tb.pos[tbEdit.id] = [Math.round((r.left + r.width / 2) / innerWidth * 1000) / 1000, Math.round((r.top + r.height / 2) / innerHeight * 1000) / 1000];
+    tbEdit = null; saveSettings();
+  };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  // touchUI 屏蔽了 touchstart 默认行为（不会合成 click），这里用 pointerup
+  $('teDone').addEventListener('pointerup', e => { e.stopPropagation(); closeTouchEditor(); });
+  $('teReset').addEventListener('pointerup', e => { e.stopPropagation(); settings.tb.pos = {}; saveSettings(); applyTouchLayout(); });
+  addEventListener('resize', () => setTimeout(applyTouchLayout, 50));
+  applyTouchLayout();
 }
 function toMenu() {
   showBest();
@@ -6950,6 +7241,14 @@ function frame(now) {
   drawLava(S);
   drawShells(fxdt);
   for (const m of S.s.monsters) drawMonster(m, frameAlpha);
+  // 调试：显示命中判定球（window.__hitboxes = true）
+  if (window.__hitboxes) for (const m of S.s.monsters) {
+    const def = MON[m.type], hf = def.head[2] || 0, k = frameAlpha;
+    const mx = lerp(m.ox, m.x, k), my = lerp(m.oy, m.y, k), mz = lerp(m.oz, m.z, k);
+    E.push('sphere', mx + m.fx * hf, my + def.head[0], mz + m.fz * hf, 0, def.head[1] * 2, def.head[1] * 2, def.head[1] * 2, c(1, 0.85, 0.1, 0.45, 1, 0, true, true));
+    E.push('sphere', mx, my + def.body[0], mz, 0, def.body[1] * 2, def.body[1] * 2, def.body[1] * 2, c(0.2, 1, 0.5, 0.18, 1, 0, true, true));
+    if (window.__ruler) for (let h = 0; h <= 7; h += 0.1) { const maj = Math.abs(h - Math.round(h)) < 0.01, half = Math.abs(h * 2 - Math.round(h * 2)) < 0.01; E.push('box', mx + window.__ruler, my + h, mz, 0, maj ? 0.5 : half ? 0.3 : 0.14, 0.012, 0.02, maj ? c(1, 0.2, 0.2, 1, 1) : half ? c(1, 1, 1, 1, 1) : c(0.6, 0.6, 0.6, 1, 0.6)); }
+  }
   drawCorpses(fxdt);
   drawDecals(fxdt);
   updateBossFx(fxdt);
@@ -7286,9 +7585,31 @@ function bindUI() {
   refreshSel();
   $('startBtn').addEventListener('click', startGame);
   $('resumeBtn').addEventListener('click', resumeGame);
-  $('helpBtn').addEventListener('click', () => { show('help', true); });
-  $('menuHelpBtn').addEventListener('click', () => { show('help', true); });
-  $('helpClose').addEventListener('click', () => { show('help', false); if (mode === 'pause') { /* 留在暂停 */ } });
+  $('helpBtn').addEventListener('click', () => openHelp());
+  $('menuHelpBtn').addEventListener('click', () => openHelp());
+  $('helpClose').addEventListener('click', closeHelp);
+  for (const b of document.querySelectorAll('button[data-htab]')) b.addEventListener('click', () => setHelpTab(b.dataset.htab));
+  $('settingsBtn').addEventListener('click', () => openSettings());
+  $('menuSetBtn').addEventListener('click', () => openSettings());
+  $('settingsClose').addEventListener('click', closeSettings);
+  for (const b of document.querySelectorAll('button[data-stab]')) b.addEventListener('click', () => { cancelKeyCapture(); setSetTab(b.dataset.stab); });
+  $('setKeysTab').hidden = TOUCH; $('setTouchTab').hidden = !TOUCH;
+  $('ctrlTouch').hidden = !TOUCH; $('ctrlHelp').hidden = TOUCH;
+  const arBtn = $('autoReadyBtn');
+  const syncAR = () => { arBtn.setAttribute('aria-pressed', settings.autoReady ? 'true' : 'false'); arBtn.textContent = settings.autoReady ? '开' : '关'; };
+  arBtn.addEventListener('click', () => { settings.autoReady = !settings.autoReady; syncAR(); saveSettings(); });
+  syncAR();
+  $('keysReset').addEventListener('click', () => { settings.keys = {}; rebuildKeys(); saveSettings(); renderKeyList(); fillCtrlHelp(); toast('已恢复默认按键'); });
+  const tbS = $('tbScale'), tbA = $('tbAlpha');
+  tbS.value = settings.tb.scale || 1; tbA.value = settings.tb.alpha || 1;
+  const syncTB = () => { setText('tbScaleV', Math.round(settings.tb.scale * 100) + '%'); setText('tbAlphaV', Math.round(settings.tb.alpha * 100) + '%'); };
+  tbS.addEventListener('input', () => { settings.tb.scale = +tbS.value; syncTB(); applyTouchLayout(); saveSettings(); });
+  tbA.addEventListener('input', () => { settings.tb.alpha = +tbA.value; syncTB(); applyTouchLayout(); saveSettings(); });
+  syncTB();
+  $('touchEditBtn').addEventListener('click', openTouchEditor);
+  $('touchResetBtn').addEventListener('click', () => { settings.tb = { pos: {}, scale: 1, alpha: 1 }; tbS.value = 1; tbA.value = 1; syncTB(); saveSettings(); applyTouchLayout(); toast('已恢复默认布局'); });
+  for (const b of document.querySelectorAll('.pClose')) b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const k = b.dataset.close; if (k === 'shop') toggleShop(false); else if (k === 'lab') toggleLab(false); else if (k === 'evo') closeEvo(); else if (k === 'qchat') toggleQuick(false); });
+  fillCtrlHelp();
   $('quitBtn').addEventListener('click', () => { if (MP.role === 'client') { leaveRoom(true); mpNote('已离开房间'); } toMenu(); });
   $('againBtn').addEventListener('click', () => { if (MP.role === 'client') return; show('end', false); startGame(); });
   $('menuBtn').addEventListener('click', toMenu);
@@ -7328,6 +7649,7 @@ function bindUI() {
   $('srvIn').addEventListener('blur', e => { delete e.target.dataset.edit; });
   document.querySelectorAll('#qchat li').forEach((li, i) => li.addEventListener('pointerdown', e => { e.preventDefault(); if (quickOpen) sendQuick(i); }));
   initTouch();
+  if (TOUCH) initTouchEditor();
   if (TOUCH) { setupTouchMenu(); for (const el of document.querySelectorAll('[data-cls], [data-diff], [data-mode]')) el.addEventListener('click', () => setTimeout(updateMenuSum, 0)); }
   buildHelp();
 }

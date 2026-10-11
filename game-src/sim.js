@@ -23,24 +23,24 @@ const DIFFS = {
  * body/head: [相对脚底的高度, 命中球半径]
  */
 const MON = {
-  grunt: { name: '赛博格步兵', hp: 140, spd: 3.4, core: 5, bounty: 16, dps: 30, melee: 10, r: 0.45, body: [1.0, 0.45], head: [1.66, 0.32] },
+  grunt: { name: '赛博格步兵', hp: 140, spd: 3.4, core: 5, bounty: 16, dps: 30, melee: 10, r: 0.45, body: [0.82, 0.4], head: [1.55, 0.48] },
   runner: { name: '疾行猎犬', hp: 85, spd: 6.2, core: 3, bounty: 14, dps: 20, melee: 8, r: 0.45, body: [0.55, 0.5], head: [0.72, 0.24, 0.7] },
-  brute: { name: '重装赛博格', hp: 950, spd: 2.3, armor: 0.3, core: 15, bounty: 55, dps: 90, melee: 25, r: 0.8, knockRes: 0.5, body: [1.45, 0.62], head: [2.4, 0.46] },
+  brute: { name: '重装赛博格', hp: 950, spd: 2.3, armor: 0.3, core: 15, bounty: 55, dps: 90, melee: 25, r: 0.8, knockRes: 0.5, body: [1.2, 0.58], head: [2.25, 0.7] },
   flyer: { name: '浮游无人机', hp: 110, spd: 4.4, core: 5, bounty: 20, fly: true, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
-  bomber: { name: '自爆蜘蛛', hp: 190, spd: 4.0, core: 20, bounty: 24, bomb: true, r: 0.55, body: [0.55, 0.55], head: [0.6, 0.3] },
-  elite: { name: '狂猩赛博格', hp: 4200, spd: 2.7, armor: 0.2, core: 40, bounty: 400, dps: 130, melee: 35, r: 1.1, knockRes: 1, slowRes: 0.5, elite: true, body: [1.75, 1.05], head: [3.0, 0.45] },
+  bomber: { name: '自爆蜘蛛', hp: 190, spd: 4.0, core: 20, bounty: 24, bomb: true, r: 0.55, body: [0.55, 0.55], head: [0.68, 0.22, 0.5] },
+  elite: { name: '狂猩赛博格', hp: 4200, spd: 2.7, armor: 0.2, core: 40, bounty: 400, dps: 130, melee: 35, r: 1.1, knockRes: 1, slowRes: 0.5, elite: true, body: [1.85, 0.95], head: [2.62, 0.42, 0.72] },
   healer: { name: '修复无人机', hp: 160, spd: 3.8, core: 5, bounty: 32, fly: true, heal: 30, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
-  boss: { name: '泰坦·终焉', hp: 20000, spd: 1.5, armor: 0.2, core: 999, bounty: 0, dps: 300, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [3.1, 1.9], head: [5.4, 0.75] },
+  boss: { name: '泰坦·终焉', hp: 20000, spd: 1.5, armor: 0.2, core: 999, bounty: 0, dps: 300, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [3.1, 1.9], head: [5.68, 0.62, 0.1] },
   // —— 新敌人 ——
-  stalker: { name: '幽影刺客', hp: 340, spd: 4.4, core: 6, bounty: 30, dps: 40, melee: 14, r: 0.45, stealth: true, body: [1.0, 0.45], head: [1.62, 0.3] },
-  burrower: { name: '钻地虫', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.55, 0.6], head: [0.7, 0.35, 0.8] },
-  sapper: { name: '骇客工兵', hp: 420, spd: 2.8, core: 6, bounty: 42, dps: 25, melee: 8, r: 0.5, hack: true, body: [1.0, 0.5], head: [1.6, 0.32] },
-  gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 6, rate: 1.6, acc: 0.65 }, body: [1.05, 0.5], head: [1.7, 0.32] },
-  mite: { name: '噬晶蛛', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.35, 0.2] },
-  siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [2.8, 2.0], head: [4.6, 0.8] },
-  colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.6, 0.8] },
-  brood: { name: '深渊母巢', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.0, 2.0], head: [3.4, 0.8] },
-  broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.3, 1.3], head: [2.2, 0.55] },
+  stalker: { name: '幽影刺客', hp: 340, spd: 4.4, core: 6, bounty: 30, dps: 40, melee: 14, r: 0.45, stealth: true, body: [0.75, 0.37], head: [1.43, 0.44] },
+  burrower: { name: '钻地虫', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.5, 0.6], head: [0.55, 0.36, 0.55] },
+  sapper: { name: '骇客工兵', hp: 420, spd: 2.8, core: 6, bounty: 42, dps: 25, melee: 8, r: 0.5, hack: true, body: [0.75, 0.37], head: [1.43, 0.44] },
+  gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 6, rate: 1.6, acc: 0.65 }, body: [0.86, 0.42], head: [1.63, 0.5] },
+  mite: { name: '噬晶蛛', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.33, 0.17, 0.3] },
+  siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [1.4, 1.55], head: [2.62, 0.72, 0.2] },
+  colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.93, 0.62, 0.15] },
+  brood: { name: '深渊母巢', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.1, 1.6], head: [1.6, 0.66, 1.4] },
+  broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
 };
 const BOSS_TIP = {
   boss: '泰坦会周期性释放 EMP 瘫痪附近陷阱、召唤援军、践踏周围玩家',
@@ -1800,8 +1800,8 @@ class Sim {
       const th = raySphere(ox, oy, oz, dx, dy, dz, m.x + m.fx * hf, m.y + def.head[0], m.z + m.fz * hf, def.head[1]);
       const tb = raySphere(ox, oy, oz, dx, dy, dz, m.x, m.y + def.body[0], m.z, def.body[1]);
       let t = Infinity, head = false;
-      if (th > 0 && th < wallT) { t = th; head = true; }
-      if (tb > 0 && tb < wallT && tb < t) { t = tb; head = false; }
+      if (tb > 0 && tb < wallT) t = tb;
+      if (th > 0 && th < wallT) { t = Math.min(t, th); head = true; }
       if (t < Infinity) cand.push({ m, head, t });
     }
     cand.sort((a, b) => a.t - b.t);

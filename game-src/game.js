@@ -55,8 +55,44 @@ function animClip(asset, clip, t) {
 function animStatic(asset) { const A = ASSETS[asset]; if (A) { const C = A.clips.bind || Object.values(A.clips)[0]; E.anim(C.row, C.row, 0); } }
 
 /* ---------------- 设置 ---------------- */
-const settings = { sens: 1.0, vol: 0.7, bloom: true, fov: 75 };
+const settings = { sens: 1.0, vol: 0.7, bloom: true, fov: 75, autoReady: false, keys: {}, tb: { pos: {}, scale: 1, alpha: 1 } };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('jhsw-settings') || '{}')); } catch (e) { /* 无存储 */ }
+if (!settings.keys || typeof settings.keys !== 'object') settings.keys = {};
+if (!settings.tb || typeof settings.tb !== 'object') settings.tb = { pos: {}, scale: 1, alpha: 1 };
+if (!settings.tb.pos) settings.tb.pos = {};
+/* ---------- 按键绑定：动作以默认键位命名，玩家改键后按「实际按键 → 默认键位」翻译 ---------- */
+const KEY_ACTIONS = [
+  ['KeyW', '前进'], ['KeyS', '后退'], ['KeyA', '左移'], ['KeyD', '右移'], ['Space', '跳跃'], ['ShiftLeft', '冲刺'],
+  ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
+  ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
+];
+const KEY_FIXED = new Set(['Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+let keyInv = new Map(), keyAway = new Set();
+function rebuildKeys() {
+  keyInv = new Map(); keyAway = new Set();
+  for (const [act] of KEY_ACTIONS) {
+    const b = settings.keys[act];
+    if (b && b !== act) { keyInv.set(b, act); keyAway.add(act); }
+  }
+  for (const b of keyInv.keys()) keyAway.delete(b);   // 被别的动作占用的默认键，以占用者为准
+}
+rebuildKeys();
+function remapKey(code) {
+  if (keyInv.has(code)) return keyInv.get(code);
+  if (keyAway.has(code)) return null;
+  if (code === 'ShiftRight' && keyAway.has('ShiftLeft')) return null;
+  return code;
+}
+function keyOf(act) { return settings.keys[act] || act; }
+function keyName(code) {
+  if (!code) return '—';
+  const N = { Space: '空格', ShiftLeft: '左 Shift', ShiftRight: '右 Shift', ControlLeft: '左 Ctrl', ControlRight: '右 Ctrl', AltLeft: '左 Alt', AltRight: '右 Alt', Tab: 'Tab', CapsLock: 'Caps', Enter: '回车', Backspace: '退格', Backquote: '`', Minus: '-', Equal: '=', BracketLeft: '[', BracketRight: ']', Semicolon: ';', Quote: "'", Comma: ',', Period: '.', Slash: '/', Backslash: '\\', ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Mouse3: '鼠标中键', Mouse4: '鼠标侧键 1', Mouse5: '鼠标侧键 2' };
+  if (N[code]) return N[code];
+  if (/^Key[A-Z]$/.test(code)) return code.slice(3);
+  if (/^Digit\d$/.test(code)) return code.slice(5);
+  if (/^Numpad/.test(code)) return '小键盘 ' + code.slice(6);
+  return code;
+}
 function saveSettings() { try { localStorage.setItem('jhsw-settings', JSON.stringify(settings)); } catch (e) { /* 忽略 */ } }
 
 /* ============================================================
@@ -2309,6 +2345,7 @@ function drawMinimap(S) {
   }
 }
 
+const autoReady = { wave: -1, since: 0 };
 function updateHUD(dt) {
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
@@ -2412,6 +2449,12 @@ function updateHUD(dt) {
   if (TOUCH) pr = pr.replace('左键放置', '按「放置」放下').replace('左键放到', '按「放置」放到').replace(/\s*· 右键收起/, '');
   setText('prompt', pr); setClass($('prompt'), prCls);
   if (TOUCH) updateTouchHUD(p, lo, di);
+  // 自动准备：每波清除后稍等片刻自动按 G（同一波只触发一次，按 G 取消后不再自动）
+  if (s.phase === 'build') { if (!autoReady.since) autoReady.since = performance.now(); } else autoReady.since = 0;
+  if (settings.autoReady && mode === 'play' && s.phase === 'build' && s.wave > 0 && autoReady.wave !== s.wave && p && !p.ready && performance.now() - autoReady.since > 1500) {
+    autoReady.wave = s.wave;
+    netCmd({ t: 'ready', on: true }, r => { if (r.ok && r.bonus) toast(`自动准备：提前开战 +${r.bonus} 金币`); else if (r.ok && r.waiting) toast(`自动准备（${r.n}/${r.of}），等队友准备好就开战 · 按 G 取消`); });
+  }
   // 准星
   const spread = p ? 7 + p.bloom * 22 + (keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD ? 4 : 0) - cam.ads * 4 : 7;
   setStyle($('cross'), '--g', spread.toFixed(1) + 'px');
@@ -2475,9 +2518,28 @@ function enableFallback() {
 function lockFailed() { if (mode !== 'play') return; if (!hadLock) enableFallback(); }
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
-  if (locked) { hadLock = true; look.skip = 2; look.hist.fill(0); }
-  if (!locked && mode === 'play' && !fallbackLook) pauseGame();
+  if (locked) { hadLock = true; look.skip = 2; look.hist.fill(0); panelUnlock = false; }
+  if (!locked && mode === 'play' && !fallbackLook && !panelUnlock) pauseGame();
 });
+/* ---------- 游戏内面板（军械库 / 科研终端 / 进阶 / 快捷消息）：打开时释放鼠标，方便点选和关闭 ---------- */
+let panelUnlock = false;
+function anyPanel() { return shopOpen || labOpen || evoTrap !== null || quickOpen; }
+function panelOpened(needMouse) {
+  if (!needMouse || !locked) return;
+  panelUnlock = true;
+  try { document.exitPointerLock(); } catch (e) { /* 忽略 */ }
+}
+function panelClosed() {
+  if (anyPanel() || !panelUnlock) return;
+  panelUnlock = false;
+  if (mode === 'play' && !locked && !fallbackLook) requestLock();
+}
+function closePanels() {
+  if (shopOpen) toggleShop(false);
+  if (labOpen) toggleLab(false);
+  if (evoTrap !== null) closeEvo();
+  if (quickOpen) toggleQuick(false);
+}
 document.addEventListener('pointerlockerror', lockFailed);
 addEventListener('mousemove', e => {
   if (mode !== 'play') return;
@@ -2491,7 +2553,14 @@ addEventListener('mousemove', e => {
 canvas.addEventListener('mousedown', e => {
   if (mode !== 'play') return;
   Snd.init();
+  // 打开面板时鼠标已释放：点画面空白处 = 关闭面板并回到游戏
+  if (anyPanel()) { closePanels(); if (!locked && !fallbackLook) requestLock(); return; }
   if (!locked && !fallbackLook) { requestLock(); return; }
+  if (e.button === 1 || e.button === 3 || e.button === 4) {
+    const code = remapKey('Mouse' + (e.button === 1 ? 3 : e.button + 1));
+    if (code && !code.startsWith('Mouse')) { e.preventDefault(); onKey(code, { code, repeat: false, preventDefault() {} }); setTimeout(() => { keys[code] = false; }, 120); }
+    return;
+  }
   if (e.button === 0) {
     mouse.l = true;
     if (tool !== 'gun') tryPlace();
@@ -2511,22 +2580,34 @@ addEventListener('wheel', e => {
   selectTool(ids[i]);
 }, { passive: true });
 addEventListener('keydown', e => {
+  if (keyCapture) { e.preventDefault(); e.stopPropagation(); finishKeyCapture(e.code); return; }
+  const code = e.isTrusted ? remapKey(e.code) : e.code;
+  if (code === null) return;
+  onKey(code, e);
+});
+function onKey(code, e) {
   if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && mode === 'play') e.preventDefault();
-  if (e.repeat && !['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.code)) { keys[e.code] = true; return; }
-  keys[e.code] = true;
-  if (mode === 'pause' && (e.code === 'Escape' || e.code === 'KeyP') && fallbackLook) { resumeGame(); return; }
+  // 整页浮层（设置 / 图鉴 / 天赋）优先响应 Esc
+  if (code === 'Escape' || (code === 'KeyH' && !$('help').hidden)) {
+    if (!$('settings').hidden) { closeSettings(); return; }
+    if (!$('help').hidden) { closeHelp(); return; }
+    if (!$('talents').hidden) { show('talents', false); return; }
+  }
+  if (e.repeat && !['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code)) { keys[code] = true; return; }
+  keys[code] = true;
+  if (mode === 'pause' && (code === 'Escape' || code === 'KeyP') && fallbackLook) { resumeGame(); return; }
   if (mode !== 'play') return;
-  const d = e.code.match(/^Digit([1-9])$/);
+  const d = code.match(/^Digit([1-9])$/);
   if (d && quickOpen) { sendQuick(+d[1] - 1); return; }
-  if (quickOpen && e.code === 'Escape') { toggleQuick(false); return; }
+  if (quickOpen && code === 'Escape') { toggleQuick(false); return; }
   if (d && evoTrap !== null) { if (d[1] === '1' || d[1] === '2') chooseEvo(d[1] === '1' ? 'a' : 'b'); return; }
-  if (evoTrap !== null && (e.code === 'Escape' || e.code === 'KeyE')) { closeEvo(); return; }
+  if (evoTrap !== null && (code === 'Escape' || code === 'KeyE')) { closeEvo(); return; }
   if (d && labOpen) { doResearch(+d[1] - 1); return; }
-  if (labOpen && e.code === 'Escape') { toggleLab(false); return; }
+  if (labOpen && code === 'Escape') { toggleLab(false); return; }
   if (d && shopOpen) { buyWeapon(+d[1] - 1); return; }
   if (d) { const t = TRAPS[+d[1] - 1]; if (t) selectTool(t.id); return; }
-  if (shopOpen && e.code === 'Escape') { toggleShop(false); return; }
-  switch (e.code) {
+  if (shopOpen && code === 'Escape') { toggleShop(false); return; }
+  switch (code) {
     case 'KeyQ': if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
     case 'KeyB': toggleShop(); break;
     case 'KeyF': useDevice(); break;
@@ -2549,10 +2630,10 @@ addEventListener('keydown', e => {
     }
     case 'KeyM': bigMap = !bigMap; $('mapWrap').classList.toggle('big', bigMap); break;
     case 'KeyH': case 'F1': e.preventDefault(); openHelp(); break;
-    case 'Escape': case 'KeyP': if (fallbackLook) pauseGame(); break;
+    case 'Escape': case 'KeyP': if (fallbackLook || code === 'KeyP') pauseGame(); break;
   }
-});
-addEventListener('keyup', e => { keys[e.code] = false; });
+}
+addEventListener('keyup', e => { const code = e.isTrusted ? remapKey(e.code) : e.code; if (code) keys[code] = false; });
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouse.l = mouse.r = mouse.any = false; });
 
 function tryPlace() {
@@ -2617,6 +2698,7 @@ function doPing() {
 function toggleQuick(on) {
   quickOpen = on === undefined ? !quickOpen : on;
   $('qchat').hidden = !quickOpen;
+  if (!quickOpen) panelClosed();
   if (quickOpen) { if (shopOpen) toggleShop(false); if (evoTrap !== null) closeEvo(); if (labOpen) toggleLab(false); }
 }
 function sendQuick(i) {
@@ -2857,6 +2939,7 @@ let labOpen = false;
 function toggleLab(on) {
   labOpen = on === undefined ? !labOpen : on;
   $('lab').hidden = !labOpen;
+  if (labOpen) panelOpened(true); else setTimeout(panelClosed, 0);
   if (labOpen) {
     if (shopOpen) toggleShop(false);
     if (evoTrap !== null) closeEvo();
@@ -2915,8 +2998,9 @@ function openEvo(tr) {
     box.appendChild(b);
   });
   $('evo').hidden = false;
+  panelOpened(true);
 }
-function closeEvo() { evoTrap = null; $('evo').hidden = true; }
+function closeEvo() { evoTrap = null; $('evo').hidden = true; panelClosed(); }
 function chooseEvo(k) {
   const tr = sim && sim.s.traps.find(t => t.id === evoTrap);
   closeEvo();
@@ -2946,6 +3030,7 @@ function toggleShop(on) {
   shopOpen = on === undefined ? !shopOpen : on;
   $('shop').hidden = !shopOpen;
   if (shopOpen && labOpen) toggleLab(false);
+  if (shopOpen) panelOpened(true); else panelClosed();
   if (shopOpen) { cache.shop = ''; renderShop(); }
 }
 function renderShop() {
@@ -3052,6 +3137,7 @@ function beginPlay(S, gesture) {
   banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向核心水晶 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
   if (gesture) requestLock();
   if (gesture && TOUCH) goFullscreen();
+  if (TOUCH) requestAnimationFrame(applyTouchLayout);
   if (MP.role === 'host') ensureBgTicker();
 }
 function pauseGame() {
@@ -3070,10 +3156,145 @@ function resumeGame() {
   Snd.init();
   requestLock();
 }
-function openHelp() {
+function openHelp(tab) {
   if (mode === 'play') { pauseGame(); }
+  if (tab) setHelpTab(tab);
   show('help', true);
+  $('help').scrollTop = 0;
   if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeHelp() { show('help', false); }
+function setHelpTab(id) {
+  for (const b of document.querySelectorAll('[data-htab]')) {
+    if (b.tagName === 'BUTTON') b.setAttribute('aria-selected', b.dataset.htab === id ? 'true' : 'false');
+    else b.hidden = b.dataset.htab !== id;
+  }
+  $('help').scrollTop = 0;
+}
+function openSettings(tab) {
+  if (mode === 'play') pauseGame();
+  setSetTab(tab || 'gen');
+  renderKeyList();
+  show('settings', true);
+  if (document.pointerLockElement) document.exitPointerLock();
+}
+function closeSettings() { cancelKeyCapture(); show('settings', false); }
+function setSetTab(id) {
+  for (const b of document.querySelectorAll('[data-stab]')) {
+    if (b.tagName === 'BUTTON') b.setAttribute('aria-selected', b.dataset.stab === id ? 'true' : 'false');
+    else b.hidden = b.dataset.stab !== id;
+  }
+}
+/* ---------- 改键 ---------- */
+let keyCapture = null;
+function renderKeyList() {
+  const box = $('keyList'); if (!box) return;
+  box.innerHTML = '';
+  for (const [act, label] of KEY_ACTIONS) {
+    const row = document.createElement('div'); row.className = 'keyRow';
+    const sp = document.createElement('span'); sp.textContent = label;
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.act = act; b.textContent = keyName(keyOf(act));
+    if (keyCapture === act) { b.classList.add('wait'); b.textContent = '按下新按键…'; }
+    b.addEventListener('click', ev => { ev.stopPropagation(); keyCapture = act; renderKeyList(); });
+    row.append(sp, b); box.appendChild(row);
+  }
+}
+function finishKeyCapture(code) {
+  const act = keyCapture; keyCapture = null;
+  if (!act || code === 'Escape') { renderKeyList(); return; }
+  if (KEY_FIXED.has(code)) { toast(`${keyName(code)} 不能用来改键`, true); renderKeyList(); return; }
+  // 冲突：和占用这个键的动作互换
+  const other = KEY_ACTIONS.map(a => a[0]).find(a => a !== act && keyOf(a) === code);
+  const old = keyOf(act);
+  if (other) settings.keys[other] = old;
+  settings.keys[act] = code;
+  for (const [a] of KEY_ACTIONS) if (settings.keys[a] === a) delete settings.keys[a];
+  rebuildKeys(); saveSettings(); renderKeyList(); fillCtrlHelp();
+  toast(other ? `${KEY_ACTIONS.find(a => a[0] === act)[1]} → ${keyName(code)}（与「${KEY_ACTIONS.find(a => a[0] === other)[1]}」互换）` : `${KEY_ACTIONS.find(a => a[0] === act)[1]} → ${keyName(code)}`);
+}
+function cancelKeyCapture() { if (keyCapture) { keyCapture = null; renderKeyList(); } }
+addEventListener('mousedown', e => {
+  if (!keyCapture || e.button === 0 || e.button === 2) return;
+  e.preventDefault(); finishKeyCapture('Mouse' + (e.button === 1 ? 3 : e.button + 1));
+}, true);
+function fillCtrlHelp() {
+  const box = $('ctrlHelp'); if (!box) return;
+  const K = a => `<span class="kb">${keyName(keyOf(a))}</span>`;
+  box.innerHTML = [
+    `${K('KeyW')}${K('KeyA')}${K('KeyS')}${K('KeyD')}移动 · ${K('ShiftLeft')}冲刺`, `${K('Space')}跳跃 · ${K('KeyR')}换弹`,
+    '<span class="kb">左键</span>射击 / 放置陷阱', '<span class="kb">右键</span>瞄准 / 收起陷阱',
+    `<span class="kb">1-9</span>选择陷阱 · ${K('KeyQ')}步枪 / 切枪`, `${K('KeyE')}升级 · ${K('KeyX')}拆除陷阱`,
+    `${K('KeyB')}军械库 · ${K('KeyF')}互动`, `${K('KeyC')}手雷 · ${K('KeyZ')}轨道打击`,
+    `${K('KeyT')}标记 · ${K('KeyV')}快捷消息`, `${K('KeyG')}提前开战 / 联机准备`,
+    `${K('KeyM')}大地图 · ${K('KeyH')}图鉴`, `<span class="kb">Esc</span>${K('KeyP')}暂停 / 设置`,
+  ].map(h => `<div>${h}</div>`).join('');
+  const mk = document.querySelector('#menu .keys');
+  if (mk) mk.innerHTML = box.innerHTML;
+}
+/* ---------- 触屏按钮：自定义位置 / 大小 / 透明度 ---------- */
+const TB_DRAG = ['tbFire', 'tbJump', 'tbReload', 'tbAds', 'tbNade', 'tbUlt', 'tbSwap', 'tbUtil', 'tbCtx'];
+let tbEdit = null, tbEditFrom = '';
+function applyTouchLayout() {
+  const ui = $('touchUI'); if (!ui) return;
+  ui.style.setProperty('--tbs', settings.tb.scale || 1);
+  ui.style.setProperty('--tba', settings.tb.alpha || 1);
+  for (const id of TB_DRAG) {
+    const el = $(id), pos = settings.tb.pos[id];
+    if (!el) continue;
+    if (!pos) { el.style.left = el.style.top = el.style.right = el.style.bottom = el.style.transform = ''; continue; }
+    if (!el.offsetWidth) continue;   // 界面未显示时尺寸未知，进入游戏后再排
+    const w = el.offsetWidth, h = el.offsetHeight;
+    el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
+    el.style.left = clamp(pos[0] * innerWidth - w / 2, 0, Math.max(0, innerWidth - w)) + 'px';
+    el.style.top = clamp(pos[1] * innerHeight - h / 2, 0, Math.max(0, innerHeight - h)) + 'px';
+  }
+}
+function openTouchEditor() {
+  if (!TOUCH) return;
+  tbEditFrom = mode;
+  show('settings', false); show('pause', false);
+  if (mode === 'menu') { show('hud', true); document.body.classList.add('tEditOnly'); }
+  $('touchUI').classList.add('editing');
+  requestAnimationFrame(applyTouchLayout);
+}
+function closeTouchEditor() {
+  $('touchUI').classList.remove('editing');
+  document.body.classList.remove('tEditOnly');
+  if (tbEditFrom === 'menu') show('hud', false); else show('pause', true);
+  openSettings('touch');
+}
+function initTouchEditor() {
+  const ui = $('touchUI');
+  for (const id of TB_DRAG) { const el = $(id); if (el) el.dataset.drag = id; }
+  ui.addEventListener('pointerdown', e => {
+    if (!ui.classList.contains('editing')) return;
+    if (e.target.closest('#teBar')) return;
+    const el = e.target.closest('[data-drag]');
+    e.stopPropagation(); e.preventDefault();
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    tbEdit = { el, id: el.dataset.drag, dx: e.clientX - r.left, dy: e.clientY - r.top, pid: e.pointerId };
+    el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
+    el.style.left = r.left + 'px'; el.style.top = r.top + 'px';
+  }, true);
+  addEventListener('pointermove', e => {
+    if (!tbEdit || e.pointerId !== tbEdit.pid) return;
+    const el = tbEdit.el, w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = clamp(e.clientX - tbEdit.dx, 0, innerWidth - w) + 'px';
+    el.style.top = clamp(e.clientY - tbEdit.dy, 0, innerHeight - h) + 'px';
+  });
+  const up = e => {
+    if (!tbEdit || e.pointerId !== tbEdit.pid) return;
+    const r = tbEdit.el.getBoundingClientRect();
+    settings.tb.pos[tbEdit.id] = [Math.round((r.left + r.width / 2) / innerWidth * 1000) / 1000, Math.round((r.top + r.height / 2) / innerHeight * 1000) / 1000];
+    tbEdit = null; saveSettings();
+  };
+  addEventListener('pointerup', up); addEventListener('pointercancel', up);
+  // touchUI 屏蔽了 touchstart 默认行为（不会合成 click），这里用 pointerup
+  $('teDone').addEventListener('pointerup', e => { e.stopPropagation(); closeTouchEditor(); });
+  $('teReset').addEventListener('pointerup', e => { e.stopPropagation(); settings.tb.pos = {}; saveSettings(); applyTouchLayout(); });
+  addEventListener('resize', () => setTimeout(applyTouchLayout, 50));
+  applyTouchLayout();
 }
 function toMenu() {
   showBest();
@@ -3317,6 +3538,14 @@ function frame(now) {
   drawLava(S);
   drawShells(fxdt);
   for (const m of S.s.monsters) drawMonster(m, frameAlpha);
+  // 调试：显示命中判定球（window.__hitboxes = true）
+  if (window.__hitboxes) for (const m of S.s.monsters) {
+    const def = MON[m.type], hf = def.head[2] || 0, k = frameAlpha;
+    const mx = lerp(m.ox, m.x, k), my = lerp(m.oy, m.y, k), mz = lerp(m.oz, m.z, k);
+    E.push('sphere', mx + m.fx * hf, my + def.head[0], mz + m.fz * hf, 0, def.head[1] * 2, def.head[1] * 2, def.head[1] * 2, c(1, 0.85, 0.1, 0.45, 1, 0, true, true));
+    E.push('sphere', mx, my + def.body[0], mz, 0, def.body[1] * 2, def.body[1] * 2, def.body[1] * 2, c(0.2, 1, 0.5, 0.18, 1, 0, true, true));
+    if (window.__ruler) for (let h = 0; h <= 7; h += 0.1) { const maj = Math.abs(h - Math.round(h)) < 0.01, half = Math.abs(h * 2 - Math.round(h * 2)) < 0.01; E.push('box', mx + window.__ruler, my + h, mz, 0, maj ? 0.5 : half ? 0.3 : 0.14, 0.012, 0.02, maj ? c(1, 0.2, 0.2, 1, 1) : half ? c(1, 1, 1, 1, 1) : c(0.6, 0.6, 0.6, 1, 0.6)); }
+  }
   drawCorpses(fxdt);
   drawDecals(fxdt);
   updateBossFx(fxdt);
@@ -3653,9 +3882,31 @@ function bindUI() {
   refreshSel();
   $('startBtn').addEventListener('click', startGame);
   $('resumeBtn').addEventListener('click', resumeGame);
-  $('helpBtn').addEventListener('click', () => { show('help', true); });
-  $('menuHelpBtn').addEventListener('click', () => { show('help', true); });
-  $('helpClose').addEventListener('click', () => { show('help', false); if (mode === 'pause') { /* 留在暂停 */ } });
+  $('helpBtn').addEventListener('click', () => openHelp());
+  $('menuHelpBtn').addEventListener('click', () => openHelp());
+  $('helpClose').addEventListener('click', closeHelp);
+  for (const b of document.querySelectorAll('button[data-htab]')) b.addEventListener('click', () => setHelpTab(b.dataset.htab));
+  $('settingsBtn').addEventListener('click', () => openSettings());
+  $('menuSetBtn').addEventListener('click', () => openSettings());
+  $('settingsClose').addEventListener('click', closeSettings);
+  for (const b of document.querySelectorAll('button[data-stab]')) b.addEventListener('click', () => { cancelKeyCapture(); setSetTab(b.dataset.stab); });
+  $('setKeysTab').hidden = TOUCH; $('setTouchTab').hidden = !TOUCH;
+  $('ctrlTouch').hidden = !TOUCH; $('ctrlHelp').hidden = TOUCH;
+  const arBtn = $('autoReadyBtn');
+  const syncAR = () => { arBtn.setAttribute('aria-pressed', settings.autoReady ? 'true' : 'false'); arBtn.textContent = settings.autoReady ? '开' : '关'; };
+  arBtn.addEventListener('click', () => { settings.autoReady = !settings.autoReady; syncAR(); saveSettings(); });
+  syncAR();
+  $('keysReset').addEventListener('click', () => { settings.keys = {}; rebuildKeys(); saveSettings(); renderKeyList(); fillCtrlHelp(); toast('已恢复默认按键'); });
+  const tbS = $('tbScale'), tbA = $('tbAlpha');
+  tbS.value = settings.tb.scale || 1; tbA.value = settings.tb.alpha || 1;
+  const syncTB = () => { setText('tbScaleV', Math.round(settings.tb.scale * 100) + '%'); setText('tbAlphaV', Math.round(settings.tb.alpha * 100) + '%'); };
+  tbS.addEventListener('input', () => { settings.tb.scale = +tbS.value; syncTB(); applyTouchLayout(); saveSettings(); });
+  tbA.addEventListener('input', () => { settings.tb.alpha = +tbA.value; syncTB(); applyTouchLayout(); saveSettings(); });
+  syncTB();
+  $('touchEditBtn').addEventListener('click', openTouchEditor);
+  $('touchResetBtn').addEventListener('click', () => { settings.tb = { pos: {}, scale: 1, alpha: 1 }; tbS.value = 1; tbA.value = 1; syncTB(); saveSettings(); applyTouchLayout(); toast('已恢复默认布局'); });
+  for (const b of document.querySelectorAll('.pClose')) b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const k = b.dataset.close; if (k === 'shop') toggleShop(false); else if (k === 'lab') toggleLab(false); else if (k === 'evo') closeEvo(); else if (k === 'qchat') toggleQuick(false); });
+  fillCtrlHelp();
   $('quitBtn').addEventListener('click', () => { if (MP.role === 'client') { leaveRoom(true); mpNote('已离开房间'); } toMenu(); });
   $('againBtn').addEventListener('click', () => { if (MP.role === 'client') return; show('end', false); startGame(); });
   $('menuBtn').addEventListener('click', toMenu);
@@ -3695,6 +3946,7 @@ function bindUI() {
   $('srvIn').addEventListener('blur', e => { delete e.target.dataset.edit; });
   document.querySelectorAll('#qchat li').forEach((li, i) => li.addEventListener('pointerdown', e => { e.preventDefault(); if (quickOpen) sendQuick(i); }));
   initTouch();
+  if (TOUCH) initTouchEditor();
   if (TOUCH) { setupTouchMenu(); for (const el of document.querySelectorAll('[data-cls], [data-diff], [data-mode]')) el.addEventListener('click', () => setTimeout(updateMenuSum, 0)); }
   buildHelp();
 }

@@ -414,6 +414,48 @@ body.touch .keys { display: none; }
 body.touch .menuIn { gap: 14px; padding-top: 16px; }
 body.touch h1 { font-size: 48px; }
 body.touch .pitch { font-size: 13px; }
+
+/* 暂停菜单 / 整页面板（设置、图鉴） */
+.pauseBox { width: min(380px, calc(100% - 32px)); }
+.pmBtns { display: grid; gap: 10px; }
+.pmBtns button { width: 100%; padding: 13px 18px; font-size: 16px; }
+.fullPage { background: rgba(3, 6, 10, .97) !important; backdrop-filter: none !important; z-index: 20; }
+.fpIn { width: 100%; min-height: 100%; display: flex; flex-direction: column; }
+.fpHead { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 10px calc(16px + env(safe-area-inset-left, 0px)); background: rgba(6, 10, 16, .98); border-bottom: 1px solid var(--line); }
+.fpHead h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 26px; letter-spacing: .12em; white-space: nowrap; }
+.fpTabs { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; min-width: 0; }
+.fpTabs button { padding: 8px 14px; font-size: 14px; background: transparent; border: 1px solid transparent; color: var(--dim); cursor: pointer; }
+.fpTabs button[aria-selected="true"] { color: var(--crys); border-color: var(--crys); background: rgba(95, 227, 255, .1); }
+.fpClose { flex: none; padding: 10px 18px; font-size: 15px; font-weight: 600; letter-spacing: .1em; color: #04222c; background: var(--crys); border: 0; cursor: pointer; clip-path: var(--cut); }
+.fpBody { width: min(980px, 100%); box-sizing: border-box; margin: 0 auto; padding: 18px calc(16px + env(safe-area-inset-right, 0px)) 40px calc(16px + env(safe-area-inset-left, 0px)); display: grid; gap: 14px; }
+.fpBody section { display: grid; gap: 12px; align-content: start; }
+.setRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(120, 190, 225, .1); }
+.setRow > div { display: grid; gap: 2px; }
+.setRow b { font-weight: 500; font-size: 14px; }
+.keyList { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 6px 18px; }
+.keyRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px solid rgba(120, 190, 225, .08); font-size: 14px; color: var(--dim); }
+.keyRow button { min-width: 74px; padding: 6px 10px; font-family: var(--f-num); font-size: 13px; color: var(--ink); background: rgba(255, 255, 255, .05); border: 1px solid var(--line); border-bottom-width: 2px; cursor: pointer; }
+.keyRow button.wait { color: var(--gold); border-color: var(--gold); animation: blink .6s infinite alternate; }
+.pClose { margin-left: auto; width: 34px; height: 34px; font-size: 16px; color: var(--ink); background: rgba(255, 255, 255, .06); border: 1px solid var(--line); cursor: pointer; flex: none; }
+.pClose:hover { border-color: var(--crys); color: var(--crys); }
+#shop .shopHead, #lab .shopHead, #evo .shopHead, #qchat .shopHead { align-items: center; flex-wrap: nowrap; }
+#qchat { pointer-events: auto; }
+/* 触屏按钮编辑 */
+#touchUI { --tbs: 1; --tba: 1; }
+#touchUI .tb { opacity: var(--tba); }
+.tb { width: calc(54px * var(--tbs, 1)); height: calc(54px * var(--tbs, 1)); }
+.tb.big { width: calc(92px * var(--tbs, 1)); height: calc(92px * var(--tbs, 1)); }
+.tb.sm { width: calc(42px * var(--tbs, 1)); height: calc(42px * var(--tbs, 1)); }
+.tb.pill { height: calc(40px * var(--tbs, 1)); width: auto; }
+#touchUI.editing { pointer-events: auto; background: rgba(3, 6, 10, .55); z-index: 30; }
+#touchUI.editing #tzMove, #touchUI.editing #tzLook { display: none; }
+#touchUI.editing [data-drag] { outline: 2px dashed var(--gold); outline-offset: 3px; cursor: move; }
+#touchUI.editing #tbCtx .tb, #touchUI.editing #tbQuick { display: grid !important; }
+#touchUI.editing #tbCtx .tb { display: inline-grid !important; }
+body.tEditOnly #hud > :not(#touchUI) { visibility: hidden; }
+body.tEditOnly #hud { background: #05080c; }
+#teBar { display: none; position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel2); pointer-events: auto; z-index: 3; font-size: 13px; color: var(--dim); white-space: nowrap; }
+#touchUI.editing #teBar { display: flex; }
 /* 手机主菜单 */
 .mHead { display: none; }
 body.touch #menu { background: linear-gradient(180deg, rgba(4, 7, 11, .93), rgba(4, 7, 11, .86)); }
@@ -496,22 +538,22 @@ body.touch .mpRow input { padding: 10px; }
   <div id="alarm"></div>
   <div id="team" hidden></div>
   <div id="qchat" hidden>
-    <div class="shopHead"><h3>快捷消息</h3><span>按 1-6 发送 · V 关闭</span></div>
+    <div class="shopHead"><h3>快捷消息</h3><span>按 1-6 发送 · V / Esc 关闭</span><button type="button" class="pClose" data-close="qchat" aria-label="关闭">✕</button></div>
     <ol>
       <li><span class="kb">1</span>需要支援！</li><li><span class="kb">2</span>我来守这里</li><li><span class="kb">3</span>注意飞行敌人</li>
       <li><span class="kb">4</span>BOSS 来了，集火！</li><li><span class="kb">5</span>我去买枪 / 补陷阱</li><li><span class="kb">6</span>谢谢！</li>
     </ol>
   </div>
   <div id="evo" class="pick" hidden>
-    <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E 取消</span></div>
+    <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E / Esc 取消</span><button type="button" class="pClose" data-close="evo" aria-label="关闭">✕</button></div>
     <div id="evoList" class="pickList"></div>
   </div>
   <div id="shop" hidden>
-    <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B 关闭 · 金币全队共享</span></div>
+    <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
     <div id="shopList"></div>
   </div>
   <div id="lab" hidden>
-    <div class="shopHead"><h3>科研终端</h3><span>按 1-5 研究 · F / Esc 关闭 · 花全队共享金币，效果全队生效</span></div>
+    <div class="shopHead"><h3>科研终端</h3><span>按 1-5 研究 · F / Esc 关闭 · 花全队共享金币，效果全队生效</span><button type="button" class="pClose" data-close="lab" aria-label="关闭">✕</button></div>
     <div id="labList"></div>
   </div>
   <div id="deadMsg" hidden>你已阵亡 · <b id="respawnT">5</b> 秒后在基地复活</div>
@@ -532,6 +574,7 @@ body.touch .mpRow input { padding: 10px; }
       <button type="button" class="tb pill" data-k="KeyX" id="tbSell">拆除<small>X</small></button>
       <button type="button" class="tb pill go" data-k="KeyG" id="tbReady">开战<small>G</small></button>
     </div>
+    <div id="teBar"><span>拖动按钮调整位置</span><button type="button" class="ghostBtn small" id="teReset">恢复默认</button><button type="button" class="cta" id="teDone" style="padding:8px 18px;font-size:14px">完成</button></div>
     <button type="button" class="tb big" id="tbFire"><span id="tbFireL">开火</span></button>
     <button type="button" class="tb" id="tbJump" data-hold="Space">跳跃</button>
     <button type="button" class="tb" id="tbReload" data-k="KeyR"><b id="tbAmmo">30</b><small>换弹</small></button>
@@ -587,6 +630,7 @@ body.touch .mpRow input { padding: 10px; }
     <div class="row2">
       <button type="button" class="cta" id="startBtn">进入战场</button>
       <button type="button" class="ghostBtn" id="menuHelpBtn">陷阱与怪物图鉴</button>
+      <button type="button" class="ghostBtn" id="menuSetBtn">设置</button>
       <button type="button" class="ghostBtn" id="talentBtn">天赋 <span id="starTag"></span></button>
     </div>
     <section id="mpBox" class="mpBox" aria-label="联机合作">
@@ -626,17 +670,40 @@ body.touch .mpRow input { padding: 10px; }
 </div>
 
 <div id="pause" class="overlay" hidden>
-  <div class="modal">
+  <div class="modal pauseBox">
     <h2 id="pauseTitle">已暂停</h2>
     <p id="pauseNote" class="fine" style="margin:0" hidden>联机中游戏不会暂停，战斗仍在继续。</p>
-    <div class="slider"><label for="sens">鼠标灵敏度</label><input id="sens" type="range" min="0.3" max="2.5" step="0.1"><b id="sensV"></b></div>
-    <div class="slider"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.05"><b id="volV"></b></div>
-    <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
-    <div class="slider"><span>泛光特效</span><span class="fine">画面发光与柔和高光，低配电脑可关闭</span><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
-    <div class="row2">
+    <div class="pmBtns">
       <button type="button" class="cta" id="resumeBtn">继续</button>
+      <button type="button" class="ghostBtn" id="settingsBtn">设置</button>
       <button type="button" class="ghostBtn" id="helpBtn">图鉴</button>
       <button type="button" class="ghostBtn" id="quitBtn">返回主菜单</button>
+    </div>
+  </div>
+</div>
+
+<div id="settings" class="overlay fullPage" hidden>
+  <div class="fpIn">
+    <div class="fpHead"><h2>设置</h2><nav class="fpTabs" id="setTabs"><button type="button" data-stab="gen" aria-selected="true">通用</button><button type="button" data-stab="keys" id="setKeysTab">按键</button><button type="button" data-stab="touch" id="setTouchTab">触屏按钮</button></nav><button type="button" class="fpClose" id="settingsClose" aria-label="关闭设置">✕ 关闭</button></div>
+    <div class="fpBody">
+      <section data-stab="gen">
+        <div class="slider"><label for="sens">视角灵敏度</label><input id="sens" type="range" min="0.3" max="2.5" step="0.1"><b id="sensV"></b></div>
+        <div class="slider"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.05"><b id="volV"></b></div>
+        <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
+        <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
+        <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
+      </section>
+      <section data-stab="keys" hidden>
+        <p class="fine" style="margin:0 0 8px">点一个按键，再按下想用的新键（Esc 取消）。和其他功能冲突时会互换。数字键 1-9 固定用来选陷阱。</p>
+        <div id="keyList" class="keyList"></div>
+        <div class="row2" style="margin-top:12px"><button type="button" class="ghostBtn small" id="keysReset">恢复默认按键</button></div>
+      </section>
+      <section data-stab="touch" hidden>
+        <p class="fine" style="margin:0 0 8px">进入编辑后，直接拖动屏幕上的按钮到顺手的位置，完成后自动保存。</p>
+        <div class="slider"><label for="tbScale">按钮大小</label><input id="tbScale" type="range" min="0.75" max="1.4" step="0.05"><b id="tbScaleV"></b></div>
+        <div class="slider"><label for="tbAlpha">按钮透明度</label><input id="tbAlpha" type="range" min="0.3" max="1" step="0.05"><b id="tbAlphaV"></b></div>
+        <div class="row2" style="margin-top:12px"><button type="button" class="cta" id="touchEditBtn">编辑按钮位置</button><button type="button" class="ghostBtn" id="touchResetBtn">恢复默认布局</button></div>
+      </section>
     </div>
   </div>
 </div>
@@ -664,28 +731,31 @@ body.touch .mpRow input { padding: 10px; }
   </div>
 </div>
 
-<div id="help" class="overlay" hidden>
-  <div class="modal">
-    <h2>图鉴</h2>
-    <h3>陷阱</h3>
-    <div class="tblWrap"><table id="trapTable"></table></div>
+<div id="help" class="overlay fullPage" hidden>
+  <div class="fpIn">
+    <div class="fpHead"><h2>图鉴</h2><nav class="fpTabs" id="helpTabs">
+      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="evo">进阶联动</button><button type="button" data-htab="map">机关科研</button><button type="button" data-htab="wpn">武器技能</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
+    </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
+    <div class="fpBody">
+      <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在琥珀色的 2×2 炮台平台（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
-    <h3>陷阱进阶与联动</h3>
-    <div class="tblWrap"><table id="evoTable"></table></div>
+    </section>
+      <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
     <ul id="comboList" class="comboList"></ul>
-    <h3>地图机关</h3>
-    <ul id="devList" class="comboList"></ul>
-    <h3>科研舱</h3>
-    <p class="fine">每张地图都有一间科研舱（小地图上的紫色「科」标记）。走到<b>科研终端</b>旁按 F 打开研究面板，用全队共享的金币研究科技，效果全队生效、本局有效，房间里的服务器机柜每研究一级亮一盏灯；中央的全息沙盘实时显示整张地图的敌人位置。旁边的<b>补给柜</b>按 F 可补满生命、手雷和全部弹匣，并充能 25% 轨道打击，每人冷却 50 秒。</p>
+    </section>
+      <section data-htab="map" hidden><h3>地图机关</h3><ul id="devList" class="comboList"></ul>
+    <h3 style="margin-top:14px">科研舱</h3><p class="fine">每张地图都有一间科研舱（小地图上的紫色「科」标记）。走到<b>科研终端</b>旁按 F 打开研究面板，用全队共享的金币研究科技，效果全队生效、本局有效，房间里的服务器机柜每研究一级亮一盏灯；中央的全息沙盘实时显示整张地图的敌人位置。旁边的<b>补给柜</b>按 F 可补满生命、手雷和全部弹匣，并充能 25% 轨道打击，每人冷却 50 秒。</p>
     <ul id="techList" class="comboList"></ul>
-    <h3>武器与技能</h3>
-    <div class="tblWrap"><table id="wpnTable"></table></div>
+    </section>
+      <section data-htab="wpn" hidden><div class="tblWrap"><table id="wpnTable"></table></div>
     <p class="fine">B 打开军械库购买武器（花全队共享的金币，本局有效），Q 在已拥有的武器间切换。C 投掷电浆手雷（最多 2 枚，每 14 秒充能 1 枚）。用枪造成伤害和击杀会积攒能量，满 100% 后按 Z 对准地面呼叫轨道打击：1.3 秒后落下，大范围重创并眩晕敌人。</p>
-    <h3>敌人</h3>
-    <ul id="monList"></ul>
-    <h3>素材来源</h3>
-    <p class="fine credits">赛博格步兵 / 重装赛博格：RobotExpressive，作者 Tomás Laulhé（Quaternius），CC0。<br>疾行猎犬：Fox，模型 PixelMannen（CC0），绑定与动画 tomkranis（CC BY 4.0），glTF 转换 AsoboStudio 与 scurest（CC BY 4.0）。<br>浮游无人机、脉冲步枪、岗哨机枪枪身：Kenney Starter Kit FPS（MIT）。<br>其余模型、特效与音效为程序生成。</p>
-    <div class="row2"><button type="button" class="ghostBtn" id="helpClose">关闭</button></div>
+    </section>
+      <section data-htab="mon" hidden><ul id="monList"></ul>
+    </section>
+      <section data-htab="ctrl" hidden><div id="ctrlHelp" class="keys"></div><p id="ctrlTouch" class="fine" hidden>触屏：左半屏拖动移动（推到底冲刺），右半屏滑动转视角；右下角开火 / 跳跃 / 换弹 / 手雷 / 轨道打击 / 瞄准 / 切枪；顶部陷阱栏点选后按「放置」；走近机关或科研舱、对准陷阱时，屏幕下方会出现互动、升级、拆除按钮。按钮位置可以在 设置 → 触屏按钮 里调整。</p></section>
+      <section data-htab="credit" hidden><p class="fine credits">赛博格步兵 / 重装赛博格：RobotExpressive，作者 Tomás Laulhé（Quaternius），CC0。<br>疾行猎犬：Fox，模型 PixelMannen（CC0），绑定与动画 tomkranis（CC BY 4.0），glTF 转换 AsoboStudio 与 scurest（CC BY 4.0）。<br>浮游无人机、脉冲步枪、岗哨机枪枪身：Kenney Starter Kit FPS（MIT）。<br>其余模型、特效与音效为程序生成。</p>
+    </section>
+    </div>
   </div>
 </div>
 
