@@ -1,0 +1,10 @@
+{
+  "name": "jhsw-relay",
+  "private": true,
+  "type": "module",
+  "description": "晶核守卫 联机中转服务器（Cloudflare Workers 或任意 Node.js 主机）",
+  "scripts": {
+    "start": "node server.js",
+    "deploy": "npx wrangler deploy"
+  }
+}

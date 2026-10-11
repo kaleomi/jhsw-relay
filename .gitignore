@@ -1,0 +1,9 @@
+node_modules/
+.wrangler/
+dist/
+android/build/
+android/tools/
+android/assets/
+*.jks
+*.keystore
+*.apk
