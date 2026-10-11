@@ -25,7 +25,7 @@ function openRoom(base, name, me, opts) {
   const setConn = v => { if (v === isOpen) return; isOpen = v; for (const fn of connL) { try { fn(v); } catch (e) { /* 忽略 */ } } };
   function connect() {
     if (closed) return;
-    const url = `${base.replace(/\/+$/, '')}/ws?room=${encodeURIComponent(name)}&peer=${me}`;
+    const url = `${base.replace(/\/+$/, '')}/ws?room=${encodeURIComponent(name)}&peer=${me}` + (opts.pw ? `&pw=${encodeURIComponent(opts.pw)}` : '');
     try { ws = new WebSocket(url); } catch (e) { scheduleRetry(); return; }
     ws.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
@@ -58,8 +58,9 @@ function openRoom(base, name, me, opts) {
       } else if (m.t === 'msg') {
         const fns = topicL.get(m.topic);
         if (fns) { const msg = { peer: m.from, by: null, isMe: false, sameTab: false, kind: 'viewer', guest: false, topic: m.topic, data: m.d }; for (const fn of fns) { try { fn(msg); } catch (e) { console.warn(e); } } }
-      } else if (m.t === 'err' && m.code === 'full') {
-        closed = true; fail('room_full'); if (firstHello) { firstHello.reject({ code: 'room_full' }); firstHello = null; }
+      } else if (m.t === 'err' && (m.code === 'full' || m.code === 'bad_password')) {
+        const code = m.code === 'full' ? 'room_full' : 'bad_password';
+        closed = true; fail(code); if (firstHello) { firstHello.reject({ code }); firstHello = null; }
       }
     };
     ws.onclose = () => {
@@ -133,8 +134,8 @@ function openRoom(base, name, me, opts) {
 function connect(base) {
   const me = randId();
   const lobby = openRoom(base, 'lobby', me, { persistent: true });
-  lobby.join = async name => {
-    const r = openRoom(base, name, me, { persistent: false });
+  lobby.join = async (name, o) => {
+    const r = openRoom(base, name, me, { persistent: false, pw: o && o.pw });
     await Promise.race([r.ready, new Promise((_, rej) => setTimeout(() => rej({ code: 'timeout' }), 10000))]).catch(e => { r.leave(); throw e; });
     return r;
   };

@@ -9,7 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
-import { RoomCore, validPeer, validRoom, LIMITS } from './room-core.js';
+import { RoomCore, validPeer, validRoom, validPw, LIMITS } from './room-core.js';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.argv[2] || process.env.PORT || 8080);
@@ -96,15 +96,15 @@ const server = http.createServer((req, res) => {
 });
 server.on('upgrade', (req, socket) => {
   const url = new URL(req.url, 'http://x');
-  const room = url.searchParams.get('room') || 'lobby', peer = url.searchParams.get('peer');
+  const room = url.searchParams.get('room') || 'lobby', peer = url.searchParams.get('peer'), pw = url.searchParams.get('pw') || '';
   const key = req.headers['sec-websocket-key'];
-  if (url.pathname !== '/ws' || !key || !validRoom(room) || !validPeer(peer)) { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); return; }
+  if (url.pathname !== '/ws' || !key || !validRoom(room) || !validPeer(peer) || !validPw(pw)) { socket.end('HTTP/1.1 400 Bad Request\r\n\r\n'); return; }
   const accept = crypto.createHash('sha1').update(key + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11').digest('base64');
   socket.write(`HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ${accept}\r\n\r\n`);
   const ws = new Sock(socket), r = roomOf(room);
   r.socks.add(ws);
   ws.onmessage = msg => r.core.message(ws, msg);
   ws.onclose = () => { r.core.closed(ws); r.socks.delete(ws); if (!r.socks.size) rooms.delete(room); };
-  if (!r.core.open(ws, peer)) { r.socks.delete(ws); }
+  if (!r.core.open(ws, peer, pw)) { r.socks.delete(ws); }
 });
 server.listen(PORT, () => console.log(`晶核守卫联机服务器已启动：http://localhost:${PORT}/`));

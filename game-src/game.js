@@ -144,14 +144,23 @@ function myPeer() {
 function roomCode() { const A = 'abcdefghjkmnpqrstuvwxyz23456789'; let s = ''; for (let i = 0; i < 4; i++) s += A[Math.floor(Math.random() * A.length)]; return s; }
 function setNick(v) { MP.name = cleanName(v) || MP.name; try { localStorage.setItem('jhsw-nick', MP.name); } catch (e) { /* 无存储 */ } if (MP.role === 'host') hostPresence(); else if (MP.role === 'client') clientPresence(true); }
 
+// 房间密码摘要（不在网络上传明文）：FNV-1a 双 32 位 → 16 位十六进制
+function pwKey(code, pw) {
+  if (!pw) return '';
+  const str = 'jhsw:' + code + ':' + pw;
+  let a = 0x811c9dc5, b = 0x01000193 ^ 0x5bd1e995;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); a = Math.imul(a ^ c, 16777619) >>> 0; b = Math.imul(b ^ c, 0x5bd1e995) >>> 0; b ^= b >>> 13; }
+  return (a >>> 0).toString(16).padStart(8, '0') + (b >>> 0).toString(16).padStart(8, '0');
+}
 async function createRoom() {
   if (!MP.room || MP.role !== 'solo' || MP.joining) return;
   const me = myPeer();
   if (!me) { mpNote('还没连上联机服务，请稍候再试', true); return; }
   MP.joining = true; renderMP();
   const code = roomCode();
+  const pw = ($('roomPw').value || '').trim().slice(0, 16), key = pwKey(code, pw);
   try {
-    const g = await MP.room.join('jhsw-' + code);
+    const g = await MP.room.join('jhsw-' + code, { pw: key });
     // 先试发一条，确认有权限广播快照
     try { await g.emit('snap', { hi: 1 }); }
     catch (e) {
@@ -160,23 +169,24 @@ async function createRoom() {
       mpNote(e && e.code === 'not_permitted' ? '你对这个页面只有查看权限，不能当房主，但可以加入别人的房间。' : '创建房间失败，请稍后再试', true);
       renderMP(); return;
     }
-    Object.assign(MP, { game: g, role: 'host', code, roster: [], full: [], gid: null, hostPeer: me, ev: new NP.EventOut(), sentAd: '', sentHost: '' });
+    Object.assign(MP, { game: g, role: 'host', code, roster: [], full: [], deny: [], pw, pk: key, gid: null, hostPeer: me, ev: new NP.EventOut(), sentAd: '', sentHost: '' });
     MP.pres.clear(); MP.lastSeq.clear(); MP.results.clear();
     PID = me;
     MP.unsub.push(g.onPeers(hostPeers, err => roomLost(err)));
     hostPresence(); lobbyAd();
-    mpNote('房间已创建，等待队友加入。也可以直接开始，中途有人加入会出现在你的出生点。');
+    mpNote(pw ? `房间已创建（密码：${pw}），把密码告诉队友。也可以直接开始，中途有人加入会出现在你的出生点。` : '房间已创建，等待队友加入。也可以直接开始，中途有人加入会出现在你的出生点。');
   } catch (e) { mpNote('创建房间失败：' + ((e && e.code) || '网络错误'), true); }
   MP.joining = false; renderMP();
 }
-async function joinRoom(code, hostPeer) {
+async function joinRoom(code, hostPeer, pw) {
   if (!MP.room || MP.role !== 'solo' || MP.joining) return;
+  const key = pwKey(code, (pw || '').trim());
   const me = myPeer();
   if (!me) { mpNote('还没连上联机服务，请稍候再试', true); return; }
   MP.joining = true; renderMP();
   try {
-    const g = await MP.room.join('jhsw-' + code);
-    Object.assign(MP, { game: g, role: 'client', code, hostPeer, hostPres: null, gid: null, asm: new NP.Assembler(), pending: [], sentPres: '', lastSnapAt: 0 });
+    const g = await MP.room.join('jhsw-' + code, { pw: key });
+    Object.assign(MP, { game: g, role: 'client', code, hostPeer, pk: key, pwFor: '', hostPres: null, gid: null, asm: new NP.Assembler(), pending: [], sentPres: '', lastSnapAt: 0 });
     MP.dmgBuf.clear();
     PID = me;
     MP.unsub.push(g.on('snap', onSnapMsg, err => roomLost(err)));
@@ -184,7 +194,7 @@ async function joinRoom(code, hostPeer) {
     clientPresence(true);
     mpNote('已加入房间，等待房主开始游戏…');
     setTimeout(() => { if (MP.role === 'client' && MP.code === code && !MP.hostPres) { leaveRoom(); mpNote('没有找到房主，房间可能已解散', true); } }, 8000);
-  } catch (e) { mpNote('加入失败：' + ((e && e.code) || '网络错误'), true); }
+  } catch (e) { mpNote(e && e.code === 'bad_password' ? '房间密码不对' : e && e.code === 'room_full' ? '房间已满' : '加入失败：' + ((e && e.code) || '网络错误'), true); }
   MP.joining = false; renderMP();
 }
 function roomLost(err) {
@@ -198,7 +208,7 @@ async function leaveRoom(silent) {
   const g = MP.game, role = MP.role;
   for (const u of MP.unsub) { try { u(); } catch (e) { /* 忽略 */ } }
   MP.unsub = [];
-  Object.assign(MP, { game: null, role: 'solo', code: '', gid: null, hostPeer: null, hostPres: null, roster: [], full: [], asm: null, pending: [] });
+  Object.assign(MP, { game: null, role: 'solo', code: '', gid: null, hostPeer: null, hostPres: null, roster: [], full: [], deny: [], pw: '', pk: '', asm: null, pending: [] });
   PID = 'p1';
   if (role === 'host' && MP.room) MP.room.presence({ ad: null }).catch(() => {});
   if (g) g.leave().catch(() => {});
@@ -216,11 +226,13 @@ function hostPeers(ch) {
     const i = MP.roster.indexOf(p.peer);
     if (i >= 0) { MP.roster.splice(i, 1); if (sim && MP.gid) sim.removePlayer(p.peer); }
     MP.full = MP.full.filter(x => x !== p.peer);
+    MP.deny = (MP.deny || []).filter(x => x !== p.peer);
   }
   for (const p of ch.peers) {
     if (p.peer === me || p.isMe || p.kind !== 'viewer') continue;
     const pr = p.presence || {};
     if (pr.v !== NP.VERSION || pr.host) continue;
+    if (MP.pk && pr.pk !== MP.pk) { if (!MP.deny.includes(p.peer)) MP.deny.push(p.peer); continue; }
     if (!MP.roster.includes(p.peer) && !MP.full.includes(p.peer)) {
       if (MP.roster.length < 3) {
         MP.roster.push(p.peer);
@@ -234,7 +246,7 @@ function hostPeers(ch) {
 function hostPresence() {
   if (MP.role !== 'host' || !MP.game) return;
   const gc = gameCfg();
-  const pr = { v: NP.VERSION, host: 1, n: MP.name, code: MP.code, pg: MP.ping || null, qc: MP.qc || null, cfg: { m: gc.map, d: gc.diff, e: gc.endless ? 1 : 0, mo: selMode, mut: gc.mut, dl: gc.daily || '' }, ph: MP.gid && mode !== 'menu' ? 'play' : 'lobby', gid: MP.gid, roster: [myPeer(), ...MP.roster], full: MP.full };
+  const pr = { v: NP.VERSION, host: 1, n: MP.name, code: MP.code, pg: MP.ping || null, qc: MP.qc || null, cfg: { m: gc.map, d: gc.diff, e: gc.endless ? 1 : 0, mo: selMode, mut: gc.mut, dl: gc.daily || '' }, ph: MP.gid && mode !== 'menu' ? 'play' : 'lobby', gid: MP.gid, roster: [myPeer(), ...MP.roster], full: MP.full, deny: MP.deny || [], lk: MP.pk ? 1 : 0 };
   const key = JSON.stringify(pr);
   if (key === MP.sentHost) return;
   MP.sentHost = key;
@@ -244,7 +256,7 @@ function lobbyAd() {
   if (MP.role !== 'host' || !MP.room) return;
   const s = sim && MP.gid && mode !== 'menu' ? sim.s : null;
   const gc = gameCfg();
-  const ad = { v: NP.VERSION, c: MP.code, n: MP.name, m: gc.map, d: gc.diff, e: gc.endless ? 1 : 0, mo: selMode, mu: gc.mut.length, p: 1 + MP.roster.length, ph: s ? 'play' : 'lobby', w: s ? s.wave : 0 };
+  const ad = { v: NP.VERSION, c: MP.code, n: MP.name, m: gc.map, d: gc.diff, e: gc.endless ? 1 : 0, mo: selMode, mu: gc.mut.length, p: 1 + MP.roster.length, ph: s ? 'play' : 'lobby', w: s ? s.wave : 0, lk: MP.pk ? 1 : 0 };
   const key = JSON.stringify(ad);
   if (key === MP.sentAd) return;
   MP.sentAd = key;
@@ -331,6 +343,7 @@ function clientPeers(ch) {
   if (pr.v !== NP.VERSION) { leaveRoom(true); mpNote('房主的游戏版本和你不一样，请双方都刷新页面后再试', true); return; }
   MP.hostPres = pr;
   if (Array.isArray(pr.full) && pr.full.includes(myPeer())) { leaveRoom(true); mpNote('房间已满（最多 4 人）', true); return; }
+  if (Array.isArray(pr.deny) && pr.deny.includes(myPeer())) { const c = MP.code; leaveRoom(true); MP.pwFor = c; mpNote('房间密码不对', true); return; }
   // 房主回到大厅：队友也回到大厅
   if (pr.ph === 'lobby' && MP.gid && mode !== 'menu') { MP.gid = null; toMenu(); mpNote('房主已返回大厅'); }
   // 只有房主状态或成员变化时才刷新菜单（队友 presence 每秒更新多次）
@@ -403,6 +416,7 @@ function clientPresence(force) {
   for (const it of MP.pending) if (!it.done && it.cb && now - it.t > 6000) { it.done = true; it.cb({ ok: false, reason: '网络延迟过高，操作未生效' }); }
   const lp = sim && MP.gid && sim.s.players[PID];
   const pr = { v: NP.VERSION, n: MP.name, gid: MP.gid, tal: PROG.personal(), cls: selCls, c: MP.pending.slice(-16).map(x => [x.seq, x.cmd]) };
+  if (MP.pk) pr.pk = MP.pk;
   if (MP.ping) pr.pg = MP.ping; if (MP.qc) pr.qc = MP.qc;
   if (lp) {
     const firing = lp.input.fire && !lp.dead && lp.ammo > 0 && lp.reloadT <= 0;
@@ -3399,7 +3413,51 @@ function buildMapCards() {
     box.appendChild(btn);
   }
 }
+/* ---------- 手机主菜单：顶部标题栏 + 分页（关卡 / 配置 / 联机 / 说明） ---------- */
+let menuTab = 'map';
+function setupTouchMenu() {
+  const mi = document.querySelector('#menu .menuIn');
+  if (!mi || mi.dataset.touch) return;
+  mi.dataset.touch = '1';
+  const kids = [...mi.children];
+  const tabOf = el => {
+    if (el.querySelector && el.querySelector('#mapCards')) return 'map';
+    if (el.classList.contains('selRow') || (el.querySelector && (el.querySelector('#mutChips') || el.querySelector('#clsSeg') || el.querySelector('[data-diff]')))) return 'cfg';
+    if (el.id === 'mpBox') return 'mp';
+    if (el.classList.contains('pitch') || el.id === 'touchHelp' || el.classList.contains('row2')) return 'info';
+    if (el.classList.contains('keys') || el.querySelector && el.querySelector('h1')) return 'none';
+    if (el.id === 'menuErr' || el.id === 'touchNote') return '';
+    return 'info';
+  };
+  for (const el of kids) { const t = tabOf(el); if (t) el.dataset.tab = t; }
+  const head = document.createElement('div'); head.className = 'mHead';
+  head.innerHTML = '<b class="mBrand">晶核<em>守卫</em></b><nav class="mTabs" role="tablist"></nav><span class="mSum" id="mSum"></span>';
+  const nav = head.querySelector('nav');
+  for (const [id, label] of [['map', '关卡'], ['cfg', '配置'], ['mp', '联机'], ['info', '说明']]) {
+    const b = document.createElement('button'); b.type = 'button'; b.dataset.mtab = id; b.textContent = label; b.setAttribute('role', 'tab');
+    b.addEventListener('click', () => setMenuTab(id));
+    nav.appendChild(b);
+  }
+  head.appendChild($('startBtn'));
+  mi.prepend(head);
+  setMenuTab(menuTab);
+}
+function setMenuTab(id) {
+  menuTab = id;
+  const mi = document.querySelector('#menu .menuIn');
+  if (!mi) return;
+  mi.dataset.cur = id;
+  for (const b of mi.querySelectorAll('[data-mtab]')) b.setAttribute('aria-selected', b.dataset.mtab === id ? 'true' : 'false');
+  $('menu').scrollTop = 0;
+  updateMenuSum();
+}
+function updateMenuSum() {
+  const el = $('mSum'); if (!el) return;
+  const room = MP.role !== 'solo' ? ` · 房间 ${MP.code.toUpperCase()}` : '';
+  el.textContent = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日' : ''} · ${CLS[selCls].name}${room}`;
+}
 function refreshSel() {
+  if (TOUCH) setTimeout(updateMenuSum, 0);
   const hc = MP.role === 'client' && MP.hostPres && MP.hostPres.cfg;
   const prevMap = selMap;
   if (hc && MAPS[hc.m] && DIFFS[hc.d]) {
@@ -3495,7 +3553,7 @@ function renderMP() {
   if (on && !inRoom) {
     const ads = MP.lobbyPeers.filter(p => !p.isMe && p.presence && p.presence.ad && p.presence.ad.c).map(p => ({ peer: p.peer, ad: p.presence.ad }));
     const list = $('roomList');
-    const key = JSON.stringify(ads.map(a => a.ad)) + MP.joining;
+    const key = JSON.stringify(ads.map(a => a.ad)) + MP.joining + '|' + (MP.pwFor || '');
     if (list.dataset.key !== key) {
       list.dataset.key = key;
       list.innerHTML = '';
@@ -3503,7 +3561,7 @@ function renderMP() {
       for (const { peer, ad } of ads.slice(0, 8)) {
         const row = document.createElement('div'); row.className = 'roomRow';
         const info = document.createElement('div');
-        const nm = document.createElement('b'); nm.textContent = `${cleanName(ad.n) || '玩家'} 的房间`;
+        const nm = document.createElement('b'); nm.textContent = `${ad.lk ? '🔒 ' : ''}${cleanName(ad.n) || '玩家'} 的房间`;
         const sub = document.createElement('span');
         const ver = ad.v === NP.VERSION;
         sub.textContent = `${ad.mo === 'daily' ? '每日挑战 · ' : ''}${MAPN(ad.m)} · ${DIFFS[ad.d] ? DIFFS[ad.d].name : ''}${ad.e ? ' · 无尽' : ''}${ad.mu ? ` · 突变×${ad.mu | 0}` : ''} · ${ad.p | 0}/4 人 · ${ad.ph === 'play' ? (ad.w ? `战斗中 · 第 ${ad.w | 0} 波` : '布防中') : '等待开始'}${ver ? '' : ' · 版本不同'}`;
@@ -3511,14 +3569,28 @@ function renderMP() {
         const b = document.createElement('button'); b.type = 'button'; b.className = 'ghostBtn small';
         b.textContent = (ad.p | 0) >= 4 ? '已满' : '加入'; b.disabled = (ad.p | 0) >= 4 || !ver || MP.joining;
         b.dataset.code = String(ad.c).replace(/[^a-z0-9]/g, '').slice(0, 8); b.dataset.peer = peer;
-        row.append(info, b); list.appendChild(row);
+        if (ad.lk) b.dataset.lock = '1';
+        row.append(info, b);
+        if (ad.lk && MP.pwFor === b.dataset.code) {
+          // 有密码的房间：在这一行展开密码输入
+          row.classList.add('pwOpen');
+          const pr = document.createElement('div'); pr.className = 'pwRow';
+          const inp = document.createElement('input'); inp.maxLength = 16; inp.placeholder = '输入房间密码'; inp.autocomplete = 'off'; inp.spellcheck = false; inp.className = 'pwIn';
+          const go = document.createElement('button'); go.type = 'button'; go.className = 'ghostBtn small'; go.textContent = '进入';
+          go.dataset.pwgo = b.dataset.code; go.dataset.peer = peer;
+          inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') go.click(); });
+          pr.append(inp, go); row.appendChild(pr);
+          b.hidden = true;
+          setTimeout(() => inp.focus(), 0);
+        }
+        list.appendChild(row);
       }
     }
   }
   // 房间内：玩家列表
   if (inRoom) {
     const host = MP.role === 'host';
-    $('roomTitle').textContent = `房间 ${MP.code.toUpperCase()}`;
+    $('roomTitle').textContent = `${(host ? MP.pk : MP.hostPres && MP.hostPres.lk) ? '🔒 ' : ''}房间 ${MP.code.toUpperCase()}`;
     $('roomRole').textContent = host ? '你是房主' : '队友';
     let roster = host ? [myPeer(), ...MP.roster] : (MP.hostPres && Array.isArray(MP.hostPres.roster) ? MP.hostPres.roster : []);
     roster = roster.filter(Boolean).slice(0, 4);
@@ -3572,9 +3644,17 @@ function bindUI() {
   $('nick').value = MP.name;
   $('nick').addEventListener('change', () => { setNick($('nick').value); $('nick').value = MP.name; });
   $('nick').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') e.target.blur(); });
+  $('roomPw').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') e.target.blur(); });
   $('hostBtn').addEventListener('click', () => { setNick($('nick').value); createRoom(); });
   $('leaveBtn').addEventListener('click', () => { leaveRoom(); });
-  $('roomList').addEventListener('click', e => { const b = e.target.closest('button[data-code]'); if (b) { setNick($('nick').value); joinRoom(b.dataset.code, b.dataset.peer); } });
+  $('roomList').addEventListener('click', e => {
+    const go = e.target.closest('button[data-pwgo]');
+    if (go) { const inp = go.parentNode.querySelector('input'); setNick($('nick').value); joinRoom(go.dataset.pwgo, go.dataset.peer, inp ? inp.value : ''); return; }
+    const b = e.target.closest('button[data-code]');
+    if (!b) return;
+    if (b.dataset.lock) { MP.pwFor = b.dataset.code; renderMP(); return; }
+    setNick($('nick').value); joinRoom(b.dataset.code, b.dataset.peer);
+  });
   initRoom();
   const fovR = $('fovR'), bloomBtn = $('bloomBtn');
   fovR.value = settings.fov; setText('fovV', settings.fov + '°');
@@ -3597,6 +3677,7 @@ function bindUI() {
   $('srvIn').addEventListener('blur', e => { delete e.target.dataset.edit; });
   document.querySelectorAll('#qchat li').forEach((li, i) => li.addEventListener('pointerdown', e => { e.preventDefault(); if (quickOpen) sendQuick(i); }));
   initTouch();
+  if (TOUCH) { setupTouchMenu(); for (const el of document.querySelectorAll('[data-cls], [data-diff], [data-mode]')) el.addEventListener('click', () => setTimeout(updateMenuSum, 0)); }
   buildHelp();
 }
 /* ============================================================

@@ -17,7 +17,7 @@ src = open(os.path.join(ROOT, '../dist/晶核守卫.html'), encoding='utf-8').re
 src = re.sub(r'<link[^>]+fonts\.(googleapis|gstatic)[^>]*>\n?', '', src)
 html = ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">'
-        '<script>window.__APK = true;</script></head><body>' + src + '</body></html>')
+        '<script>window.__APK = true; window.__RELAY_DEFAULT = ' + repr(os.environ.get('JHSW_SERVER', 'wss://jhsw-game.xialuoxi.com')) + ';</script></head><body>' + src + '</body></html>')
 os.makedirs(os.path.join(P, 'assets'), exist_ok=True)
 open(os.path.join(P, 'assets/index.html'), 'w', encoding='utf-8').write(html)
 # 2) 资源编译 + 链接

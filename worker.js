@@ -3,7 +3,7 @@
  * 使用 WebSocket 休眠 API：房间里没人说话时不计算时长，免费额度足够日常小队游玩。
  */
 import { DurableObject } from 'cloudflare:workers';
-import { RoomCore, validPeer, validRoom } from './room-core.js';
+import { RoomCore, validPeer, validRoom, validPw } from './room-core.js';
 
 export default {
   async fetch(req, env) {
@@ -11,7 +11,7 @@ export default {
     if (url.pathname === '/ws') {
       if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') return new Response('需要 WebSocket', { status: 426 });
       const room = url.searchParams.get('room') || 'lobby', peer = url.searchParams.get('peer');
-      if (!validRoom(room) || !validPeer(peer)) return new Response('参数错误', { status: 400 });
+      if (!validRoom(room) || !validPeer(peer) || !validPw(url.searchParams.get('pw'))) return new Response('参数错误', { status: 400 });
       return env.ROOMS.get(env.ROOMS.idFromName(room)).fetch(req);
     }
     if (url.pathname === '/health') return new Response('ok');
@@ -52,7 +52,7 @@ export class Room extends DurableObject {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
-    this.core.open(server, url.searchParams.get('peer'));
+    this.core.open(server, url.searchParams.get('peer'), url.searchParams.get('pw') || '');
     return new Response(null, { status: 101, webSocket: client });
   }
   async webSocketMessage(ws, msg) { this.core.message(ws, msg); }

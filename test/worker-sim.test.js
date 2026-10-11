@@ -66,3 +66,17 @@ const extra = []; for (let i = 0; i < 7; i++) extra.push(await connect('jhsw-ab1
 const live = accepted.filter(w => w.readyState === 1);
 ok(extra[6].readyState === 3 && extra[5].readyState === 1 && extra[6].inbox.some(m => m.code === 'full'), 'room full rejects 9th');
 console.log(fails ? fails + ' 项失败' : 'worker 模拟测试全部通过', '| live sockets', live.length);
+// 8) 房间密码（新房间 = 新的 Durable Object）
+accepted.length = 0; DO = new Room(ctx, {});
+const P1 = await DO.fetch({ url: 'https://x/ws?room=jhsw-pw01&peer=pppppp11&pw=abc123' }).then(r => r.webSocket);
+const P2 = await DO.fetch({ url: 'https://x/ws?room=jhsw-pw01&peer=pppppp22&pw=wrong1' }).then(r => r.webSocket);
+const P3 = await DO.fetch({ url: 'https://x/ws?room=jhsw-pw01&peer=pppppp33&pw=abc123' }).then(r => r.webSocket);
+const P4 = await DO.fetch({ url: 'https://x/ws?room=jhsw-pw01&peer=pppppp44' }).then(r => r.webSocket);
+await flush();
+ok(P2.readyState === 3 && P2.inbox.some(m => m.code === 'bad_password'), 'wrong password rejected');
+ok(P3.readyState === 1 && P3.inbox[0].t === 'hello', 'right password accepted');
+ok(P4.readyState === 3, 'missing password rejected');
+DO = new Room(ctx, {});   // 休眠唤醒后密码仍然有效
+const P5 = await DO.fetch({ url: 'https://x/ws?room=jhsw-pw01&peer=pppppp55&pw=nope99' }).then(r => r.webSocket); await flush();
+ok(P5.readyState === 3, 'password survives hibernation');
+console.log(fails ? fails + ' 项失败' : '密码测试通过');

@@ -289,6 +289,10 @@ h3 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: .2em; color: 
 .roomList { display: grid; gap: 6px; margin-top: 8px; }
 .roomRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px; background: rgba(255, 255, 255, .03); border-left: 2px solid var(--gold); }
 .roomRow div { display: grid; min-width: 0; }
+.roomRow { flex-wrap: wrap; }
+.roomRow .pwRow { display: flex; gap: 8px; width: 100%; }
+.pwRow input { flex: 1; min-width: 0; padding: 7px 10px; font: inherit; color: var(--ink); background: rgba(255, 255, 255, .04); border: 1px solid var(--line); user-select: text; -webkit-user-select: text; }
+.pwRow input:focus { outline: none; border-color: var(--crys); }
 .roomRow b { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .roomRow span { font-size: 12px; color: var(--dim); }
 .roster { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
@@ -410,6 +414,31 @@ body.touch .keys { display: none; }
 body.touch .menuIn { gap: 14px; padding-top: 16px; }
 body.touch h1 { font-size: 48px; }
 body.touch .pitch { font-size: 13px; }
+/* 手机主菜单 */
+.mHead { display: none; }
+body.touch #menu { background: linear-gradient(180deg, rgba(4, 7, 11, .93), rgba(4, 7, 11, .86)); }
+body.touch .menuIn { width: 100%; max-width: none; margin: 0; min-height: 100%; padding: 0 calc(12px + env(safe-area-inset-right, 0px)) 16px calc(12px + env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; gap: 10px 16px; }
+body.touch .menuIn > * { grid-column: 1 / -1; }
+body.touch .menuIn[data-cur="cfg"] > [data-tab="cfg"] { grid-column: auto; }
+body.touch .menuIn > [data-tab]:not(.mHead) { display: none; }
+body.touch .menuIn[data-cur="map"] > [data-tab="map"], body.touch .menuIn[data-cur="cfg"] > [data-tab="cfg"], body.touch .menuIn[data-cur="mp"] > [data-tab="mp"], body.touch .menuIn[data-cur="info"] > [data-tab="info"] { display: block; }
+body.touch .menuIn[data-cur="info"] > .row2[data-tab="info"] { display: flex; }
+body.touch .menuIn[data-cur="mp"] > #mpBox { display: grid; }
+body.touch .mHead { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 3; margin: 0 -12px; padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px; background: rgba(4, 7, 11, .96); border-bottom: 1px solid var(--line); }
+.mBrand { font-family: var(--f-disp); font-weight: 400; font-size: 22px; letter-spacing: .06em; white-space: nowrap; }
+.mBrand em { font-style: normal; color: var(--crys); }
+.mTabs { display: flex; gap: 4px; }
+.mTabs button { padding: 8px 14px; font-size: 14px; background: transparent; border: 1px solid transparent; color: var(--dim); cursor: pointer; }
+.mTabs button[aria-selected="true"] { color: var(--crys); border-color: var(--crys); background: rgba(95, 227, 255, .1); }
+.mSum { flex: 1; min-width: 0; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+body.touch .mHead #startBtn { padding: 10px 18px; font-size: 15px; letter-spacing: .2em; flex: none; }
+body.touch .mapCards { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+body.touch .mapDesc { font-size: 12px; max-width: none; }
+body.touch .seg button { min-width: 70px; padding: 7px 8px 6px; }
+body.touch .seg button b { font-size: 14px; }
+body.touch .mpBox { max-width: 640px; }
+body.touch .mpRow input { padding: 10px; }
+@media (max-width: 700px) { .mSum { display: none; } .mTabs button { padding: 8px 10px; } }
 @media (orientation: portrait) {
   body.touch #rotateNote { display: grid; position: fixed; inset: 0; z-index: 50; place-content: center; justify-items: center; gap: 8px; background: rgba(3, 6, 10, .96); font-size: 20px; color: var(--crys); letter-spacing: .1em; }
   body.touch #rotateNote small { font-size: 13px; color: var(--dim); letter-spacing: .05em; }
@@ -566,6 +595,7 @@ body.touch .pitch { font-size: 13px; }
       <div id="srvRow" class="mpRow" hidden><label for="srvIn">服务器</label><input id="srvIn" maxlength="120" autocomplete="off" spellcheck="false" placeholder="例如 jhsw-relay.名字.workers.dev"><button type="button" class="ghostBtn" id="srvBtn">连接</button></div>
       <div id="mpIdle" hidden>
         <div class="mpRow"><label for="nick">昵称</label><input id="nick" maxlength="12" autocomplete="off" spellcheck="false"><button type="button" class="ghostBtn" id="hostBtn">创建房间</button></div>
+        <div class="mpRow"><label for="roomPw">密码</label><input id="roomPw" maxlength="16" autocomplete="off" spellcheck="false" placeholder="可选：创建房间时设置，留空为公开房间"><span></span></div>
         <div id="roomList" class="roomList"></div>
       </div>
       <div id="mpRoom" hidden>

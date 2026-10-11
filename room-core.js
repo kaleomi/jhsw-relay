@@ -8,6 +8,7 @@
 export const LIMITS = { msgBytes: 16384, presBytes: 4096, roomPeers: 8, lobbyPeers: 300 };
 export const validPeer = s => typeof s === 'string' && /^[a-z0-9]{6,32}$/.test(s);
 export const validRoom = s => typeof s === 'string' && /^[a-z0-9-]{1,40}$/.test(s);
+export const validPw = s => s === null || s === undefined || (typeof s === 'string' && /^[a-z0-9]{0,32}$/.test(s));
 
 // io：{ list(), send(sock, str), close(sock, code, reason), get(sock) → {peer, pres, at} | null, set(sock, att) }
 export class RoomCore {
@@ -16,8 +17,8 @@ export class RoomCore {
   others(sock) { return this.io.list().filter(s => s !== sock && this.live(s)); }
   peersJSON() { return this.io.list().map(s => this.live(s)).filter(Boolean).map(a => ({ peer: a.peer, presence: a.pres, at: a.at })); }
   bcast(obj, except) { const str = JSON.stringify(obj); for (const s of this.others(except)) this.io.send(s, str); }
-  // 新连接：返回 false 表示拒绝
-  open(sock, peer) {
+  // 新连接：返回 false 表示拒绝。pw：房间密码摘要（第一个进入房间的人决定，之后的人必须一致）
+  open(sock, peer, pw) {
     const lobby = this.name === 'lobby';
     // 同一玩家重连：踢掉旧连接（不广播离开）
     for (const s of this.io.list()) {
@@ -30,7 +31,19 @@ export class RoomCore {
       this.io.close(sock, 4003, 'full');
       return false;
     }
-    const att = { peer, pres: {}, at: Date.now() };
+    let rpw = pw || '';
+    if (!lobby) {
+      const prev = this.others(sock).map(s => this.io.get(s).rpw).find(x => typeof x === 'string');
+      if (prev !== undefined) {
+        if (prev && prev !== (pw || '')) {
+          this.io.send(sock, JSON.stringify({ t: 'err', code: 'bad_password' }));
+          this.io.close(sock, 4004, 'bad_password');
+          return false;
+        }
+        rpw = prev;
+      }
+    }
+    const att = { peer, pres: {}, at: Date.now(), rpw: lobby ? '' : rpw };
     this.io.set(sock, att);
     this.io.send(sock, JSON.stringify({ t: 'hello', me: peer, room: this.name, peers: this.peersJSON() }));
     this.bcast({ t: 'join', peer, presence: att.pres, at: att.at }, sock);

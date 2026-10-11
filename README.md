@@ -8,6 +8,8 @@
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kaleomi/jhsw-game)
 
+**正式服：<https://jhsw-game.xialuoxi.com/>**
+
 点按钮 → 登录（或免费注册）Cloudflare → 按页面提示确认即可。部署完成后会得到 `https://jhsw-relay.<你的子域>.workers.dev` 这样的网址：
 
 - 电脑 / 手机浏览器打开网址就能玩，联机大厅里能看到同一服务器上的房间；
