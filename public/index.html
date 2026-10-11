@@ -76,6 +76,16 @@ button { font: inherit; color: inherit; }
 #feed .f { font-size: 12.5px; line-height: 1.45; padding: 4px 9px; background: var(--panel); border-left: 2px solid var(--line); transition: opacity .6s, transform .6s; }
 #feed .f.good { border-color: var(--ok); }
 #feed .f.bad { border-color: var(--danger); }
+#feed .f.chat { border-color: var(--crys); background: rgba(8, 18, 28, .82); color: var(--ink); }
+#feed .f.chat b { font-weight: 700; }
+#chatBox { position: absolute; left: 16px; top: calc(14px + env(safe-area-inset-top, 0px) + 6 * 27px); width: min(380px, 60vw); display: flex; align-items: stretch; pointer-events: auto; z-index: 6;
+  background: var(--panel2); border: 1px solid rgba(95, 227, 255, .45); box-shadow: 0 0 18px rgba(95, 227, 255, .18); }
+#chatBox[hidden] { display: none; }
+#chatBox .chTo { display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 700; color: #071018; background: var(--crys); }
+#chatBox input { flex: 1; min-width: 0; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--ink); background: transparent; border: 0; outline: none; }
+#chatBox button { padding: 0 12px; font: inherit; font-size: 13px; color: var(--crys); background: rgba(95, 227, 255, .08); border: 0; border-left: 1px solid var(--line); cursor: pointer; }
+.qcType { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 7px 10px; font: inherit; font-size: 13px; color: var(--crys); background: rgba(95, 227, 255, .08); border: 1px dashed rgba(95, 227, 255, .45); cursor: pointer; }
+body.touch .qcType .kb { display: none; }
 #feed .f.out { opacity: 0; transform: translateX(-12px); }
 
 #mapWrap { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; padding: 6px 6px 20px; background: var(--panel); clip-path: var(--cut); transition: transform .2s; transform-origin: top right; }
@@ -105,6 +115,35 @@ button { font: inherit; color: inherit; }
 #hitmark.kill { color: var(--danger); transform: scale(1.25); }
 #prompt { position: absolute; left: 50%; top: calc(50% + 40px); transform: translateX(-50%); font-size: 13px; padding: 5px 12px; background: var(--panel); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
 #prompt:empty { display: none; }
+/* 准星旁的陷阱信息卡（竖向） */
+#trapCard { position: absolute; left: calc(50% + 46px); top: 50%; transform: translateY(-38%); width: 184px; padding: 10px 12px 10px 14px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(14, 24, 36, .9), rgba(6, 11, 18, .86)); border: 1px solid rgba(120, 190, 225, .22); border-left: 3px solid var(--tcc, var(--crys));
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); box-shadow: inset 0 0 22px rgba(95, 227, 255, .06); font-size: 12.5px; color: var(--ink); }
+#trapCard[hidden] { display: none; }
+#trapCard .tcHead { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+#trapCard .tcHead b { font-size: 15px; letter-spacing: .5px; color: #fff; text-shadow: 0 0 10px var(--tcc, var(--crys)); white-space: nowrap; }
+#trapCard .tcHead small { font-size: 10.5px; color: var(--tcc, var(--crys)); opacity: .9; white-space: nowrap; }
+#trapCard .tcLv { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; font: 600 11px/1 ui-monospace, Menlo, Consolas, monospace; color: var(--dim); }
+#trapCard .tcLv i { width: 14px; height: 5px; background: rgba(140, 170, 190, .22); transform: skewX(-20deg); }
+#trapCard .tcLv i.on { background: var(--crys); box-shadow: 0 0 6px var(--crys); }
+#trapCard .tcBr { display: inline-block; margin: 5px 0 1px; padding: 2px 8px; font-size: 11.5px; font-weight: 700; color: #120c02; background: linear-gradient(90deg, var(--brc), #fff8); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+#trapCard hr { border: 0; height: 1px; margin: 7px 0 6px; background: linear-gradient(90deg, var(--tcc, var(--crys)), transparent); opacity: .5; }
+#trapCard .tcRow { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--dim); }
+#trapCard .tcRow kbd { min-width: 20px; height: 20px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; font: 700 11px/1 ui-monospace, Menlo, Consolas, monospace; color: var(--ink); border: 1px solid rgba(160, 210, 235, .45); border-bottom-width: 2px; border-radius: 4px; background: rgba(255, 255, 255, .06); }
+#trapCard .tcRow span { flex: 1; white-space: nowrap; }
+#trapCard .tcRow em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+#trapCard .tcRow.ok em { color: var(--gold); text-shadow: 0 0 8px rgba(255, 181, 71, .5); }
+#trapCard .tcRow.ok kbd { border-color: var(--ok); color: var(--ok); box-shadow: 0 0 8px rgba(108, 240, 164, .35); }
+#trapCard .tcRow.no em { color: var(--danger); }
+#trapCard .tcRow.max span { color: var(--gold); }
+#trapCard .tcRow.sell em { color: var(--ok); }
+#trapCard .tcHp { position: relative; height: 16px; margin-top: 7px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .1); }
+#trapCard .tcHp i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #2bb673, var(--ok)); }
+#trapCard .tcHp.mid i { background: linear-gradient(90deg, #d08a1c, var(--gold)); }
+#trapCard .tcHp.low i { background: linear-gradient(90deg, #a51f33, var(--danger)); }
+#trapCard .tcHp span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000; font-variant-numeric: tabular-nums; }
+#trapCard .tcWarn { margin-top: 6px; padding: 2px 6px; font-size: 11.5px; font-weight: 700; color: #fff; background: rgba(255, 82, 102, .35); border-left: 2px solid var(--danger); animation: tcBlink .8s infinite alternate; }
+@keyframes tcBlink { from { opacity: .55; } to { opacity: 1; } }
 #prompt.ok { color: var(--ok); }
 #prompt.bad { color: var(--danger); }
 #lockHint { position: absolute; left: 50%; top: calc(50% + 80px); transform: translateX(-50%); font-size: 14px; color: var(--crys); letter-spacing: .1em; animation: blink 1s infinite alternate; }
@@ -398,6 +437,8 @@ body.touch #mapWrap.big { transform: scale(1.35); }
 body.touch #team { left: calc(6px + env(safe-area-inset-left, 0px)); top: calc(56px + env(safe-area-inset-top, 0px)); bottom: auto; width: 130px; }
 body.touch #team .tm { font-size: 10px; padding: 2px 6px; }
 body.touch #toast { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); font-size: 12px; }
+body.touch #trapCard { left: calc(50% + 34px); width: 160px; font-size: 11.5px; padding: 8px 10px 8px 12px; }
+body.touch #trapCard .tcHead b { font-size: 13.5px; }
 body.touch #prompt { font-size: 11.5px; top: calc(50% + 30px); max-width: max(240px, calc(100vw - 500px)); white-space: normal; text-align: center; line-height: 1.45; }
 body.touch #banner { top: 30%; }
 body.touch #banner .b1 { font-size: 34px; }
@@ -410,6 +451,7 @@ body.touch .wcard .wd { font-size: 11px; }
 body.touch .shopHead span { display: none; }
 body.touch #qchat { left: 50%; transform: translate(-50%, -50%); pointer-events: auto; }
 body.touch #qchat li { padding: 6px 4px; }
+body.touch #chatBox { left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(460px, 70vw); }
 body.touch .keys { display: none; }
 body.touch .menuIn { gap: 14px; padding-top: 16px; }
 body.touch h1 { font-size: 48px; }
@@ -508,10 +550,12 @@ body.touch .mpRow input { padding: 10px; }
     </div>
   </div>
   <div id="feed"></div>
+  <div id="chatBox" hidden><span class="chTo">全队</span><input id="chatIn" type="text" maxlength="60" autocomplete="off" enterkeyhint="send" placeholder="输入消息 · Enter 发送 · Esc 取消"><button type="button" id="chatSend">发送</button></div>
   <div id="mapWrap"><canvas id="minimap" width="185" height="160"></canvas><span class="diff" id="diffTag"></span><span class="maphint">M 放大</span></div>
   <div id="cross"><i></i><i></i><i></i><i></i></div>
   <div id="hitmark"></div>
   <div id="prompt"></div>
+  <div id="trapCard" hidden></div>
   <div id="lockHint" hidden>点击画面锁定鼠标继续</div>
   <div id="banner"><div class="b1" id="bannerT"></div><div class="b2" id="bannerS"></div></div>
   <div id="toast"></div>
@@ -543,6 +587,7 @@ body.touch .mpRow input { padding: 10px; }
       <li><span class="kb">1</span>需要支援！</li><li><span class="kb">2</span>我来守这里</li><li><span class="kb">3</span>注意飞行敌人</li>
       <li><span class="kb">4</span>BOSS 来了，集火！</li><li><span class="kb">5</span>我去买枪 / 补陷阱</li><li><span class="kb">6</span>谢谢！</li>
     </ol>
+    <button type="button" id="qcType" class="qcType">✎ 输入文字…<span class="kb">Enter</span></button>
   </div>
   <div id="evo" class="pick" hidden>
     <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E / Esc 取消</span><button type="button" class="pClose" data-close="evo" aria-label="关闭">✕</button></div>
@@ -1300,6 +1345,7 @@ root.Engine = { create, perspective, viewFPS, mul };
 
 const T = 2.4;            // 网格边长（一个陷阱格）
 const WALL_H = 6.4;       // 墙高 / 天花板高度
+const PLAT_H = 0.38;      // 2×2 炮台平台抬高的高度（玩家可直接走上去）
 const FLY_Y = 3.1;        // 飞行怪高度
 const TILE = { WALL: 0, LANE: 1, FLOOR: 2, PAD: 3, BASE: 4, SPAWN: 5 };
 const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -1722,6 +1768,8 @@ class Sim {
     this.def = MAPS[mapId] || MAPS.station;
     this.W = this.def.w; this.H = this.def.h;
     this.grid = buildMap(this.def);
+    this.plat = new Set();
+    for (const [x, z] of this.def.platforms || []) for (let dz = 0; dz < 2; dz++) for (let dx = 0; dx < 2; dx++) this.plat.add((z + dz) * this.W + x + dx);
     this.lanes = Object.keys(this.def.lanes);
     this.paths = {}; this.spawnDir = {};
     for (const l of this.lanes) {
@@ -1908,7 +1956,12 @@ class Sim {
     const cx = (tr.x + 0.5) * T, cz = (tr.z + 0.5) * T;
     if (tr.kind === 'wall') { const d = DIRS[tr.dir]; return { x: cx + d[0] * T * 0.5, y: 1.5, z: cz + d[1] * T * 0.5 }; }
     if (tr.kind === 'ceil') return { x: cx, y: WALL_H, z: cz };
-    return { x: cx, y: 0, z: cz };
+    return { x: cx, y: this.plat.has(tr.z * this.W + tr.x) ? PLAT_H : 0, z: cz };
+  }
+  // 某处地面高度（炮台平台略高于地面）
+  groundAt(x, z) {
+    const tx = Math.floor(x / T), tz = Math.floor(z / T);
+    return tx >= 0 && tz >= 0 && tx < this.W && tz < this.H && this.plat.has(tz * this.W + tx) ? PLAT_H : 0;
   }
   wallLine(x, z, dir, n) {
     const d = DIRS[dir], out = [];
@@ -2457,7 +2510,7 @@ class Sim {
             tr.targets.push(cand[i].m.id);
           }
           tr.cd = def.cd; tr.fireT = s.time;
-          this.ev('trap', { kind: 'tesla', id: tr.id, x: tr.wx, y: 2.2, z: tr.wz });
+          this.ev('trap', { kind: 'tesla', id: tr.id, x: tr.wx, y: tr.wy + 2.2, z: tr.wz });
           break;
         }
         case 'sentry': {
@@ -2490,10 +2543,10 @@ class Sim {
           tr.aimYaw = Math.atan2(-(tgt.x - tr.wx), -(tgt.z - tr.wz));
           tgts.forEach((t1, i) => {
             const dx = t1.x - tr.wx, dz = t1.z - tr.wz, L = Math.hypot(dx, dz) || 1;
-            s.proj.push({ id: s.nextId++, x: tr.wx, y: 2.2, z: tr.wz, vx: dx / L * 6 + (i - 1) * 2, vy: 14, vz: dz / L * 6 + (i - 1) * 2, tgt: t1.id, dmg: def.dmg[lv - 1] * (br === 'a' ? 0.7 : br === 'b' && !MON[t1.type].fly ? 0.8 : 1), splash: def.splash, life: 4, ground: br === 'b' });
+            s.proj.push({ id: s.nextId++, x: tr.wx, y: tr.wy + 2.2, z: tr.wz, vx: dx / L * 6 + (i - 1) * 2, vy: 14, vz: dz / L * 6 + (i - 1) * 2, tgt: t1.id, dmg: def.dmg[lv - 1] * (br === 'a' ? 0.7 : br === 'b' && !MON[t1.type].fly ? 0.8 : 1), splash: def.splash, life: 4, ground: br === 'b' });
           });
           tr.cd = def.cd; tr.fireT = s.time;
-          this.ev('trap', { kind: 'aa', id: tr.id, x: tr.wx, y: 2.2, z: tr.wz });
+          this.ev('trap', { kind: 'aa', id: tr.id, x: tr.wx, y: tr.wy + 2.2, z: tr.wz });
           break;
         }
         case 'laser':
@@ -3016,9 +3069,12 @@ class Sim {
     p.vx += (wx * spd - p.vx) * acc; p.vz += (wz * spd - p.vz) * acc;
     if (inp.jump && p.ground) { p.vy = 7.4; p.ground = false; this.ev('jump', { pid: p.id }); }
     p.vy -= 22 * dt; p.y += p.vy * dt;
-    if (p.y <= 0) { p.y = 0; p.vy = 0; p.ground = true; }
     p.x += p.vx * dt; this._collide(p);
     p.z += p.vz * dt; this._collide(p);
+    // 地面：平台台阶可以直接走上去；走下台阶时贴地，不会“掉下去”
+    const g = this.groundAt(p.x, p.z);
+    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < PLAT_H + 0.05)) { p.y = g; p.vy = 0; p.ground = true; }
+    else p.ground = false;
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {
@@ -3126,7 +3182,7 @@ class Sim {
 
 }
 
-const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
+const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.TD = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -3709,7 +3765,7 @@ window.TD_ASSETS = {"robot":{"n":7214,"ni":9711,"nb":36,"nf":213,"i32":false,"po
 (function () {
 'use strict';
 const TD = window.TD;
-const { Sim, T, WALL_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, WEAPONS, WPN, SKILL, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec } = TD;
+const { Sim, T, WALL_H, PLAT_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, WEAPONS, WPN, SKILL, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec } = TD;
 const $ = id => document.getElementById(id);
 const canvas = $('view');
 const STEP = 1 / 60;
@@ -3769,7 +3825,7 @@ const KEY_ACTIONS = [
   ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
   ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
 ];
-const KEY_FIXED = new Set(['Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
 let keyInv = new Map(), keyAway = new Set();
 function rebuildKeys() {
   keyInv = new Map(); keyAway = new Set();
@@ -3985,7 +4041,7 @@ function hostPeers(ch) {
 function hostPresence() {
   if (MP.role !== 'host' || !MP.game) return;
   const gc = gameCfg();
-  const pr = { v: NP.VERSION, host: 1, n: MP.name, code: MP.code, pg: MP.ping || null, qc: MP.qc || null, cfg: { m: gc.map, d: gc.diff, e: gc.endless ? 1 : 0, mo: selMode, mut: gc.mut, dl: gc.daily || '' }, ph: MP.gid && mode !== 'menu' ? 'play' : 'lobby', gid: MP.gid, roster: [myPeer(), ...MP.roster], full: MP.full, deny: MP.deny || [], lk: MP.pk ? 1 : 0 };
+  const pr = { v: NP.VERSION, host: 1, n: MP.name, code: MP.code, pg: MP.ping || null, qc: MP.qc || null, ch: MP.ch || null, cfg: { m: gc.map, d: gc.diff, e: gc.endless ? 1 : 0, mo: selMode, mut: gc.mut, dl: gc.daily || '' }, ph: MP.gid && mode !== 'menu' ? 'play' : 'lobby', gid: MP.gid, roster: [myPeer(), ...MP.roster], full: MP.full, deny: MP.deny || [], lk: MP.pk ? 1 : 0 };
   const key = JSON.stringify(pr);
   if (key === MP.sentHost) return;
   MP.sentHost = key;
@@ -4156,7 +4212,7 @@ function clientPresence(force) {
   const lp = sim && MP.gid && sim.s.players[PID];
   const pr = { v: NP.VERSION, n: MP.name, gid: MP.gid, tal: PROG.personal(), cls: selCls, c: MP.pending.slice(-16).map(x => [x.seq, x.cmd]) };
   if (MP.pk) pr.pk = MP.pk;
-  if (MP.ping) pr.pg = MP.ping; if (MP.qc) pr.qc = MP.qc;
+  if (MP.ping) pr.pg = MP.ping; if (MP.qc) pr.qc = MP.qc; if (MP.ch) pr.ch = MP.ch;
   if (lp) {
     const firing = lp.input.fire && !lp.dead && lp.ammo > 0 && lp.reloadT <= 0;
     pr.s = [r2n(lp.x), r2n(lp.y), r2n(lp.z), r3n(lp.yaw), r3n(lp.pitch), firing ? 1 : 0, lp.life || 0, Math.max(0, WEAPONS.findIndex(w => w.id === lp.wpn))];
@@ -4433,21 +4489,31 @@ function buildStatic(S) {
       if (edge) E.push('box', cx, WALL_H / 2, cz, 0, T, WALL_H, T, WALLC);
     }
     if (t === TILE.PAD) {
-      E.push('ring', cx, 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
-      E.push('box', cx, 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
+      const py = S.plat.has(z * S.W + x) ? PLAT_H : 0;
+      E.push('ring', cx, py + 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
+      E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
   }
   // 2×2 炮台平台：金属甲板 + 警示边框 + 四角灯柱，中间十字线分出 4 个炮台位
   for (const [px0, pz0] of S.def.platforms || []) {
     const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T;
-    E.push('box', cx, 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.2, 0.21, 0.24, 1, 0, 0, 2));
-    const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35);
-    for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, 0.08, ez, 0, sx, 0.05, sz, AMB);
-    E.push('box', cx, 0.07, cz, 0, L * 0.9, 0.02, 0.07, DIM);
-    E.push('box', cx, 0.07, cz, 0, 0.07, 0.02, L * 0.9, DIM);
+    const H = PLAT_H;
+    // 抬高的甲板：深色底座 + 金属台面 + 侧面警示灯带
+    E.push('box', cx, H / 2 - 0.02, cz, 0, L * 1.0, H - 0.04, L * 1.0, col(0.14, 0.15, 0.17, 1, 0, 0, 2));
+    E.push('box', cx, H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.22, 0.23, 0.26, 1, 0, 0, 2));
+    const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35), SIDE = col(1, 0.55, 0.12, 1, 1.1);
+    for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, H + 0.02, ez, 0, sx, 0.05, sz, AMB);
+    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.005, L * 0.92, 0.02], [cx, z0 + L + 0.005, L * 0.92, 0.02], [x0 - 0.005, cz, 0.02, L * 0.92], [x0 + L + 0.005, cz, 0.02, L * 0.92]]) E.push('box', ex, H * 0.5, ez, 0, sx, 0.06, sz, SIDE);
+    // 斜面台阶（四边中间）
+    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.25, 1.1, 0.5], [cx, z0 + L + 0.25, 1.1, 0.5], [x0 - 0.25, cz, 0.5, 1.1], [x0 + L + 0.25, cz, 0.5, 1.1]]) {
+      E.push('box', ex, H * 0.25, ez, 0, sx, H * 0.5, sz, col(0.2, 0.21, 0.24, 1, 0, 0, 2));
+      E.push('box', ex, H * 0.5 + 0.005, ez, 0, sx * (sx > 1 ? 0.9 : 0.3), 0.01, sz * (sz > 1 ? 0.9 : 0.3), DIM);
+    }
+    E.push('box', cx, H + 0.01, cz, 0, L * 0.9, 0.02, 0.07, DIM);
+    E.push('box', cx, H + 0.01, cz, 0, 0.07, 0.02, L * 0.9, DIM);
     for (const [kx, kz] of [[x0 + 0.25, z0 + 0.25], [x0 + L - 0.25, z0 + 0.25], [x0 + 0.25, z0 + L - 0.25], [x0 + L - 0.25, z0 + L - 0.25]]) {
-      E.push('cyl', kx, 0.7, kz, 0, 0.16, 1.4, 0.16, col(0.3, 0.31, 0.34));
-      E.push('cyl', kx, 1.45, kz, 0, 0.22, 0.12, 0.22, col(1, 0.62, 0.15, 1, 1));
+      E.push('cyl', kx, H + 0.7, kz, 0, 0.16, 1.4, 0.16, col(0.3, 0.31, 0.34));
+      E.push('cyl', kx, H + 1.45, kz, 0, 0.22, 0.12, 0.22, col(1, 0.62, 0.15, 1, 1));
     }
   }
   // 路线箭头（让玩家看清怪物行进方向）
@@ -5057,8 +5123,17 @@ function drawTrap(S, tr, ghost) {
         const len = tr.line.length * T - 0.1, d = DIRS[tr.dir];
         const ex = tr.wx - d[0] * len, ez = tr.wz - d[1] * len;
         const fl = 0.75 + Math.random() * 0.25;
+        if (TBR === 'a') {   // 过载：白热内芯 + 更粗的红色外焰
+          E.pushBeam('box', tr.wx - d[0] * 0.2, 1.5, tr.wz - d[1] * 0.2, ex, 1.5, ez, 0.1, 0.1, c(1, 0.9 * fl, 0.85, 1, 1, 0, true));
+          E.pushBeam('box', tr.wx - d[0] * 0.2, 1.5, tr.wz - d[1] * 0.2, ex, 1.5, ez, 0.5, 0.5, c(1, 0.15, 0.2, 0.28 * fl, 1, 0, true));
+        } else if (TBR === 'b') {   // 棱镜：青紫双色光束
+          E.pushBeam('box', tr.wx - d[0] * 0.2, 1.5, tr.wz - d[1] * 0.2, ex, 1.5, ez, 0.07, 0.07, c(0.75, 0.5 * fl, 1, 1, 1, 0, true));
+          E.pushBeam('box', tr.wx - d[0] * 0.2, 1.62, tr.wz - d[1] * 0.2, ex, 1.62, ez, 0.04, 0.04, c(0.3, 1, 1, 0.9, 1, 0, true));
+          E.pushBeam('box', tr.wx - d[0] * 0.2, 1.5, tr.wz - d[1] * 0.2, ex, 1.5, ez, 0.36, 0.36, c(0.6, 0.35, 1, 0.2 * fl, 1, 0, true));
+        } else {
         E.pushBeam('box', tr.wx - d[0] * 0.2, 1.5, tr.wz - d[1] * 0.2, ex, 1.5, ez, 0.06, 0.06, c(1, 0.35 * fl, 0.35, 1, 1, 0, true));
         E.pushBeam('box', tr.wx - d[0] * 0.2, 1.5, tr.wz - d[1] * 0.2, ex, 1.5, ez, 0.3, 0.3, c(1, 0.2, 0.25, 0.22 * fl, 1, 0, true));
+        }
         E.pushBeam('box', tr.wx - d[0] * 0.2, 3.1, tr.wz - d[1] * 0.2, ex, 3.1, ez, 0.04, 0.04, c(1, 0.35, 0.35, 0.6, 1, 0, true));
       }
       lvPips(lv, 0, -0.45, 0.02);
@@ -5091,6 +5166,7 @@ function drawTrap(S, tr, ghost) {
       break;
     }
   }
+  if (TBR && !ghost) evoFx(S, tr, since);
   // 放在通道上的炮台：底部加一圈路障，并显示耐久
   if (tr.lane || (ghost && tr.laneGhost)) {
     TX.x = tr.wx; TX.y = tr.wy; TX.z = tr.wz; TX.yaw = 0; TX.cy = 1; TX.sy = 0;
@@ -5104,6 +5180,160 @@ function drawTrap(S, tr, ghost) {
     E.push('box', tr.wx + cam.rx * off - cam.fx * 0.02, by, tr.wz + cam.rz * off - cam.fz * 0.02, cam.rYaw, w * hpF, 0.09, 0.03, c(1, 0.7, 0.25, 1, 1, 0, false, true));
   }
   GHOST = null; TDIS = 0;
+}
+
+/* ---------- 陷阱进阶外观：每个分支一套专属造型 + 底座光环 ---------- */
+const EVO_COL = {
+  slow: { a: [0.75, 0.95, 1], b: [0.3, 0.85, 1] }, spike: { a: [0.35, 1, 0.35], b: [1, 0.7, 0.25] },
+  push: { a: [1, 0.45, 0.2], b: [0.3, 0.9, 1] }, tesla: { a: [0.7, 0.55, 1], b: [1, 0.85, 0.25] },
+  sentry: { a: [1, 0.6, 0.2], b: [1, 0.25, 0.3] }, aa: { a: [1, 0.8, 0.3], b: [1, 0.45, 0.15] },
+  laser: { a: [1, 0.9, 0.8], b: [0.7, 0.5, 1] }, flame: { a: [1, 0.55, 0.12], b: [0.35, 0.6, 1] },
+  crusher: { a: [1, 0.75, 0.25], b: [0.3, 0.95, 1] },
+};
+function evoFx(S, tr, since) {
+  const br = TBR, col = (EVO_COL[tr.type] || {})[br] || [1, 0.8, 0.3], t = timeNow + tr.x * 0.37 + tr.z * 0.61;
+  const C = (k, a) => c(col[0] * k, col[1] * k, col[2] * k, a === undefined ? 1 : a, TDIS ? 0.15 : 1);
+  const G = a => c(col[0], col[1], col[2], a, TDIS ? 0.1 : 1, 0, true);
+  TX.x = tr.wx; TX.y = tr.wy; TX.z = tr.wz; TX.yaw = 0;
+  if (tr.kind === 'wall') TX.yaw = Math.atan2(DIRS[tr.dir][0], DIRS[tr.dir][1]);
+  TX.cy = Math.cos(TX.yaw); TX.sy = Math.sin(TX.yaw);
+  const cat = TRAP[tr.type].cat, spark = (x, y, z, n, o) => { if (!TDIS && Math.random() < n) particle(Object.assign({ x, y, z, vx: rnd(-0.6, 0.6), vy: rnd(0.8, 2), vz: rnd(-0.6, 0.6), life: rnd(0.5, 1), s0: 0.07, s1: 0, c: col, grav: -0.5, drag: 0.5 }, o || {})); };
+  // 底座光环（地面 / 炮台类）
+  if (cat === 'floor' || cat === 'pad') {
+    const r = T * (tr.type === 'tesla' || cat === 'pad' ? 0.5 : 0.47);
+    Q('ring', 0, 0.035, 0, r, 1, r, G(0.75), t * 0.6);
+    for (let i = 0; i < 4; i++) { const a = t * 0.6 + i * Math.PI / 2; Q('box', Math.cos(a) * r, 0.05, Math.sin(a) * r, 0.16, 0.04, 0.16, C(1), -a); }
+  }
+  switch (tr.type + br) {
+    case 'slowa': {   // 冰封力场：四角升起冰晶，寒雾
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        Q('oct', ox * T * 0.33, 0.55 + Math.sin(t * 2 + ox + oz) * 0.05, oz * T * 0.33, 0.22, 0.75, 0.22, c(0.75, 0.95, 1, 0.85, TDIS ? 0.1 : 0.8), t * 0.5);
+        Q('oct', ox * T * 0.2, 0.32, oz * T * 0.2, 0.12, 0.38, 0.12, c(0.85, 1, 1, 0.9, TDIS ? 0.1 : 0.9), -t);
+      }
+      Q('disc', 0, 0.13, 0, T * 0.8, 1, T * 0.8, G(0.12));
+      spark(TX.x + rnd(-1, 1), 0.3, TX.z + rnd(-1, 1), 0.3, { vy: rnd(0.2, 0.6), s0: 0.18, s1: 0.4, c: [0.8, 0.95, 1], life: 1.2, a0: 0.25 });
+      break;
+    }
+    case 'slowb': {   // 迟滞矩阵：投射到周围 3×3 格的网格与立柱
+      const R = T * 1.5;
+      for (let i = -1; i <= 2; i++) { const o = (i - 0.5) * T; Q('box', o, 0.03, 0, 0.04, 0.01, R * 2, G(0.5)); Q('box', 0, 0.03, o, R * 2, 0.01, 0.04, G(0.5)); }
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        Q('cyl', ox * R, 0.45, oz * R, 0.14, 0.9, 0.14, tc(0.25, 0.27, 0.3));
+        Q('sphere', ox * R, 0.95, oz * R, 0.2, 0.2, 0.2, C(1));
+      }
+      Q('ring', 0, 0.6 + Math.sin(t * 2) * 0.25, 0, R, 1, R, G(0.35), t);
+      break;
+    }
+    case 'spikea': {  // 剧毒刺：毒液池 + 冒泡
+      Q('disc', 0, 0.135, 0, T * 0.8, 1, T * 0.8, c(0.2, 0.9, 0.25, 0.35, TDIS ? 0.1 : 0.7, 0, true));
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) Q('sphere', i * T * 0.24, 0.62 + Math.sin(t * 3 + i * 2 + j) * 0.03, j * T * 0.24, 0.1, 0.1, 0.1, c(0.4, 1, 0.3, 1, TDIS ? 0.1 : 1));
+      spark(TX.x + rnd(-0.9, 0.9), 0.2, TX.z + rnd(-0.9, 0.9), 0.45, { vy: rnd(0.4, 1), s0: 0.1, s1: 0.02, c: [0.35, 1, 0.3], grav: -0.2 });
+      break;
+    }
+    case 'spikeb': {  // 穿甲刺：金属钻头 + 旋转钻环
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) { Q('ring', i * T * 0.24, 0.16, j * T * 0.24, 0.36, 1, 0.36, C(1), t * 4); Q('ring', i * T * 0.24, 0.3, j * T * 0.24, 0.26, 1, 0.26, C(0.8), -t * 4); }
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) Q('box', ox * T * 0.4, 0.2, oz * T * 0.4, 0.22, 0.16, 0.22, tc(0.75, 0.55, 0.25));
+      Q('box', 0, 0.14, 0, T * 0.9, 0.03, 0.08, C(0.9)); Q('box', 0, 0.14, 0, 0.08, 0.03, T * 0.9, C(0.9));
+      break;
+    }
+    case 'pusha': {   // 弹射器：液压活塞 + 发光箭头
+      const pd = pathDirAt(S, tr.wx, tr.wz); TX.yaw = Math.atan2(pd[0], pd[1]); TX.cy = Math.cos(TX.yaw); TX.sy = Math.sin(TX.yaw);
+      for (const sd of [-1, 1]) { Q('cyl', sd * T * 0.4, 0.35, 0, 0.22, 0.6, 0.22, tc(0.3, 0.3, 0.33)); Q('cyl', sd * T * 0.4, 0.72, 0, 0.12, 0.25 + (since < 0.4 ? 0.3 : 0), 0.12, C(1)); }
+      for (let k = 0; k < 3; k++) { const z = T * 0.3 - k * T * 0.25, a = 0.4 + 0.6 * ((t * 2 + k * 0.33) % 1); Q('box', 0.13, 0.2, z + 0.1, 0.36, 0.02, 0.07, G(a), 0.8); Q('box', -0.13, 0.2, z + 0.1, 0.36, 0.02, 0.07, G(a), -0.8); }
+      break;
+    }
+    case 'pushb': {   // 连弹板：两侧蓄能线圈快速闪烁
+      for (const sd of [-1, 1]) { Q('cyl', sd * T * 0.42, 0.3, 0, 0.2, 0.6, 0.2, tc(0.25, 0.27, 0.3)); for (let k = 0; k < 4; k++) Q('ring', sd * T * 0.42, 0.12 + k * 0.14, 0, 0.42, 1, 0.42, C(0.6 + 0.5 * Math.sin(t * 9 + k)), t * 3); }
+      Q('box', 0, 0.2, 0, T * 0.75, 0.02, 0.05, G(0.6 + 0.4 * Math.sin(t * 12)));
+      break;
+    }
+    case 'teslaa': {  // 链式闪电：三颗卫星电球 + 环绕电弧
+      for (let i = 0; i < 3; i++) {
+        const a = t * 2.2 + i * 2.094, x = Math.cos(a) * 0.95, z = Math.sin(a) * 0.95, y = 2.75 + Math.sin(t * 3 + i) * 0.2;
+        Q('sphere', x, y, z, 0.26, 0.26, 0.26, C(1));
+        if (!TDIS && Math.random() < 0.35) { const p0 = [TX.x + x, TX.y + y, TX.z + z]; E.pushBeam('box', p0[0], p0[1], p0[2], TX.x, TX.y + 2.75, TX.z, 0.03, 0.03, c(0.85, 0.75, 1, 1, 1, 0, true)); }
+      }
+      Q('ring', 0, 2.75, 0, 1.0, 1, 1.0, G(0.4), t);
+      break;
+    }
+    case 'teslab': {  // 麻痹线圈：金色粗线圈高速旋转
+      for (let i = 0; i < 4; i++) Q('ring', 0, 0.95 + i * 0.42, 0, 0.78 - i * 0.06, 1, 0.78 - i * 0.06, C(1), -t * (3 + i));
+      Q('sphere', 0, 2.75, 0, 0.82, 0.82, 0.82, c(1, 0.85, 0.3, 0.35, TDIS ? 0.1 : 1, 0, true));
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + t; Q('box', Math.cos(a) * 0.55, 3.3, Math.sin(a) * 0.55, 0.06, 0.5, 0.06, C(1), -a); }
+      break;
+    }
+    case 'sentrya': { // 双联机枪：并排第二挺枪 + 双弹链
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-0.42, 0.42]) {
+        Q('box', sd, 1.3, -0.2, 0.18, 0.24, 0.9, tc(0.2, 0.2, 0.23));
+        Q('cyl', sd, 1.3, -0.75, 0.12, 0.12, 0.12, C(since < 0.06 ? 1.4 : 0.8));
+        const bx = sd, rec = since < 0.06 ? 0.08 : 0, z0 = -0.6 + rec, z1 = -1.25 + rec;
+        E.pushBeam('cyl', TX.x + TX.cy * bx + TX.sy * z0, TX.y + 1.3, TX.z - TX.sy * bx + TX.cy * z0, TX.x + TX.cy * bx + TX.sy * z1, TX.y + 1.3, TX.z - TX.sy * bx + TX.cy * z1, 0.1, 0.1, tc(0.14, 0.14, 0.16), true);
+        if (since < 0.05) E.push('sphere', TX.x + TX.cy * bx + TX.sy * z1, TX.y + 1.3, TX.z - TX.sy * bx + TX.cy * z1, 0, 0.35, 0.35, 0.35, c(1, 0.75, 0.35, 0.9, 1, 0, true));
+        Q('box', sd * 1.25, 1.1, 0.1, 0.1, 0.3, 0.35, C(0.8));
+      }
+      break;
+    }
+    case 'sentryb': { // 侦测穿甲弹：顶部旋转雷达 + 红色扫描光
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      Q('cyl', 0, 1.75, 0.2, 0.06, 0.4, 0.06, tc(0.3, 0.3, 0.33));
+      TX.yaw = t * 2.5; TX.cy = Math.cos(TX.yaw); TX.sy = Math.sin(TX.yaw);
+      Q('box', 0, 2.0, 0.2, 0.7, 0.3, 0.05, tc(0.28, 0.28, 0.32)); Q('box', 0, 2.0, 0.17, 0.5, 0.06, 0.02, C(1));
+      TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      if (!TDIS) { const L = 6, p0 = [TX.x - TX.sy * 0.9, TX.y + 1.42, TX.z - TX.cy * 0.9]; E.pushBeam('box', p0[0], p0[1], p0[2], p0[0] - TX.sy * L, p0[1], p0[2] - TX.cy * L, 0.02, 0.02, c(1, 0.2, 0.25, 0.5, 1, 0, true)); }
+      break;
+    }
+    case 'aaa': {     // 集束导弹：两侧加挂导弹巢
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      for (const sd of [-0.78, 0.78]) {
+        QR('box', sd, 1.2, 0, 0, 0.55, 0, 0.45, 0.6, 0.9, tc(0.3, 0.3, 0.28));
+        for (let i = 0; i < 3; i++) Q('sphere', sd, 1.2 + (i - 1) * 0.16 + 0.25, -0.45 + (i - 1) * 0.05, 0.11, 0.11, 0.11, C(1));
+      }
+      break;
+    }
+    case 'aab': {     // 对地模式：下倾的对地炮管 + 火控灯
+      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+      { const z0 = -0.4, z1 = -1.2; E.pushBeam('cyl', TX.x + TX.sy * z0, TX.y + 0.95, TX.z + TX.cy * z0, TX.x + TX.sy * z1, TX.y + 0.65, TX.z + TX.cy * z1, 0.26, 0.26, tc(0.2, 0.2, 0.22), true); }
+      Q('sphere', 0, 0.62, -1.15, 0.2, 0.2, 0.2, C(0.9 + 0.3 * Math.sin(t * 6)));
+      for (const sd of [-1, 1]) Q('box', sd * 0.66, 0.4, 0, 0.06, 0.5, 1.2, C(0.8));
+      break;
+    }
+    case 'lasera': {  // 过载激光：散热鳍片 + 白热发射口
+      for (let i = -2; i <= 2; i++) Q('box', i * 0.18, 0.45, 0.1, 0.06, 0.22, 0.28, i % 2 ? tc(0.3, 0.3, 0.34) : C(0.8));
+      Q('cyl', 0, 0, -0.12, 0.42, 0.12, 0.42, C(1));
+      spark(TX.x - TX.sy * 0.3, TX.y + 0.4, TX.z - TX.cy * 0.3, 0.15, { c: [1, 0.6, 0.4], s0: 0.05 });
+      break;
+    }
+    case 'laserb': {  // 棱镜光束：发射口前旋转棱镜
+      Q('oct', 0, 0, -0.45, 0.35, 0.55, 0.35, c(0.75, 0.6, 1, 0.85, TDIS ? 0.1 : 0.9), t * 1.5);
+      Q('ring', 0, 0, -0.45, 0.6, 1, 0.6, G(0.5), t * 2);
+      break;
+    }
+    case 'flamea': {  // 凝固汽油：两侧燃料罐 + 滴落火星
+      for (const sd of [-0.55, 0.55]) { Q('cyl', sd, -0.35, 0.1, 0.3, 0.8, 0.3, tc(0.5, 0.25, 0.12)); Q('box', sd, -0.35, -0.06, 0.32, 0.06, 0.02, C(1)); }
+      spark(TX.x - TX.sy * 0.45, TX.y - 0.5, TX.z - TX.cy * 0.45, 0.25, { vy: -1, grav: 6, c: [1, 0.5, 0.1], s0: 0.06 });
+      break;
+    }
+    case 'flameb': {  // 蓝焰：蓝色引燃火苗 + 喷口光环
+      Q('sphere', 0, -0.4, -0.5, 0.26, 0.26, 0.26, c(0.4, 0.65, 1, 1, TDIS ? 0.1 : 1));
+      Q('ring', 0, -0.4, -0.3, 0.55, 1, 0.55, G(0.6), t * 3);
+      spark(TX.x - TX.sy * 0.6, TX.y - 0.4, TX.z - TX.cy * 0.6, 0.5, { vx: -TX.sy * 1.5, vz: -TX.cy * 1.5, vy: 0.4, c: [0.4, 0.65, 1], s0: 0.12, s1: 0, life: 0.35 });
+      break;
+    }
+    case 'crushera': { // 重锤：锤面加装尖刺与金色护甲
+      let yy = WALL_H - 1.45;
+      if (since < 0.1) yy = lerp(WALL_H - 1.45, 0.42, since / 0.1); else if (since < 0.45) yy = 0.42; else if (since < 1.4) yy = lerp(0.42, WALL_H - 1.45, (since - 0.45) / 0.95);
+      const ly = yy - WALL_H;
+      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) QR('cone', i * T * 0.3, ly - 0.42, j * T * 0.3, 0, Math.PI, 0, 0.22, 0.3, 0.22, tc(0.75, 0.7, 0.6));
+      for (const [ox, oz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Q('box', ox * T * 0.49, ly, oz * T * 0.49, ox ? 0.08 : T * 0.97, 0.7, oz ? 0.08 : T * 0.97, C(0.9));
+      break;
+    }
+    case 'crusherb': { // 连击锤：两侧辅助活塞 + 青色能量条
+      for (const sd of [-1, 1]) { Q('cyl', sd * T * 0.36, -0.9, 0, 0.18, 1.4, 0.18, tc(0.55, 0.57, 0.62)); Q('box', sd * T * 0.36, -1.65, 0, 0.3, 0.08, 0.3, C(0.7 + 0.3 * Math.sin(t * 10))); }
+      Q('box', 0, -0.42, 0, T * 0.92, 0.04, 0.1, C(1)); Q('box', 0, -0.42, 0, 0.1, 0.04, T * 0.92, C(1));
+      break;
+    }
+  }
 }
 
 /* ============================================================
@@ -5441,7 +5671,7 @@ function computeAim() {
     const def = TRAP[tr.type];
     const h = def.block ? 1.6 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? WALL_H - 1 : (tr.kind === 'wall' ? 1.5 : 0.3)));
     const r = def.block ? 1.0 : (def.cat === 'pad' ? 0.9 : 0.75);
-    const lx = tr.wx - ex, ly = h - ey, lz = tr.wz - ez;
+    const lx = tr.wx - ex, ly = h + (tr.kind === 'floor' ? tr.wy : 0) - ey, lz = tr.wz - ez;
     const tca = lx * dx + ly * dy + lz * dz;
     if (tca < 0 || tca > bt + 0.5) continue;
     const d2 = lx * lx + ly * ly + lz * lz - tca * tca;
@@ -5472,7 +5702,7 @@ function drawBuildOverlay() {
       const alongX = DIRS[sl.dir][1] !== 0;
       E.push('box', w.x - DIRS[sl.dir][0] * 0.03, 1.5, w.z - DIRS[sl.dir][1] * 0.03, 0, alongX ? T * 0.8 : 0.02, 2.2, alongX ? 0.02 : T * 0.8, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
     } else {
-      const yy = sl.kind === 'ceil' ? WALL_H - 0.03 : 0.03;
+      const yy = sl.kind === 'ceil' ? WALL_H - 0.03 : w.y + 0.03;
       E.push('box', w.x, yy, w.z, 0, T * 0.86, 0.01, T * 0.86, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
     }
   }
@@ -5492,7 +5722,7 @@ function drawBuildOverlay() {
         E.push('box', (aim.slot.x + dx + 0.5) * T, 0.04, (aim.slot.z + dz + 0.5) * T, 0, T * 0.9, 0.01, T * 0.9, c(gc[0], gc[1], gc[2], 0.14, 1, 0, true));
     }
     const R = def.range ? (Array.isArray(def.range) ? def.range[0] : def.range) : 0;
-    if (R) E.push('ring', w.x, 0.06, w.z, 0, R, 1, R, c(gc[0], gc[1], gc[2], 0.5, 1, 0, true));
+    if (R) E.push('ring', w.x, w.y + 0.06, w.z, 0, R, 1, R, c(gc[0], gc[1], gc[2], 0.5, 1, 0, true));
   }
 }
 
@@ -5763,7 +5993,7 @@ function handleEvents(S) {
         const tr = findTrap(e.id);
         if (tr) {
           const yaw = tr.cAim || 0, fx = -Math.sin(yaw), fz = -Math.cos(yaw);
-          tracers.push({ x1: tr.wx + fx, y1: 1.35, z1: tr.wz + fz, x2: e.x, y2: e.y, z2: e.z, t: 0, life: 0.05, c: [1, 0.75, 0.35] });
+          tracers.push({ x1: tr.wx + fx, y1: tr.wy + 1.35, z1: tr.wz + fz, x2: e.x, y2: e.y, z2: e.z, t: 0, life: 0.05, c: [1, 0.75, 0.35] });
           burst(e.x, e.y, e.z, 2, { c: [1, 0.8, 0.4], sp0: 1, sp1: 3, s0: 0.05, l0: 0.1, l1: 0.2 });
         }
         Snd.play('tshot', e.x, e.z);
@@ -5893,6 +6123,27 @@ function findTrap(id) { return trapIndex.get(id); }
  * HUD
  * ============================================================ */
 const cache = {};
+// 准星旁的竖向陷阱信息卡
+const CAT_CSS = { floor: '#4fd6c4', pad: '#ffb547', wall: '#ff6b8c', ceil: '#b58cff' };
+function trapCardHTML(tr, d, up, gold) {
+  const kb = act => TOUCH ? (act === 'KeyE' ? '▲' : '✕') : keyName(keyOf(act));
+  const lvTxt = tr.lv >= MAX_LV ? 'MAX' : 'Lv' + tr.lv;
+  let h = `<div class="tcHead"><b>${d.name}</b><small>${CAT_NAME[d.cat]}${tr.lane ? ' · 通道' : ''}</small></div>`;
+  h += `<div class="tcLv">${Array.from({ length: MAX_LV }, (_, i) => `<i class="${i < tr.lv ? 'on' : ''}"></i>`).join('')}<span style="margin-left:4px">${lvTxt}</span></div>`;
+  if (tr.br) { const ev = EVO[tr.type][tr.br]; h += `<div class="tcBr" style="--brc:${tr.br === 'a' ? '#ffc04d' : '#c08cff'}">${tr.br === 'a' ? '甲' : '乙'} · ${ev.name}</div>`; }
+  h += '<hr>';
+  if (tr.lv < MAX_LV) {
+    const okc = gold >= up ? 'ok' : 'no';
+    h += `<div class="tcRow ${okc}"><kbd>${kb('KeyE')}</kbd><span>${tr.lv === MAX_LV - 1 ? '进阶（二选一）' : '升级'}</span><em>${up}</em></div>`;
+  } else h += `<div class="tcRow max"><kbd>${kb('KeyE')}</kbd><span>★ 已满级</span><em></em></div>`;
+  h += `<div class="tcRow sell"><kbd>${kb('KeyX')}</kbd><span>拆除返还</span><em>+${sim.refundOf(tr, PID)}</em></div>`;
+  if (d.block || tr.lane) {
+    const k = Math.max(0, Math.min(1, tr.hp / tr.maxHp));
+    h += `<div class="tcHp ${k < 0.3 ? 'low' : k < 0.6 ? 'mid' : ''}"><i style="width:${(k * 100).toFixed(1)}%"></i><span>耐久 ${Math.ceil(tr.hp)} / ${tr.maxHp}</span></div>`;
+  }
+  if (tr.disT > 0) h += `<div class="tcWarn">⚡ EMP 瘫痪中 ${Math.ceil(tr.disT)} 秒</div>`;
+  return `<div style="--tcc:${CAT_CSS[d.cat] || '#5fe3ff'}">${h}</div>`;
+}
 function setText(id, v) { if (cache[id] !== v) { cache[id] = v; $(id).textContent = v; } }
 function setStyle(el, k, v) { const key = el.id + k; if (cache[key] !== v) { cache[key] = v; if (k.startsWith('--')) el.style.setProperty(k, v); else el.style[k] = v; } }
 function setClass(el, v) { const key = el.id + '.cls'; if (cache[key] !== v) { cache[key] = v; el.className = v; } }
@@ -5921,12 +6172,14 @@ function nextWaveHTML(w) {
   }).join('') + (pv.opened.length ? `<span class="nw-tip warn">新出怪口开启：${pv.opened.map(l => names[l] || l).join('、')}</span>` : '') + (W.tip ? `<span class="nw-tip">${W.tip}</span>` : '') + (isEndless && w === sim.waves.length + 1 ? '<span class="nw-tip">剧本波次已全部清除，进入无尽模式</span>' : '');
 }
 function shake(v) { cam.shake = Math.min(1.2, cam.shake + v); }
-function feed(text, cls) {
+function feed(text, cls, ms, who) {
   const el = document.createElement('div');
-  el.className = 'f ' + (cls || ''); el.textContent = text;
+  el.className = 'f ' + (cls || '');
+  if (who) { const b = document.createElement('b'); b.textContent = who.name + '：'; b.style.color = who.col; el.appendChild(b); el.appendChild(document.createTextNode(text)); }
+  else el.textContent = text;
   const box = $('feed'); box.appendChild(el);
   while (box.children.length > 6) box.removeChild(box.firstChild);
-  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 600); }, 4500);
+  setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 600); }, ms || 4500);
 }
 let bannerT = 0;
 function banner(t, s, danger, cls) {
@@ -6113,7 +6366,7 @@ function updateHUD(dt) {
     }
   }
   // 提示
-  let pr = '', prCls = '';
+  let pr = '', prCls = '', card = '';
   if (aim) {
     if (tool !== 'gun') {
       const d = TRAP[tool];
@@ -6126,8 +6379,7 @@ function updateHUD(dt) {
     if (aim.trap && (tool === 'gun' || !aim.slot || (aim.can && !aim.can.ok))) {
       const tr = aim.trap, d = TRAP[tr.type];
       const up = sim.upgradeCost(tr, PID);
-      pr = `${d.name} Lv${tr.lv}` + (tr.br ? `「${EVO[tr.type][tr.br].name}」` : '') + (tr.lv < MAX_LV - 1 ? ` · E 升级 ${up}` : tr.lv === MAX_LV - 1 ? ` · E 进阶（二选一）${up}` : ' · 已满级') + ` · X 拆除 +${sim.refundOf(tr, PID)}` + (tr.disT > 0 ? ' · EMP 瘫痪中' : '') + (d.block || tr.lane ? ` · 耐久 ${Math.ceil(tr.hp)}/${tr.maxHp}` : '');
-      prCls = tr.lv < MAX_LV && s.gold >= up ? 'ok' : '';
+      card = trapCardHTML(tr, d, up, s.gold); pr = ''; prCls = '';
     }
   }
   const di = mode === 'play' ? nearDevice() : -1;
@@ -6151,6 +6403,7 @@ function updateHUD(dt) {
   }
   if (TOUCH) pr = pr.replace('左键放置', '按「放置」放下').replace('左键放到', '按「放置」放到').replace(/\s*· 右键收起/, '');
   setText('prompt', pr); setClass($('prompt'), prCls);
+  if (cache.trapCard !== card) { cache.trapCard = card; const el = $('trapCard'), m = /^<div style="--tcc:([^"]+)">/.exec(card); if (m) el.style.setProperty('--tcc', m[1]); el.innerHTML = card; el.hidden = !card; }
   if (TOUCH) updateTouchHUD(p, lo, di);
   // 自动准备：每波清除后稍等片刻自动按 G（同一波只触发一次，按 G 取消后不再自动）
   if (s.phase === 'build') { if (!autoReady.since) autoReady.since = performance.now(); } else autoReady.since = 0;
@@ -6226,7 +6479,7 @@ document.addEventListener('pointerlockchange', () => {
 });
 /* ---------- 游戏内面板（军械库 / 科研终端 / 进阶 / 快捷消息）：打开时释放鼠标，方便点选和关闭 ---------- */
 let panelUnlock = false;
-function anyPanel() { return shopOpen || labOpen || evoTrap !== null || quickOpen; }
+function anyPanel() { return shopOpen || labOpen || evoTrap !== null || quickOpen || chatOpen; }
 function panelOpened(needMouse) {
   if (!needMouse || !locked) return;
   panelUnlock = true;
@@ -6242,6 +6495,7 @@ function closePanels() {
   if (labOpen) toggleLab(false);
   if (evoTrap !== null) closeEvo();
   if (quickOpen) toggleQuick(false);
+  if (chatOpen) closeChat();
 }
 document.addEventListener('pointerlockerror', lockFailed);
 addEventListener('mousemove', e => {
@@ -6284,6 +6538,7 @@ addEventListener('wheel', e => {
 }, { passive: true });
 addEventListener('keydown', e => {
   if (keyCapture) { e.preventDefault(); e.stopPropagation(); finishKeyCapture(e.code); return; }
+  if (e.target && e.target.matches && e.target.matches('input:not([type=range]):not([type=checkbox]), textarea')) return;   // 正在输入文字
   const code = e.isTrusted ? remapKey(e.code) : e.code;
   if (code === null) return;
   onKey(code, e);
@@ -6301,6 +6556,7 @@ function onKey(code, e) {
   if (mode === 'pause' && (code === 'Escape' || code === 'KeyP') && fallbackLook) { resumeGame(); return; }
   if (mode !== 'play') return;
   const d = code.match(/^Digit([1-9])$/);
+  if ((code === 'Enter' || code === 'NumpadEnter') && !e.repeat) { openChat(); e.preventDefault(); return; }
   if (d && quickOpen) { sendQuick(+d[1] - 1); return; }
   if (quickOpen && code === 'Escape') { toggleQuick(false); return; }
   if (d && evoTrap !== null) { if (d[1] === '1' || d[1] === '2') chooseEvo(d[1] === '1' ? 'a' : 'b'); return; }
@@ -6410,7 +6666,49 @@ function sendQuick(i) {
   feed(`你：${QUICK[i]}`, 'good'); Snd.play('ping');
   if (MP.role !== 'solo') { MP.qc = [++sigSeq, i]; if (MP.role === 'host') hostPresence(); else clientPresence(true); }
 }
-// 读取其他玩家 presence 里的标记 / 快捷消息
+/* ---------- 文字聊天：Enter 打开输入框，Enter 发送，Esc 取消 ---------- */
+let chatOpen = false, chatLast = 0;
+function cleanChat(t) { return String(t || '').replace(/[\u0000-\u001f\u007f\u200b-\u200f\u2028-\u202e]/g, '').replace(/\s+/g, ' ').trim().slice(0, 60); }
+function openChat() {
+  if (mode !== 'play') return;
+  if (shopOpen) toggleShop(false); if (labOpen) toggleLab(false); if (evoTrap !== null) closeEvo(); if (quickOpen) toggleQuick(false);
+  for (const k in keys) keys[k] = false;
+  mouse.l = mouse.r = false; mouse.any = false;
+  chatOpen = true; $('chatBox').hidden = false;
+  panelOpened(true);
+  const inp = $('chatIn'); inp.value = '';
+  setTimeout(() => { if (chatOpen) inp.focus(); }, 0);
+}
+function closeChat() {
+  if (!chatOpen) return;
+  chatOpen = false; $('chatBox').hidden = true;
+  const inp = $('chatIn'); if (document.activeElement === inp) inp.blur();
+  panelClosed();
+}
+function sendChat() {
+  const t = cleanChat($('chatIn').value);
+  closeChat();
+  if (!t) return;
+  const now = performance.now();
+  if (now - chatLast < 700) { toast('发得太快了，稍等一下', true); return; }
+  chatLast = now;
+  const p = me();
+  feed(t, 'chat', 9000, { name: '你', col: TEAM_CSS[p ? p.slot % 4 : 0] }); Snd.play('ping');
+  if (MP.role !== 'solo') { MP.ch = [++sigSeq, t]; if (MP.role === 'host') hostPresence(); else clientPresence(true); }
+}
+function initChat() {
+  const inp = $('chatIn');
+  inp.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Enter' && !e.isComposing && e.keyCode !== 229) { e.preventDefault(); sendChat(); }
+    else if (e.key === 'Escape') { e.preventDefault(); closeChat(); }
+  });
+  inp.addEventListener('keyup', e => e.stopPropagation());
+  inp.addEventListener('blur', () => setTimeout(() => { if (chatOpen && document.activeElement !== inp) closeChat(); }, 150));
+  $('chatSend').addEventListener('pointerdown', e => { e.preventDefault(); sendChat(); });
+  $('qcType').addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); openChat(); });
+}
+// 读取其他玩家 presence 里的标记 / 快捷消息 / 文字聊天
 function peerSignals(peers) {
   for (const pe of peers) {
     if (pe.isMe || pe.kind !== 'viewer') continue;
@@ -6419,10 +6717,12 @@ function peerSignals(peers) {
     const qc = Array.isArray(pr.qc) && pr.qc.length >= 2 ? pr.qc : null;
     const seen = seenSig.get(pe.peer);
     // 第一次看到这名玩家：只记录，不回放旧标记
-    if (!seen) { seenSig.set(pe.peer, { pg: pg ? pg[0] : null, qc: qc ? qc[0] : null }); continue; }
+    const ch = Array.isArray(pr.ch) && pr.ch.length >= 2 && typeof pr.ch[1] === 'string' ? pr.ch : null;
+    if (!seen) { seenSig.set(pe.peer, { pg: pg ? pg[0] : null, qc: qc ? qc[0] : null, ch: ch ? ch[0] : null }); continue; }
     const q = sim && sim.s.players[pe.peer], slot = q ? q.slot : 1, name = (q && q.name) || cleanName(pr.n) || '队友';
     if (pg && pg[0] !== seen.pg) { seen.pg = pg[0]; if (sim && mode !== 'menu') addPingMark(pg[1] ? 1 : 0, pg[2], pg[3], pg[4], pg[5] | 0, slot, name); }
     if (qc && qc[0] !== seen.qc) { seen.qc = qc[0]; if (QUICK[qc[1] | 0] && mode !== 'menu') { feed(`${name}：${QUICK[qc[1] | 0]}`, 'good'); Snd.play('ping'); } }
+    if (ch && ch[0] !== seen.ch) { seen.ch = ch[0]; const t = cleanChat(ch[1]); if (t && mode !== 'menu') { feed(t, 'chat', 9000, { name, col: TEAM_CSS[slot % 4] }); Snd.play('ping'); } }
   }
 }
 function drawPings(dt) {
@@ -6806,7 +7106,7 @@ function newGame(state, prebuilt) {
   if (!state && !prebuilt) sim.addPlayer(PID, MP.name || '你', false, PROG.personal(), selCls);
   sim.drainEvents();
   acc = 0; clearTags(); for (const k in teamVis) delete teamVis[k];
-  for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null;
+  for (const k of pingMarks) if (k.el) k.el.remove(); pingMarks.length = 0; MP.ping = null; MP.qc = null; MP.ch = null;
   diff = sim.s.diff;
   trapIndex = new Map(); slotCache = null; pathDirCache.clear();
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear();
@@ -6928,7 +7228,7 @@ function fillCtrlHelp() {
     '<span class="kb">左键</span>射击 / 放置陷阱', '<span class="kb">右键</span>瞄准 / 收起陷阱',
     `<span class="kb">1-9</span>选择陷阱 · ${K('KeyQ')}步枪 / 切枪`, `${K('KeyE')}升级 · ${K('KeyX')}拆除陷阱`,
     `${K('KeyB')}军械库 · ${K('KeyF')}互动`, `${K('KeyC')}手雷 · ${K('KeyZ')}轨道打击`,
-    `${K('KeyT')}标记 · ${K('KeyV')}快捷消息`, `${K('KeyG')}提前开战 / 联机准备`,
+    `${K('KeyT')}标记 · ${K('KeyV')}快捷消息 · <span class="kb">Enter</span>打字聊天`, `${K('KeyG')}提前开战 / 联机准备`,
     `${K('KeyM')}大地图 · ${K('KeyH')}图鉴`, `<span class="kb">Esc</span>${K('KeyP')}暂停 / 设置`,
   ].map(h => `<div>${h}</div>`).join('');
   const mk = document.querySelector('#menu .keys');
@@ -7259,7 +7559,7 @@ function frame(now) {
   if (mode !== 'menu') drawPings(dt);
   if (mode !== 'menu') { drawOtherPlayers(S, frameAlpha, dt); drawBuildOverlay(); }
   if (mode === 'play' && aim && aim.trap && !(aim.slot && aim.can && aim.can.ok)) {
-    const tr = aim.trap, yy = tr.kind === 'ceil' ? WALL_H - 0.05 : 0.05;
+    const tr = aim.trap, yy = tr.kind === 'ceil' ? WALL_H - 0.05 : tr.wy + 0.05;
     if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, 0.05, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));
     else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * 0.62, 1, T * 0.62, c(1, 0.75, 0.3, 0.8, 1, 0, true));
   }
@@ -7608,6 +7908,7 @@ function bindUI() {
   syncTB();
   $('touchEditBtn').addEventListener('click', openTouchEditor);
   $('touchResetBtn').addEventListener('click', () => { settings.tb = { pos: {}, scale: 1, alpha: 1 }; tbS.value = 1; tbA.value = 1; syncTB(); saveSettings(); applyTouchLayout(); toast('已恢复默认布局'); });
+  initChat();
   for (const b of document.querySelectorAll('.pClose')) b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const k = b.dataset.close; if (k === 'shop') toggleShop(false); else if (k === 'lab') toggleLab(false); else if (k === 'evo') closeEvo(); else if (k === 'qchat') toggleQuick(false); });
   fillCtrlHelp();
   $('quitBtn').addEventListener('click', () => { if (MP.role === 'client') { leaveRoom(true); mpNote('已离开房间'); } toMenu(); });
@@ -7752,7 +8053,7 @@ function initTouch() {
 // 安卓返回键：逐层关闭面板 / 暂停；在主菜单时返回 false 让应用退出
 window.__back = () => {
   if (mode === 'play') {
-    if (labOpen) toggleLab(false); else if (shopOpen) toggleShop(false); else if (evoTrap !== null) closeEvo(); else if (quickOpen) toggleQuick(false); else pauseGame();
+    if (chatOpen) closeChat(); else if (labOpen) toggleLab(false); else if (shopOpen) toggleShop(false); else if (evoTrap !== null) closeEvo(); else if (quickOpen) toggleQuick(false); else pauseGame();
     return true;
   }
   if (!$('help').hidden) { show('help', false); return true; }

@@ -8,6 +8,7 @@
 
 const T = 2.4;            // 网格边长（一个陷阱格）
 const WALL_H = 6.4;       // 墙高 / 天花板高度
+const PLAT_H = 0.38;      // 2×2 炮台平台抬高的高度（玩家可直接走上去）
 const FLY_Y = 3.1;        // 飞行怪高度
 const TILE = { WALL: 0, LANE: 1, FLOOR: 2, PAD: 3, BASE: 4, SPAWN: 5 };
 const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -430,6 +431,8 @@ class Sim {
     this.def = MAPS[mapId] || MAPS.station;
     this.W = this.def.w; this.H = this.def.h;
     this.grid = buildMap(this.def);
+    this.plat = new Set();
+    for (const [x, z] of this.def.platforms || []) for (let dz = 0; dz < 2; dz++) for (let dx = 0; dx < 2; dx++) this.plat.add((z + dz) * this.W + x + dx);
     this.lanes = Object.keys(this.def.lanes);
     this.paths = {}; this.spawnDir = {};
     for (const l of this.lanes) {
@@ -616,7 +619,12 @@ class Sim {
     const cx = (tr.x + 0.5) * T, cz = (tr.z + 0.5) * T;
     if (tr.kind === 'wall') { const d = DIRS[tr.dir]; return { x: cx + d[0] * T * 0.5, y: 1.5, z: cz + d[1] * T * 0.5 }; }
     if (tr.kind === 'ceil') return { x: cx, y: WALL_H, z: cz };
-    return { x: cx, y: 0, z: cz };
+    return { x: cx, y: this.plat.has(tr.z * this.W + tr.x) ? PLAT_H : 0, z: cz };
+  }
+  // 某处地面高度（炮台平台略高于地面）
+  groundAt(x, z) {
+    const tx = Math.floor(x / T), tz = Math.floor(z / T);
+    return tx >= 0 && tz >= 0 && tx < this.W && tz < this.H && this.plat.has(tz * this.W + tx) ? PLAT_H : 0;
   }
   wallLine(x, z, dir, n) {
     const d = DIRS[dir], out = [];
@@ -1165,7 +1173,7 @@ class Sim {
             tr.targets.push(cand[i].m.id);
           }
           tr.cd = def.cd; tr.fireT = s.time;
-          this.ev('trap', { kind: 'tesla', id: tr.id, x: tr.wx, y: 2.2, z: tr.wz });
+          this.ev('trap', { kind: 'tesla', id: tr.id, x: tr.wx, y: tr.wy + 2.2, z: tr.wz });
           break;
         }
         case 'sentry': {
@@ -1198,10 +1206,10 @@ class Sim {
           tr.aimYaw = Math.atan2(-(tgt.x - tr.wx), -(tgt.z - tr.wz));
           tgts.forEach((t1, i) => {
             const dx = t1.x - tr.wx, dz = t1.z - tr.wz, L = Math.hypot(dx, dz) || 1;
-            s.proj.push({ id: s.nextId++, x: tr.wx, y: 2.2, z: tr.wz, vx: dx / L * 6 + (i - 1) * 2, vy: 14, vz: dz / L * 6 + (i - 1) * 2, tgt: t1.id, dmg: def.dmg[lv - 1] * (br === 'a' ? 0.7 : br === 'b' && !MON[t1.type].fly ? 0.8 : 1), splash: def.splash, life: 4, ground: br === 'b' });
+            s.proj.push({ id: s.nextId++, x: tr.wx, y: tr.wy + 2.2, z: tr.wz, vx: dx / L * 6 + (i - 1) * 2, vy: 14, vz: dz / L * 6 + (i - 1) * 2, tgt: t1.id, dmg: def.dmg[lv - 1] * (br === 'a' ? 0.7 : br === 'b' && !MON[t1.type].fly ? 0.8 : 1), splash: def.splash, life: 4, ground: br === 'b' });
           });
           tr.cd = def.cd; tr.fireT = s.time;
-          this.ev('trap', { kind: 'aa', id: tr.id, x: tr.wx, y: 2.2, z: tr.wz });
+          this.ev('trap', { kind: 'aa', id: tr.id, x: tr.wx, y: tr.wy + 2.2, z: tr.wz });
           break;
         }
         case 'laser':
@@ -1724,9 +1732,12 @@ class Sim {
     p.vx += (wx * spd - p.vx) * acc; p.vz += (wz * spd - p.vz) * acc;
     if (inp.jump && p.ground) { p.vy = 7.4; p.ground = false; this.ev('jump', { pid: p.id }); }
     p.vy -= 22 * dt; p.y += p.vy * dt;
-    if (p.y <= 0) { p.y = 0; p.vy = 0; p.ground = true; }
     p.x += p.vx * dt; this._collide(p);
     p.z += p.vz * dt; this._collide(p);
+    // 地面：平台台阶可以直接走上去；走下台阶时贴地，不会“掉下去”
+    const g = this.groundAt(p.x, p.z);
+    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < PLAT_H + 0.05)) { p.y = g; p.vy = 0; p.ground = true; }
+    else p.ground = false;
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {
@@ -1834,7 +1845,7 @@ class Sim {
 
 }
 
-const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
+const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.TD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

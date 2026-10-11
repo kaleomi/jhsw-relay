@@ -76,6 +76,16 @@ button { font: inherit; color: inherit; }
 #feed .f { font-size: 12.5px; line-height: 1.45; padding: 4px 9px; background: var(--panel); border-left: 2px solid var(--line); transition: opacity .6s, transform .6s; }
 #feed .f.good { border-color: var(--ok); }
 #feed .f.bad { border-color: var(--danger); }
+#feed .f.chat { border-color: var(--crys); background: rgba(8, 18, 28, .82); color: var(--ink); }
+#feed .f.chat b { font-weight: 700; }
+#chatBox { position: absolute; left: 16px; top: calc(14px + env(safe-area-inset-top, 0px) + 6 * 27px); width: min(380px, 60vw); display: flex; align-items: stretch; pointer-events: auto; z-index: 6;
+  background: var(--panel2); border: 1px solid rgba(95, 227, 255, .45); box-shadow: 0 0 18px rgba(95, 227, 255, .18); }
+#chatBox[hidden] { display: none; }
+#chatBox .chTo { display: flex; align-items: center; padding: 0 10px; font-size: 12px; font-weight: 700; color: #071018; background: var(--crys); }
+#chatBox input { flex: 1; min-width: 0; padding: 8px 10px; font: inherit; font-size: 14px; color: var(--ink); background: transparent; border: 0; outline: none; }
+#chatBox button { padding: 0 12px; font: inherit; font-size: 13px; color: var(--crys); background: rgba(95, 227, 255, .08); border: 0; border-left: 1px solid var(--line); cursor: pointer; }
+.qcType { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; padding: 7px 10px; font: inherit; font-size: 13px; color: var(--crys); background: rgba(95, 227, 255, .08); border: 1px dashed rgba(95, 227, 255, .45); cursor: pointer; }
+body.touch .qcType .kb { display: none; }
 #feed .f.out { opacity: 0; transform: translateX(-12px); }
 
 #mapWrap { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); right: 16px; padding: 6px 6px 20px; background: var(--panel); clip-path: var(--cut); transition: transform .2s; transform-origin: top right; }
@@ -105,6 +115,35 @@ button { font: inherit; color: inherit; }
 #hitmark.kill { color: var(--danger); transform: scale(1.25); }
 #prompt { position: absolute; left: 50%; top: calc(50% + 40px); transform: translateX(-50%); font-size: 13px; padding: 5px 12px; background: var(--panel); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
 #prompt:empty { display: none; }
+/* 准星旁的陷阱信息卡（竖向） */
+#trapCard { position: absolute; left: calc(50% + 46px); top: 50%; transform: translateY(-38%); width: 184px; padding: 10px 12px 10px 14px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(14, 24, 36, .9), rgba(6, 11, 18, .86)); border: 1px solid rgba(120, 190, 225, .22); border-left: 3px solid var(--tcc, var(--crys));
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px)); box-shadow: inset 0 0 22px rgba(95, 227, 255, .06); font-size: 12.5px; color: var(--ink); }
+#trapCard[hidden] { display: none; }
+#trapCard .tcHead { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; }
+#trapCard .tcHead b { font-size: 15px; letter-spacing: .5px; color: #fff; text-shadow: 0 0 10px var(--tcc, var(--crys)); white-space: nowrap; }
+#trapCard .tcHead small { font-size: 10.5px; color: var(--tcc, var(--crys)); opacity: .9; white-space: nowrap; }
+#trapCard .tcLv { display: flex; align-items: center; gap: 4px; margin: 6px 0 2px; font: 600 11px/1 ui-monospace, Menlo, Consolas, monospace; color: var(--dim); }
+#trapCard .tcLv i { width: 14px; height: 5px; background: rgba(140, 170, 190, .22); transform: skewX(-20deg); }
+#trapCard .tcLv i.on { background: var(--crys); box-shadow: 0 0 6px var(--crys); }
+#trapCard .tcBr { display: inline-block; margin: 5px 0 1px; padding: 2px 8px; font-size: 11.5px; font-weight: 700; color: #120c02; background: linear-gradient(90deg, var(--brc), #fff8); clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%); }
+#trapCard hr { border: 0; height: 1px; margin: 7px 0 6px; background: linear-gradient(90deg, var(--tcc, var(--crys)), transparent); opacity: .5; }
+#trapCard .tcRow { display: flex; align-items: center; gap: 8px; margin: 4px 0; color: var(--dim); }
+#trapCard .tcRow kbd { min-width: 20px; height: 20px; padding: 0 5px; display: inline-flex; align-items: center; justify-content: center; font: 700 11px/1 ui-monospace, Menlo, Consolas, monospace; color: var(--ink); border: 1px solid rgba(160, 210, 235, .45); border-bottom-width: 2px; border-radius: 4px; background: rgba(255, 255, 255, .06); }
+#trapCard .tcRow span { flex: 1; white-space: nowrap; }
+#trapCard .tcRow em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--ink); }
+#trapCard .tcRow.ok em { color: var(--gold); text-shadow: 0 0 8px rgba(255, 181, 71, .5); }
+#trapCard .tcRow.ok kbd { border-color: var(--ok); color: var(--ok); box-shadow: 0 0 8px rgba(108, 240, 164, .35); }
+#trapCard .tcRow.no em { color: var(--danger); }
+#trapCard .tcRow.max span { color: var(--gold); }
+#trapCard .tcRow.sell em { color: var(--ok); }
+#trapCard .tcHp { position: relative; height: 16px; margin-top: 7px; background: rgba(255, 255, 255, .07); border: 1px solid rgba(255, 255, 255, .1); }
+#trapCard .tcHp i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(90deg, #2bb673, var(--ok)); }
+#trapCard .tcHp.mid i { background: linear-gradient(90deg, #d08a1c, var(--gold)); }
+#trapCard .tcHp.low i { background: linear-gradient(90deg, #a51f33, var(--danger)); }
+#trapCard .tcHp span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 600; color: #fff; text-shadow: 0 1px 2px #000; font-variant-numeric: tabular-nums; }
+#trapCard .tcWarn { margin-top: 6px; padding: 2px 6px; font-size: 11.5px; font-weight: 700; color: #fff; background: rgba(255, 82, 102, .35); border-left: 2px solid var(--danger); animation: tcBlink .8s infinite alternate; }
+@keyframes tcBlink { from { opacity: .55; } to { opacity: 1; } }
 #prompt.ok { color: var(--ok); }
 #prompt.bad { color: var(--danger); }
 #lockHint { position: absolute; left: 50%; top: calc(50% + 80px); transform: translateX(-50%); font-size: 14px; color: var(--crys); letter-spacing: .1em; animation: blink 1s infinite alternate; }
@@ -398,6 +437,8 @@ body.touch #mapWrap.big { transform: scale(1.35); }
 body.touch #team { left: calc(6px + env(safe-area-inset-left, 0px)); top: calc(56px + env(safe-area-inset-top, 0px)); bottom: auto; width: 130px; }
 body.touch #team .tm { font-size: 10px; padding: 2px 6px; }
 body.touch #toast { bottom: calc(58px + env(safe-area-inset-bottom, 0px)); font-size: 12px; }
+body.touch #trapCard { left: calc(50% + 34px); width: 160px; font-size: 11.5px; padding: 8px 10px 8px 12px; }
+body.touch #trapCard .tcHead b { font-size: 13.5px; }
 body.touch #prompt { font-size: 11.5px; top: calc(50% + 30px); max-width: max(240px, calc(100vw - 500px)); white-space: normal; text-align: center; line-height: 1.45; }
 body.touch #banner { top: 30%; }
 body.touch #banner .b1 { font-size: 34px; }
@@ -410,6 +451,7 @@ body.touch .wcard .wd { font-size: 11px; }
 body.touch .shopHead span { display: none; }
 body.touch #qchat { left: 50%; transform: translate(-50%, -50%); pointer-events: auto; }
 body.touch #qchat li { padding: 6px 4px; }
+body.touch #chatBox { left: 50%; top: calc(8px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); width: min(460px, 70vw); }
 body.touch .keys { display: none; }
 body.touch .menuIn { gap: 14px; padding-top: 16px; }
 body.touch h1 { font-size: 48px; }
@@ -508,10 +550,12 @@ body.touch .mpRow input { padding: 10px; }
     </div>
   </div>
   <div id="feed"></div>
+  <div id="chatBox" hidden><span class="chTo">全队</span><input id="chatIn" type="text" maxlength="60" autocomplete="off" enterkeyhint="send" placeholder="输入消息 · Enter 发送 · Esc 取消"><button type="button" id="chatSend">发送</button></div>
   <div id="mapWrap"><canvas id="minimap" width="185" height="160"></canvas><span class="diff" id="diffTag"></span><span class="maphint">M 放大</span></div>
   <div id="cross"><i></i><i></i><i></i><i></i></div>
   <div id="hitmark"></div>
   <div id="prompt"></div>
+  <div id="trapCard" hidden></div>
   <div id="lockHint" hidden>点击画面锁定鼠标继续</div>
   <div id="banner"><div class="b1" id="bannerT"></div><div class="b2" id="bannerS"></div></div>
   <div id="toast"></div>
@@ -543,6 +587,7 @@ body.touch .mpRow input { padding: 10px; }
       <li><span class="kb">1</span>需要支援！</li><li><span class="kb">2</span>我来守这里</li><li><span class="kb">3</span>注意飞行敌人</li>
       <li><span class="kb">4</span>BOSS 来了，集火！</li><li><span class="kb">5</span>我去买枪 / 补陷阱</li><li><span class="kb">6</span>谢谢！</li>
     </ol>
+    <button type="button" id="qcType" class="qcType">✎ 输入文字…<span class="kb">Enter</span></button>
   </div>
   <div id="evo" class="pick" hidden>
     <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E / Esc 取消</span><button type="button" class="pClose" data-close="evo" aria-label="关闭">✕</button></div>
