@@ -781,26 +781,16 @@ function laneFrame(S, lane) {
   return { x: p0.x, z: p0.z, dx: d.dx, dz: d.dz, yaw: Math.atan2(d.dx, d.dz) };
 }
 function buildPlatforms(S) {
-  // 2×2 炮台平台：金属甲板 + 警示边框 + 四角灯柱，中间十字线分出 4 个炮台位
+  // 2×2 炮台位：和地面齐平，只在地上画一圈细细的琥珀色框和四角折线，提示重型炮台放这里
+  const LINE = col(1, 0.62, 0.15, 1, 0.45), CORNER = col(1, 0.66, 0.2, 1, 0.8);
   for (const [px0, pz0] of S.def.platforms || []) {
-    const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T, G = S.tileH(px0, pz0);
-    const H = PLAT_H;
-    // 抬高的甲板：深色底座 + 金属台面 + 侧面警示灯带
-    E.push('box', cx, G + H / 2 - 0.02, cz, 0, L * 1.0, H - 0.04, L * 1.0, col(0.14, 0.15, 0.17, 1, 0, 0, 2));
-    E.push('box', cx, G + H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.34, 0.35, 0.38, 1, 0, 0, 15));
-    const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35), SIDE = col(1, 0.55, 0.12, 1, 1.1);
-    for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, G + H + 0.02, ez, 0, sx, 0.05, sz, AMB);
-    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.005, L * 0.92, 0.02], [cx, z0 + L + 0.005, L * 0.92, 0.02], [x0 - 0.005, cz, 0.02, L * 0.92], [x0 + L + 0.005, cz, 0.02, L * 0.92]]) E.push('box', ex, G + H * 0.5, ez, 0, sx, 0.06, sz, SIDE);
-    // 斜面台阶（四边中间）
-    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.25, 1.1, 0.5], [cx, z0 + L + 0.25, 1.1, 0.5], [x0 - 0.25, cz, 0.5, 1.1], [x0 + L + 0.25, cz, 0.5, 1.1]]) {
-      E.push('box', ex, G + H * 0.25, ez, 0, sx, H * 0.5, sz, col(0.2, 0.21, 0.24, 1, 0, 0, 2));
-      E.push('box', ex, G + H * 0.5 + 0.005, ez, 0, sx * (sx > 1 ? 0.9 : 0.3), 0.01, sz * (sz > 1 ? 0.9 : 0.3), DIM);
-    }
-    E.push('box', cx, G + H + 0.01, cz, 0, L * 0.9, 0.02, 0.07, DIM);
-    E.push('box', cx, G + H + 0.01, cz, 0, 0.07, 0.02, L * 0.9, DIM);
-    for (const [kx, kz] of [[x0 + 0.25, z0 + 0.25], [x0 + L - 0.25, z0 + 0.25], [x0 + 0.25, z0 + L - 0.25], [x0 + L - 0.25, z0 + L - 0.25]]) {
-      E.push('cyl', kx, G + H + 0.7, kz, 0, 0.16, 1.4, 0.16, col(0.3, 0.31, 0.34));
-      E.push('cyl', kx, G + H + 1.45, kz, 0, 0.22, 0.12, 0.22, col(1, 0.62, 0.15, 1, 1));
+    const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T, G = S.tileH(px0, pz0) + 0.012;
+    const m = 0.18, a = L - 2 * m;
+    for (const [ex, ez, sx, sz] of [[cx, z0 + m, a, 0.05], [cx, z0 + L - m, a, 0.05], [x0 + m, cz, 0.05, a], [x0 + L - m, cz, 0.05, a]]) E.push('box', ex, G, ez, 0, sx, 0.01, sz, LINE);
+    for (const [qx, qz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const kx = cx + qx * (T - m), kz = cz + qz * (T - m);
+      E.push('box', kx - qx * 0.3, G + 0.002, kz, 0, 0.6, 0.012, 0.12, CORNER);
+      E.push('box', kx, G + 0.002, kz - qz * 0.3, 0, 0.12, 0.012, 0.6, CORNER);
     }
   }
 }
@@ -971,8 +961,8 @@ function buildTerrainStatic(S) {
         }
       }
     }
-    if (t === TILE.PAD) {
-      const py = tH(x, z) + (S.plat.has(i) ? PLAT_H : 0);
+    if (t === TILE.PAD && !S.plat.has(i)) {
+      const py = tH(x, z);
       E.push('ring', cx, py + 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
@@ -1037,8 +1027,8 @@ function buildStatic(S) {
       for (let dz = -1; dz <= 1 && !edge; dz++) for (let dx = -1; dx <= 1; dx++) if (tileOf(S, x + dx, z + dz) !== TILE.WALL) { edge = true; break; }
       if (edge) E.push('box', cx, WALL_H / 2, cz, 0, T, WALL_H, T, WALLC);
     }
-    if (t === TILE.PAD) {
-      const py = S.plat.has(z * S.W + x) ? PLAT_H : 0;
+    if (t === TILE.PAD && !S.plat.has(z * S.W + x)) {
+      const py = 0;
       E.push('ring', cx, py + 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }

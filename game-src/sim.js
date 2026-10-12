@@ -8,7 +8,7 @@
 
 const T = 2.4;            // 网格边长（一个陷阱格）
 const WALL_H = 6.4;       // 墙高 / 天花板高度
-const PLAT_H = 0.38;      // 2×2 炮台平台抬高的高度（玩家可直接走上去）
+const PLAT_H = 0;         // 2×2 炮台位与地面齐平（以前抬高 0.38，现在只在地上画框标出）
 const FLY_Y = 3.1;        // 飞行怪高度
 const TILE = { WALL: 0, LANE: 1, FLOOR: 2, PAD: 3, BASE: 4, SPAWN: 5 };
 const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -848,10 +848,10 @@ class Sim {
     if (!def) return { ok: false, reason: '未知陷阱' };
     if (s.phase !== 'build' && s.phase !== 'wave') return { ok: false, reason: '' };
     if (!slot) {
-      return { ok: false, reason: '对准' + CAT_NAME[def.cat] + (def.cat === 'pad' ? '（琥珀色炮台平台 / 空地；放在通道上会挡路并被攻击）' : '（怪物通道）') };
+      return { ok: false, reason: '对准' + CAT_NAME[def.cat] + (def.cat === 'pad' ? '（琥珀色框出的炮台位 / 空地；放在通道上会挡路并被攻击）' : '（怪物通道）') };
     }
     if (def.big) {
-      if (slot.kind !== 'floor' || !this.bigFits(def.cat, slot.x, slot.z)) return { ok: false, reason: def.cat === 'heavy' ? '需要 2×2 的空地（琥珀色炮台平台最合适）' : '需要通道上 2×2 的空位' };
+      if (slot.kind !== 'floor' || !this.bigFits(def.cat, slot.x, slot.z)) return { ok: false, reason: def.cat === 'heavy' ? '需要 2×2 的空地（地上琥珀色框出的 2×2 炮台位最合适）' : '需要通道上 2×2 的空位' };
     }
     if (this.trapAtSlot(slot, type)) return { ok: false, reason: def.big ? '2×2 范围内已有陷阱' : '该位置已有陷阱' };
     if (this.terrain && !def.big && slot.kind !== 'wall' && this.isRamp(slot.x, slot.z)) return { ok: false, reason: '斜坡上不能放陷阱' };
@@ -2161,7 +2161,7 @@ class Sim {
     { const oz = p.z; p.z += p.vz * dt; this._collide(p); if (this.terrain && (this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP || this._railBlock(p, p.x, oz))) { p.z = oz; p.vz = 0; } }
     // 地面：平台台阶可以直接走上去；走下台阶 / 下坡时贴地，不会“掉下去”
     const g = this.groundAt(p.x, p.z, p.y + 0.3);
-    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < (this.terrain ? 0.5 : PLAT_H + 0.05))) { p.y = g; p.vy = 0; p.ground = true; }
+    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < (this.terrain ? 0.5 : 0.43))) { p.y = g; p.vy = 0; p.ground = true; }
     else p.ground = false;
     // 二层底下：跳起来会碰头
     if (this.terrain && p.vy > 0) { const i = this.idxOf(p.x, p.z); if (this.deck.has(i) && p.y < this.DECK_B && p.y + 1.85 > this.DECK_B) { p.y = this.DECK_B - 1.85; p.vy = 0; } }

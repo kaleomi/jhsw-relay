@@ -872,8 +872,8 @@ body.touch .mpRow input { padding: 10px; }
     </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
     <div class="fpBody">
       <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
-    <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在琥珀色的 2×2 炮台平台（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
-    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在整块琥珀色炮台平台上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在地上琥珀色框出的 2×2 炮台位（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
+    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
     </section>
       <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
     <ul id="comboList" class="comboList"></ul>
@@ -1553,7 +1553,7 @@ root.Engine = { create, perspective, viewFPS, mul };
 
 const T = 2.4;            // 网格边长（一个陷阱格）
 const WALL_H = 6.4;       // 墙高 / 天花板高度
-const PLAT_H = 0.38;      // 2×2 炮台平台抬高的高度（玩家可直接走上去）
+const PLAT_H = 0;         // 2×2 炮台位与地面齐平（以前抬高 0.38，现在只在地上画框标出）
 const FLY_Y = 3.1;        // 飞行怪高度
 const TILE = { WALL: 0, LANE: 1, FLOOR: 2, PAD: 3, BASE: 4, SPAWN: 5 };
 const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
@@ -2393,10 +2393,10 @@ class Sim {
     if (!def) return { ok: false, reason: '未知陷阱' };
     if (s.phase !== 'build' && s.phase !== 'wave') return { ok: false, reason: '' };
     if (!slot) {
-      return { ok: false, reason: '对准' + CAT_NAME[def.cat] + (def.cat === 'pad' ? '（琥珀色炮台平台 / 空地；放在通道上会挡路并被攻击）' : '（怪物通道）') };
+      return { ok: false, reason: '对准' + CAT_NAME[def.cat] + (def.cat === 'pad' ? '（琥珀色框出的炮台位 / 空地；放在通道上会挡路并被攻击）' : '（怪物通道）') };
     }
     if (def.big) {
-      if (slot.kind !== 'floor' || !this.bigFits(def.cat, slot.x, slot.z)) return { ok: false, reason: def.cat === 'heavy' ? '需要 2×2 的空地（琥珀色炮台平台最合适）' : '需要通道上 2×2 的空位' };
+      if (slot.kind !== 'floor' || !this.bigFits(def.cat, slot.x, slot.z)) return { ok: false, reason: def.cat === 'heavy' ? '需要 2×2 的空地（地上琥珀色框出的 2×2 炮台位最合适）' : '需要通道上 2×2 的空位' };
     }
     if (this.trapAtSlot(slot, type)) return { ok: false, reason: def.big ? '2×2 范围内已有陷阱' : '该位置已有陷阱' };
     if (this.terrain && !def.big && slot.kind !== 'wall' && this.isRamp(slot.x, slot.z)) return { ok: false, reason: '斜坡上不能放陷阱' };
@@ -3706,7 +3706,7 @@ class Sim {
     { const oz = p.z; p.z += p.vz * dt; this._collide(p); if (this.terrain && (this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP || this._railBlock(p, p.x, oz))) { p.z = oz; p.vz = 0; } }
     // 地面：平台台阶可以直接走上去；走下台阶 / 下坡时贴地，不会“掉下去”
     const g = this.groundAt(p.x, p.z, p.y + 0.3);
-    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < (this.terrain ? 0.5 : PLAT_H + 0.05))) { p.y = g; p.vy = 0; p.ground = true; }
+    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < (this.terrain ? 0.5 : 0.43))) { p.y = g; p.vy = 0; p.ground = true; }
     else p.ground = false;
     // 二层底下：跳起来会碰头
     if (this.terrain && p.vy > 0) { const i = this.idxOf(p.x, p.z); if (this.deck.has(i) && p.y < this.DECK_B && p.y + 1.85 > this.DECK_B) { p.y = this.DECK_B - 1.85; p.vy = 0; } }
@@ -5188,26 +5188,16 @@ function laneFrame(S, lane) {
   return { x: p0.x, z: p0.z, dx: d.dx, dz: d.dz, yaw: Math.atan2(d.dx, d.dz) };
 }
 function buildPlatforms(S) {
-  // 2×2 炮台平台：金属甲板 + 警示边框 + 四角灯柱，中间十字线分出 4 个炮台位
+  // 2×2 炮台位：和地面齐平，只在地上画一圈细细的琥珀色框和四角折线，提示重型炮台放这里
+  const LINE = col(1, 0.62, 0.15, 1, 0.45), CORNER = col(1, 0.66, 0.2, 1, 0.8);
   for (const [px0, pz0] of S.def.platforms || []) {
-    const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T, G = S.tileH(px0, pz0);
-    const H = PLAT_H;
-    // 抬高的甲板：深色底座 + 金属台面 + 侧面警示灯带
-    E.push('box', cx, G + H / 2 - 0.02, cz, 0, L * 1.0, H - 0.04, L * 1.0, col(0.14, 0.15, 0.17, 1, 0, 0, 2));
-    E.push('box', cx, G + H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.34, 0.35, 0.38, 1, 0, 0, 15));
-    const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35), SIDE = col(1, 0.55, 0.12, 1, 1.1);
-    for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, G + H + 0.02, ez, 0, sx, 0.05, sz, AMB);
-    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.005, L * 0.92, 0.02], [cx, z0 + L + 0.005, L * 0.92, 0.02], [x0 - 0.005, cz, 0.02, L * 0.92], [x0 + L + 0.005, cz, 0.02, L * 0.92]]) E.push('box', ex, G + H * 0.5, ez, 0, sx, 0.06, sz, SIDE);
-    // 斜面台阶（四边中间）
-    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.25, 1.1, 0.5], [cx, z0 + L + 0.25, 1.1, 0.5], [x0 - 0.25, cz, 0.5, 1.1], [x0 + L + 0.25, cz, 0.5, 1.1]]) {
-      E.push('box', ex, G + H * 0.25, ez, 0, sx, H * 0.5, sz, col(0.2, 0.21, 0.24, 1, 0, 0, 2));
-      E.push('box', ex, G + H * 0.5 + 0.005, ez, 0, sx * (sx > 1 ? 0.9 : 0.3), 0.01, sz * (sz > 1 ? 0.9 : 0.3), DIM);
-    }
-    E.push('box', cx, G + H + 0.01, cz, 0, L * 0.9, 0.02, 0.07, DIM);
-    E.push('box', cx, G + H + 0.01, cz, 0, 0.07, 0.02, L * 0.9, DIM);
-    for (const [kx, kz] of [[x0 + 0.25, z0 + 0.25], [x0 + L - 0.25, z0 + 0.25], [x0 + 0.25, z0 + L - 0.25], [x0 + L - 0.25, z0 + L - 0.25]]) {
-      E.push('cyl', kx, G + H + 0.7, kz, 0, 0.16, 1.4, 0.16, col(0.3, 0.31, 0.34));
-      E.push('cyl', kx, G + H + 1.45, kz, 0, 0.22, 0.12, 0.22, col(1, 0.62, 0.15, 1, 1));
+    const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T, G = S.tileH(px0, pz0) + 0.012;
+    const m = 0.18, a = L - 2 * m;
+    for (const [ex, ez, sx, sz] of [[cx, z0 + m, a, 0.05], [cx, z0 + L - m, a, 0.05], [x0 + m, cz, 0.05, a], [x0 + L - m, cz, 0.05, a]]) E.push('box', ex, G, ez, 0, sx, 0.01, sz, LINE);
+    for (const [qx, qz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+      const kx = cx + qx * (T - m), kz = cz + qz * (T - m);
+      E.push('box', kx - qx * 0.3, G + 0.002, kz, 0, 0.6, 0.012, 0.12, CORNER);
+      E.push('box', kx, G + 0.002, kz - qz * 0.3, 0, 0.12, 0.012, 0.6, CORNER);
     }
   }
 }
@@ -5378,8 +5368,8 @@ function buildTerrainStatic(S) {
         }
       }
     }
-    if (t === TILE.PAD) {
-      const py = tH(x, z) + (S.plat.has(i) ? PLAT_H : 0);
+    if (t === TILE.PAD && !S.plat.has(i)) {
+      const py = tH(x, z);
       E.push('ring', cx, py + 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
@@ -5444,8 +5434,8 @@ function buildStatic(S) {
       for (let dz = -1; dz <= 1 && !edge; dz++) for (let dx = -1; dx <= 1; dx++) if (tileOf(S, x + dx, z + dz) !== TILE.WALL) { edge = true; break; }
       if (edge) E.push('box', cx, WALL_H / 2, cz, 0, T, WALL_H, T, WALLC);
     }
-    if (t === TILE.PAD) {
-      const py = S.plat.has(z * S.W + x) ? PLAT_H : 0;
+    if (t === TILE.PAD && !S.plat.has(z * S.W + x)) {
+      const py = 0;
       E.push('ring', cx, py + 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
