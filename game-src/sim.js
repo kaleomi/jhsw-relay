@@ -36,7 +36,7 @@ const MON = {
   stalker: { name: '幽影刺客', hp: 340, spd: 4.4, core: 6, bounty: 30, dps: 40, melee: 14, r: 0.45, stealth: true, body: [0.75, 0.37], head: [1.43, 0.44] },
   burrower: { name: '钻地虫', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.5, 0.6], head: [0.55, 0.36, 0.55] },
   sapper: { name: '骇客工兵', hp: 420, spd: 2.8, core: 6, bounty: 42, dps: 25, melee: 8, r: 0.5, hack: true, body: [0.75, 0.37], head: [1.43, 0.44] },
-  gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 6, rate: 1.6, acc: 0.65 }, body: [0.86, 0.42], head: [1.63, 0.5] },
+  gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 7, rate: 1.4, acc: 0.65, speed: 16 }, body: [0.86, 0.42], head: [1.63, 0.5] },
   mite: { name: '噬晶蛛', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.33, 0.17, 0.3] },
   siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [1.4, 1.55], head: [2.62, 0.72, 0.2] },
   colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.93, 0.62, 0.15] },
@@ -45,7 +45,7 @@ const MON = {
   shield: { name: '棱盾守卫', hp: 950, spd: 2.6, armor: 0.25, core: 6, bounty: 60, dps: 55, melee: 14, r: 0.6, knockRes: 0.3, aura: { every: 5.5, r: 6, amt: 200 }, body: [0.98, 0.48], head: [1.86, 0.56] },
   tank: { name: '铁蹄坦克', hp: 2500, spd: 1.9, armor: 0.4, core: 12, bounty: 130, dps: 150, r: 1.15, knockRes: 1, slowRes: 0.3, stunRes: 0.6, heavy: true, cannon: { range: 15, every: 5.5, dmg: 380, dis: 4 }, body: [0.9, 1.15], head: [1.75, 0.42, 0.65] },
   blinker: { name: '相位行者', hp: 520, spd: 3.3, core: 4, bounty: 40, dps: 35, melee: 12, r: 0.45, blink: { every: 6.5, dist: 6 }, body: [0.78, 0.38], head: [1.47, 0.46] },
-  gunship: { name: '天穹炮艇', hp: 2000, spd: 2.4, armor: 0.2, core: 10, bounty: 110, fly: true, heavy: true, r: 1.2, ranged: { range: 20, dmg: 8, rate: 1.4, acc: 0.6 }, drop: { type: 'mite', n: 2, every: 9 }, body: [0, 1.1], head: [0.3, 0.45, 1.15] },
+  gunship: { name: '天穹炮艇', hp: 2000, spd: 2.4, armor: 0.2, core: 10, bounty: 110, fly: true, heavy: true, r: 1.2, ranged: { range: 20, dmg: 9, rate: 1.2, acc: 0.6, speed: 15 }, drop: { type: 'mite', n: 2, every: 9 }, body: [0, 1.1], head: [0.3, 0.45, 1.15] },
   broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
 };
 const BOSS_TIP = {
@@ -919,11 +919,13 @@ class Sim {
     const SP = this.def.spawns, sp = SP[p.slot % SP.length];
     p.x = p.ox = (sp[0] + 0.5) * T; p.z = p.oz = (sp[1] + 0.5) * T; p.y = p.oy = this.tileH(sp[0], sp[1]);
     p.vx = p.vy = p.vz = 0; p.hp = p.maxHp; p.dead = false; p.ammo = p.mag; p.reloadT = 0; p.life++;
+    p.invT = 10;   // 复活后 10 秒无敌
     for (const g of p.guns) p.ammoBy[g] = WPN[g].mag;
     this.ev('respawn', { pid: p.id });
   }
   hurtPlayer(p, dmg, src, sx, sz) {
     if (p.dead || this.s.phase === 'victory' || this.s.phase === 'defeat') return;
+    if (p.invT > 0) return;
     p.hp -= dmg; p.lastHurt = this.s.time;
     this.ev('phurt', { pid: p.id, dmg, src, sx, sz });
     if (p.hp <= 0) { p.hp = 0; p.dead = true; p.respawnT = 5; this.ev('pdead', { pid: p.id }); }
@@ -1633,6 +1635,7 @@ class Sim {
     let w = 0;
     for (const p of s.proj) {
       if (p.kind === 'rocket' || p.kind === 'nade') { if (this._updatePlayerProj(p, dt)) s.proj[w++] = p; continue; }
+      if (p.kind === 'mb') { if (this._updateBolt(p, dt)) s.proj[w++] = p; continue; }
       p.life -= dt;
       const t = this._mById.get(p.tgt);
       if (t && !t.dead) {
@@ -1659,6 +1662,29 @@ class Sim {
     s.proj.length = w;
   }
 
+  // 怪物光弹：飞行中撞墙消失，擦到玩家身体就扣血
+  _updateBolt(p, dt) {
+    p.life -= dt;
+    if (p.life <= 0) return false;
+    const sp = Math.hypot(p.vx, p.vy, p.vz) || 1, step = sp * dt, dx = p.vx / sp, dy = p.vy / sp, dz = p.vz / sp;
+    const h = this.raycast(p.x, p.y, p.z, dx, dy, dz, step);
+    const lim = h ? h.t : step;
+    for (const id in this.s.players) {
+      const q = this.s.players[id];
+      if (q.dead) continue;
+      const cx = q.x, cy = q.y + 1.0, cz = q.z, lx = cx - p.x, ly = cy - p.y, lz = cz - p.z;
+      const u = Math.max(0, Math.min(lim, lx * dx + ly * dy + lz * dz));
+      const ex = lx - dx * u, ey = (ly - dy * u) * 0.55, ez = lz - dz * u;   // 竖直方向放宽（人是竖长的）
+      if (ex * ex + ey * ey + ez * ez < 0.5 * 0.5) {
+        this.hurtPlayer(q, p.dmg, p.src || 'gunner', p.x, p.z);
+        this.ev('boltHit', { x: p.x + dx * u, y: p.y + dy * u, z: p.z + dz * u });
+        return false;
+      }
+    }
+    if (h) { this.ev('boltHit', { x: h.px, y: h.py, z: h.pz }); return false; }
+    p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
+    return true;
+  }
   _blockerAhead(m, def, path) {
     if (m.burrow) return null;
     const t2 = this._tmp2;
@@ -1856,9 +1882,12 @@ class Sim {
           const dx = q.x - m.x, dz = q.z - m.z, L = Math.hypot(dx, dz) || 1; m.ax = dx / L; m.az = dz / L;
           if (m.shootCd <= 0) {
             m.shootCd = 1 / R.rate;
-            const hit = this.rand() < R.acc;
-            if (hit) this.hurtPlayer(q, R.dmg, 'gunner', m.x, m.z);
-            this.ev('mshot', { id: m.id, x: m.x, y: m.y + 1.4, z: m.z, tx: q.x + (hit ? 0 : (this.rand() - 0.5) * 2), ty: q.y + 1.2, tz: q.z + (hit ? 0 : (this.rand() - 0.5) * 2), hit });
+            // 射出一发看得见的光弹（不预判、有散布），玩家跑动 / 横移就能躲开
+            const ox = m.x + m.ax * 0.6, oy = m.y + (def.fly ? -0.4 : 1.4), oz = m.z + m.az * 0.6;
+            const sp = (1 - R.acc) * 1.6, tx = q.x + (this.rand() - 0.5) * sp, ty = q.y + 1.1 + (this.rand() - 0.5) * sp * 0.6, tz = q.z + (this.rand() - 0.5) * sp;
+            const dx = tx - ox, dy = ty - oy, dz = tz - oz, L = Math.hypot(dx, dy, dz) || 1, V = R.speed || 17;
+            s.proj.push({ id: s.nextId++, kind: 'mb', x: ox, y: oy, z: oz, vx: dx / L * V, vy: dy / L * V, vz: dz / L * V, life: (R.range + 6) / V, dmg: R.dmg, src: m.type });
+            this.ev('mshot', { id: m.id, x: ox, y: oy, z: oz, tx, ty, tz, hit: false });
           }
         }
       }
@@ -2090,6 +2119,7 @@ class Sim {
     const s = this.s;
     p.ox = p.x; p.oy = p.y; p.oz = p.z;
     if (p.supT > 0) p.supT = Math.max(0, p.supT - dt);
+    if (p.invT > 0) p.invT = Math.max(0, p.invT - dt);
     if (p.dead) {
       p.respawnT -= dt;
       if (p.respawnT <= 0) this._respawn(p);
@@ -2127,14 +2157,27 @@ class Sim {
     p.vy -= 22 * dt; p.y += p.vy * dt;
     // 台阶：低于 0.75 米可以直接走上去，更高的崖壁挡住
     const STEP = 0.75;
-    { const ox = p.x; p.x += p.vx * dt; this._collide(p); if (this.terrain && this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP) { p.x = ox; p.vx = 0; } }
-    { const oz = p.z; p.z += p.vz * dt; this._collide(p); if (this.terrain && this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP) { p.z = oz; p.vz = 0; } }
+    { const ox = p.x; p.x += p.vx * dt; this._collide(p); if (this.terrain && (this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP || this._railBlock(p, ox, p.z))) { p.x = ox; p.vx = 0; } }
+    { const oz = p.z; p.z += p.vz * dt; this._collide(p); if (this.terrain && (this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP || this._railBlock(p, p.x, oz))) { p.z = oz; p.vz = 0; } }
     // 地面：平台台阶可以直接走上去；走下台阶 / 下坡时贴地，不会“掉下去”
     const g = this.groundAt(p.x, p.z, p.y + 0.3);
     if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < (this.terrain ? 0.5 : PLAT_H + 0.05))) { p.y = g; p.vy = 0; p.ground = true; }
     else p.ground = false;
     // 二层底下：跳起来会碰头
     if (this.terrain && p.vy > 0) { const i = this.idxOf(p.x, p.z); if (this.deck.has(i) && p.y < this.DECK_B && p.y + 1.85 > this.DECK_B) { p.y = this.DECK_B - 1.85; p.vy = 0; } }
+  }
+  // 二层桥两侧的护栏：站在桥面上时不能从栏杆处走出去（与渲染护栏的规则一致）
+  _railBlock(p, ox, oz) {
+    if (!this.deck.size || p.y < this.DECK_H - 0.5) return false;
+    const i0 = this.idxOf(ox, oz);
+    if (!this.deck.has(i0)) return false;
+    // 人体半径 0.36：碰到栏杆就停
+    for (const [ex, ez] of [[0.36, 0], [-0.36, 0], [0, 0.36], [0, -0.36]]) {
+      const tx = Math.floor((p.x + ex) / T), tz = Math.floor((p.z + ez) / T), i = tz * this.W + tx;
+      if (i === i0 || this.deck.has(i) || this.solid(tx, tz)) continue;
+      if (Math.abs(this.tileH(tx, tz) - this.DECK_H) >= 0.3) return true;
+    }
+    return false;
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {

@@ -124,6 +124,21 @@ body.touch .qcType .kb { display: none; }
 #hitmark.kill { color: var(--danger); transform: scale(1.25); }
 #prompt { position: absolute; left: 50%; top: calc(50% + 40px); transform: translateX(-50%); font-size: 13px; padding: 5px 12px; background: var(--panel); white-space: nowrap; max-width: calc(100vw - 32px); overflow: hidden; text-overflow: ellipsis; color: var(--dim); }
 #prompt:empty { display: none; }
+#tut { position: absolute; right: calc(16px + env(safe-area-inset-right, 0px)); top: calc(222px + env(safe-area-inset-top, 0px)); width: min(360px, 40vw); padding: 12px 16px 14px; background: linear-gradient(160deg, rgba(10, 24, 36, .94), rgba(6, 12, 20, .9)); border: 1px solid rgba(95, 227, 255, .5); box-shadow: 0 0 24px rgba(95, 227, 255, .2); clip-path: var(--cut); pointer-events: none; z-index: 7; }
+#tut button { pointer-events: auto; }
+#tut[hidden] { display: none; }
+#tut.pop { animation: tutPop .45s ease-out; }
+@keyframes tutPop { from { transform: scale(1.06); box-shadow: 0 0 40px rgba(108, 240, 164, .6); } to { transform: scale(1); } }
+#tut .tutTop { display: flex; justify-content: space-between; align-items: center; font-size: 11.5px; color: var(--crys); letter-spacing: .08em; }
+#tut .tutTop button { font: inherit; font-size: 12px; padding: 3px 10px; color: var(--dim); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+#tut b { display: block; margin-top: 6px; font-size: 19px; color: #fff; letter-spacing: .06em; }
+#tut p { margin: 4px 0 10px; font-size: 14px; line-height: 1.55; color: var(--ink); }
+#tut .tutProg { height: 4px; background: rgba(255, 255, 255, .1); }
+#tut .tutProg i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--crys), var(--ok)); transition: width .4s; }
+body.touch #tut { right: auto; left: 50%; margin-left: max(-190px, -26vw); top: calc(108px + env(safe-area-inset-top, 0px)); width: min(380px, 52vw); padding: 8px 12px 10px; }
+body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; margin-bottom: 6px; }
+#invTag { margin-bottom: 6px; padding: 3px 12px; font-size: 12.5px; font-weight: 700; color: #071018; background: linear-gradient(90deg, #5fe3ff, #a8f4ff); box-shadow: 0 0 14px rgba(95, 227, 255, .5); animation: tcBlink .7s infinite alternate; }
+#invTag[hidden] { display: none; }
 /* 准星旁的陷阱信息卡（竖向） */
 #trapCard { position: absolute; left: calc(50% + 46px); top: 50%; transform: translateY(-38%); width: 184px; padding: 10px 12px 10px 14px; pointer-events: none;
   background: linear-gradient(160deg, rgba(14, 24, 36, .9), rgba(6, 11, 18, .86)); border: 1px solid rgba(120, 190, 225, .22); border-left: 3px solid var(--tcc, var(--crys));
@@ -472,6 +487,20 @@ body.touch .pitch { font-size: 13px; }
 .pauseBox { width: min(380px, calc(100% - 32px)); }
 .pmBtns { display: grid; gap: 10px; }
 .pmBtns button { width: 100%; padding: 13px 18px; font-size: 16px; }
+.lbSrc { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lbSrc button { padding: 7px 14px; font: inherit; font-size: 13px; color: var(--dim); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.lbSrc button[aria-pressed="true"] { color: var(--gold); border-color: var(--gold); background: rgba(255, 181, 71, .1); }
+.lbList { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: lb; }
+.lbList li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; padding: 8px 12px; background: rgba(255, 255, 255, .04); border-left: 3px solid var(--line); }
+.lbList li .rk { font-family: var(--f-disp); font-size: 22px; color: var(--dim); text-align: center; }
+.lbList li:nth-child(1) { border-color: #ffd36b; } .lbList li:nth-child(1) .rk { color: #ffd36b; }
+.lbList li:nth-child(2) { border-color: #d6e2ea; } .lbList li:nth-child(2) .rk { color: #d6e2ea; }
+.lbList li:nth-child(3) { border-color: #e39b62; } .lbList li:nth-child(3) .rk { color: #e39b62; }
+.lbList li.me { background: rgba(95, 227, 255, .1); }
+.lbList li b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lbList li small { grid-column: 2; color: var(--dim); font-size: 12px; }
+.lbList li em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-size: 20px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.lbList .empty { display: block; color: var(--dim); background: none; border: 0; }
 .fullPage { background: rgba(3, 6, 10, .97) !important; backdrop-filter: none !important; z-index: 20; }
 .fpIn { width: 100%; min-height: 100%; display: flex; flex-direction: column; }
 .fpHead { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 10px calc(16px + env(safe-area-inset-left, 0px)); background: rgba(6, 10, 16, .98); border-bottom: 1px solid var(--line); }
@@ -511,6 +540,34 @@ body.tEditOnly #hud { background: #05080c; }
 #touchUI.editing #teBar { display: flex; }
 /* 手机主菜单 */
 .mHead { display: none; }
+/* 电脑端主菜单：一屏布局 */
+body:not(.touch) #menu { overflow: hidden; background: linear-gradient(90deg, rgba(4, 7, 11, .95) 0%, rgba(4, 7, 11, .7) 30%, rgba(4, 7, 11, .08) 48%, rgba(4, 7, 11, .45) 62%, rgba(4, 7, 11, .9) 100%); }
+.menuIn.desk { width: 100%; max-width: none; height: 100vh; margin: 0; box-sizing: border-box; padding: clamp(18px, 4vh, 44px) clamp(18px, 3vw, 48px); display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr) minmax(500px, 620px); gap: 24px; overflow: hidden; }
+.menuIn.desk .dLeft { grid-column: 1; display: flex; flex-direction: column; gap: clamp(12px, 2.4vh, 22px); min-height: 0; }
+.menuIn.desk .dRight { grid-column: 3; display: flex; flex-direction: column; min-height: 0; background: linear-gradient(165deg, rgba(10, 18, 28, .9), rgba(5, 9, 15, .86)); border: 1px solid var(--line); clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); backdrop-filter: blur(4px); }
+.menuIn.desk .dActs { display: grid; gap: 10px; }
+.menuIn.desk .dActs .cta { width: 100%; padding: 18px 28px; font-size: 22px; }
+.menuIn.desk .dMore { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.menuIn.desk .dMore .ghostBtn { padding: 10px 12px; font-size: 13.5px; letter-spacing: .08em; background: rgba(8, 14, 21, .55); }
+.menuIn.desk .dMore #tutBtn { border-color: rgba(108, 240, 164, .5); color: var(--ok); }
+.menuIn.desk .dKeys { display: none; }
+.menuIn.desk h1 { font-size: clamp(52px, 5.4vw, 84px); white-space: nowrap; }
+.menuIn.desk .dLeft .pitch { font-size: 14px; }
+.menuIn.desk .mapDesc { padding: 10px 12px; background: rgba(255, 255, 255, .03); border-left: 2px solid var(--crys); }
+.menuIn.desk .dTabs { display: flex; gap: 2px; padding: 12px 14px 0; border-bottom: 1px solid var(--line); }
+.menuIn.desk .dTabs button { padding: 10px 16px; font: inherit; font-size: 14.5px; letter-spacing: .06em; color: var(--dim); background: transparent; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.menuIn.desk .dTabs button[aria-selected="true"] { color: var(--crys); border-bottom-color: var(--crys); }
+.menuIn.desk .dPanels { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px; scrollbar-width: thin; }
+.menuIn.desk .dPanel { display: grid; gap: 18px; align-content: start; }
+.menuIn.desk .dPanel[hidden] { display: none; }
+.menuIn.desk .dPanel .mpBox { background: transparent; border: 0; padding: 0; clip-path: none; }
+.menuIn.desk .dSum { display: flex; gap: 10px; align-items: baseline; padding: 10px 18px 12px; border-top: 1px solid var(--line); font-size: 13px; }
+.menuIn.desk .dSum span { color: var(--faint); font-size: 12px; white-space: nowrap; }
+.menuIn.desk .dSum b { color: var(--gold); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menuIn.desk .mapDesc { max-width: none; }
+@media (max-width: 1180px) { .menuIn.desk { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); } .menuIn.desk .dRight { grid-column: 2; } body:not(.touch) #menu { background: linear-gradient(90deg, rgba(4, 7, 11, .95), rgba(4, 7, 11, .75)); } }
+@media (max-height: 760px) { .menuIn.desk h1 { font-size: 54px; } .menuIn.desk .pitch { font-size: 13px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .menuIn.desk .dKeys { display: none; } }
+@media (max-height: 600px) { .menuIn.desk .pitch, .menuIn.desk .eyebrow { display: none; } }
 body.touch #menu { background: linear-gradient(180deg, rgba(4, 7, 11, .93), rgba(4, 7, 11, .86)); }
 body.touch .menuIn { width: 100%; max-width: none; margin: 0; min-height: 100%; padding: 0 calc(12px + env(safe-area-inset-right, 0px)) 16px calc(12px + env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; gap: 10px 16px; }
 body.touch .menuIn > * { grid-column: 1 / -1; }
@@ -566,6 +623,7 @@ body.touch .mpRow input { padding: 10px; }
   <div id="hitmark"></div>
   <div id="prompt"></div>
   <div id="trapCard" hidden></div>
+  <div id="tut" hidden><div class="tutTop"><span id="tutStep"></span><button type="button" id="tutSkip">跳过引导</button></div><b id="tutT"></b><p id="tutD"></p><div class="tutProg"><i id="tutBar"></i></div></div>
   <div id="lockHint" hidden>点击画面锁定鼠标继续</div>
   <div id="banner"><div class="b1" id="bannerT"></div><div class="b2" id="bannerS"></div></div>
   <div id="toast"></div>
@@ -575,6 +633,7 @@ body.touch .mpRow input { padding: 10px; }
       <div class="bar"><i id="hpFill"></i></div>
     </div>
     <div id="center">
+      <div id="invTag" hidden></div>
       <div id="gold"><span>金币</span><b id="goldNum">0</b><span class="kl">击杀 <em id="killNum">0</em></span></div>
       <div id="hotbar"></div>
       <div id="techBar" hidden></div>
@@ -682,8 +741,8 @@ body.touch .mpRow input { padding: 10px; }
       <h3 style="margin-bottom:8px">难度</h3>
       <div class="seg" role="group" aria-label="难度">
         <button type="button" data-diff="normal" aria-pressed="true"><b>普通</b><small>适合熟悉玩法</small><em></em></button>
-        <button type="button" data-diff="hard" aria-pressed="false"><b>困难</b><small>怪物血量 ×1.45</small><em></em></button>
-        <button type="button" data-diff="hell" aria-pressed="false"><b>炼狱</b><small>怪物血量 ×2.05</small><em></em></button>
+        <button type="button" data-diff="hard" aria-pressed="false"><b>困难</b><small>怪物血量 ×1.7</small><em></em></button>
+        <button type="button" data-diff="hell" aria-pressed="false"><b>炼狱</b><small>怪物血量 ×2.4</small><em></em></button>
       </div>
     </div>
     <div class="row2">
@@ -691,6 +750,8 @@ body.touch .mpRow input { padding: 10px; }
       <button type="button" class="ghostBtn" id="menuHelpBtn">陷阱与怪物图鉴</button>
       <button type="button" class="ghostBtn" id="menuSetBtn">设置</button>
       <button type="button" class="ghostBtn" id="talentBtn">天赋 <span id="starTag"></span></button>
+      <button type="button" class="ghostBtn" id="lbBtn">无尽排行榜</button>
+      <button type="button" class="ghostBtn" id="tutBtn">新手引导</button>
     </div>
     <section id="mpBox" class="mpBox" aria-label="联机合作">
       <div class="mpHead"><h3>联机合作 · 最多 4 人</h3><span id="mpStatus" class="mpStatus">连接中…</span></div>
@@ -748,6 +809,7 @@ body.touch .mpRow input { padding: 10px; }
       <section data-stab="gen">
         <div class="slider"><label for="sens">视角灵敏度</label><input id="sens" type="range" min="0.3" max="2.5" step="0.1"><b id="sensV"></b></div>
         <div class="slider"><label for="vol">音量</label><input id="vol" type="range" min="0" max="1" step="0.05"><b id="volV"></b></div>
+        <div class="slider"><label for="musVol">音乐</label><input id="musVol" type="range" min="0" max="1" step="0.05"><b id="musV"></b></div>
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
@@ -772,6 +834,7 @@ body.touch .mpRow input { padding: 10px; }
     <div class="endHead"><div id="endGrade" class="grade"></div><div><h2 id="endTitle"></h2><div id="endBest" class="fine"></div></div></div>
     <dl id="endStats"></dl>
     <ul id="endTeam" hidden></ul>
+    <p id="endLb" class="endStar" hidden></p>
     <p id="endStar" class="endStar" hidden></p>
     <p id="endWait" class="fine" style="margin:0" hidden>等待房主开始下一局；你也可以先回到房间。</p>
     <div class="row2">
@@ -790,26 +853,61 @@ body.touch .mpRow input { padding: 10px; }
   </div>
 </div>
 
+<div id="lb" class="overlay fullPage" hidden>
+  <div class="fpIn">
+    <div class="fpHead"><h2>排行榜</h2><nav class="fpTabs" id="lbTabs"></nav><button type="button" class="fpClose" id="lbClose" aria-label="关闭排行榜">✕ 关闭</button></div>
+    <div class="fpBody">
+      <div class="lbSrc"><button type="button" data-lbsrc="online" aria-pressed="true">在线榜</button><button type="button" data-lbsrc="local" aria-pressed="false">本机记录</button><span id="lbNote" class="fine"></span></div>
+      <p class="fine" style="margin:0">无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动上传。分数 =（到达波次 × 1000 + 击杀 × 2 + 剩余水晶 × 5）× 难度系数（困难 ×1.4，炼狱 ×1.9）× 突变系数。</p>
+      <ol id="lbList" class="lbList"></ol>
+    </div>
+  </div>
+</div>
+
 <div id="help" class="overlay fullPage" hidden>
   <div class="fpIn">
     <div class="fpHead"><h2>图鉴</h2><nav class="fpTabs" id="helpTabs">
-      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="evo">进阶联动</button><button type="button" data-htab="map">机关科研</button><button type="button" data-htab="wpn">武器技能</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
+      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="evo">进阶联动</button><button type="button" data-htab="map">地图与规则</button><button type="button" data-htab="wpn">武器技能</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
     </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
     <div class="fpBody">
       <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在琥珀色的 2×2 炮台平台（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
+    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在整块琥珀色炮台平台上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
     </section>
       <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
     <ul id="comboList" class="comboList"></ul>
     </section>
-      <section data-htab="map" hidden><h3>地图机关</h3><ul id="devList" class="comboList"></ul>
+      <section data-htab="map" hidden><h3>关卡</h3><ul id="mapList" class="comboList"></ul>
+    <h3 style="margin-top:14px">地形：高低差与二层</h3>
+    <ul class="comboList">
+      <li><b>高地与崖壁</b><span>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你（远程怪仍然能射你）；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯或斜坡，往下可以直接跳。</span></li>
+      <li><b>崖壁当墙用</b><span>通道旁边高出 2.5 米以上的崖壁可以挂墙壁陷阱（激光、火焰）。</span></li>
+      <li><b>二层桥</b><span>桥面能站人、两侧有护栏；只有桥底下有天花板，露天的地方不能放天花板陷阱（粉碎锤）。小地图上琥珀色方块就是桥，亮色区域是高处，白色箭头指向上坡方向。</span></li>
+      <li><b>斜坡</b><span>斜坡上不能放地面陷阱。</span></li>
+    </ul>
+    <h3 style="margin-top:14px">规则</h3>
+    <ul class="comboList">
+      <li><b>复活保护</b><span>阵亡 5 秒后在基地复活，复活后 10 秒内无敌。</span></li>
+      <li><b>躲子弹</b><span>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</span></li>
+      <li><b>无尽排行榜</b><span>无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</span></li>
+    </ul>
+    <h3 style="margin-top:14px">地图机关</h3><ul id="devList" class="comboList"></ul>
     <h3 style="margin-top:14px">科研舱</h3><p class="fine">每张地图都有一间科研舱（小地图上的紫色「科」标记）。走到<b>科研终端</b>旁按 F 打开研究面板，用全队共享的金币研究科技，效果全队生效、本局有效，房间里的服务器机柜每研究一级亮一盏灯；中央的全息沙盘实时显示整张地图的敌人位置。旁边的<b>补给柜</b>按 F 可补满生命、手雷和全部弹匣，并充能 25% 轨道打击，每人冷却 50 秒。</p>
     <ul id="techList" class="comboList"></ul>
     </section>
       <section data-htab="wpn" hidden><div class="tblWrap"><table id="wpnTable"></table></div>
     <p class="fine">B 打开军械库购买武器（花全队共享的金币，本局有效），Q 在已拥有的武器间切换。C 投掷电浆手雷（最多 2 枚，每 14 秒充能 1 枚）。用枪造成伤害和击杀会积攒能量，满 100% 后按 Z 对准地面呼叫轨道打击：1.3 秒后落下，大范围重创并眩晕敌人。</p>
     </section>
-      <section data-htab="mon" hidden><ul id="monList"></ul>
+      <section data-htab="mon" hidden>
+    <h3>克制要点</h3>
+    <ul class="comboList">
+      <li><b>棱盾守卫</b><span>护盾先吸收伤害，同一只怪 8 秒内只能被套一次盾。磁暴塔、轨道电磁炮对护盾 ×3，激光 ×2.5，枪械 ×1.5；破盾瞬间敌人僵直 0.6 秒。优先在守卫身边放磁暴塔。</span></li>
+      <li><b>铁蹄坦克</b><span>护甲 40%、眩晕时间减 60%，会炮击 15 米内的炮台和阻挡物让它们瘫痪。轨道电磁炮无视护甲、优先打它；把炮台放远一点。</span></li>
+      <li><b>相位行者</b><span>每隔几秒沿路线向前瞬移 6 米，能越过阻挡。用覆盖整段通道的墙壁陷阱和炮台，而不是只靠一排磁暴塔。</span></li>
+      <li><b>天穹炮艇</b><span>重装飞行单位，会射击玩家并空投噬晶蛛。防空导弹、岗哨机枪、电磁炮都能打；碎骨绞盘「引力漩涡」能把它拽到地上。</span></li>
+      <li><b>精英 / BOSS</b><span>半血狂暴；BOSS 有各自的技能，见每波开战时的提示。狙击枪和电磁炮最有效。</span></li>
+    </ul>
+    <h3 style="margin-top:14px">全部敌人</h3><ul id="monList"></ul>
     </section>
       <section data-htab="ctrl" hidden><div id="ctrlHelp" class="keys"></div><p id="ctrlTouch" class="fine" hidden>触屏：左半屏拖动移动（推到底冲刺），右半屏滑动转视角；右下角开火 / 跳跃 / 换弹 / 手雷 / 轨道打击 / 瞄准 / 切枪；顶部陷阱栏点选后按「放置」；走近机关或科研舱、对准陷阱时，屏幕下方会出现互动、升级、拆除按钮。按钮位置可以在 设置 → 触屏按钮 里调整。</p></section>
       <section data-htab="credit" hidden><p class="fine credits">赛博格步兵 / 重装赛博格：RobotExpressive，作者 Tomás Laulhé（Quaternius），CC0。<br>疾行猎犬：Fox，模型 PixelMannen（CC0），绑定与动画 tomkranis（CC BY 4.0），glTF 转换 AsoboStudio 与 scurest（CC BY 4.0）。<br>浮游无人机、脉冲步枪、岗哨机枪枪身：Kenney Starter Kit FPS（MIT）。<br>其余模型、特效与音效为程序生成。</p>

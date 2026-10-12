@@ -16,7 +16,7 @@
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
 const VERSION = 12;
-const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade'];
+const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
 const PHASES = ['build', 'wave', 'victory', 'defeat'];
@@ -107,7 +107,7 @@ const SCHEMA = {
   waveClear: ['wave', 'bonus'],
   boss: ['id', 'mtype', 'lane', 'laneName'],
   burrow: ['id', 'x', 'z'], surface: ['id', 'x', 'z'], hacked: ['id', 'trap', 'x', 'y', 'z'], hackStart: ['id', 'tr'],
-  mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
+  mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], boltHit: ['x', 'y', 'z'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
   laneOpen: ['lanes', 'names'],
   victory: [], defeat: [],
   pjoin: ['name'], pleave: ['name'], pready: ['pid', 'on'],
@@ -116,7 +116,7 @@ const SCHEMA = {
   research: ['pid', 'tech', 'lv'], resupply: ['pid'],
 };
 // 高频装饰事件只发一次，其余事件在后续快照里重复两次以抵抗丢包（客户端按序号去重）
-const ONCE = new Set(['trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak']);
+const ONCE = new Set(['trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'boltHit', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak']);
 const encVal = v => typeof v === 'number' ? (v === Infinity ? -1 : r2(v)) : typeof v === 'boolean' ? (v ? 1 : 0) : v === undefined ? null : v;
 
 class EventOut {
@@ -164,7 +164,7 @@ function encodeSnap(sim, o) {
   const p = Object.values(s.players).map(q => [q.id, q.slot, q.name, r2(q.x), r2(q.y), r2(q.z), r3(q.yaw), r3(q.pitch), Math.ceil(q.hp), q.maxHp,
     (q.dead ? 1 : 0) | (q.input.fire && !q.dead && (q.remote || (q.ammo > 0 && q.reloadT <= 0)) ? 2 : 0) | (q.ready ? 4 : 0) | (q.ground ? 8 : 0),
     r2(q.respawnT), q.kills, Math.round(q.dmg), q.life || 0,
-    q.guns.reduce((m, g) => m | (1 << WIDS.indexOf(g)), 0), WIDS.indexOf(q.wpn), Math.floor(q.energy), q.nades, r2(q.nadeT), q.cls || 'assault', q.nadeMax || 2, Math.ceil(q.supT || 0)]);
+    q.guns.reduce((m, g) => m | (1 << WIDS.indexOf(g)), 0), WIDS.indexOf(q.wpn), Math.floor(q.energy), q.nades, r2(q.nadeT), q.cls || 'assault', q.nadeMax || 2, Math.ceil(q.supT || 0), r2(q.invT || 0)]);
   const tt = [];
   for (const tr of s.traps) if (tr.type === 'tesla' && s.time - tr.fireT < 0.16 && tr.targets && tr.targets.length) tt.push([tr.id, ...tr.targets]);
   const pj = [];
@@ -248,7 +248,7 @@ function applySnap(sim, snap, ctx) {
   const seenP = new Set((snap.p || []).map(a => a[0])), slotPid = {};
   for (const pid in s.players) if (!seenP.has(pid)) delete s.players[pid];
   for (const a of snap.p || []) {
-    const [pid, slot, name, x, y, z, yaw, pitch, hp, maxHp, fl, respawnT, kills, dmg, life, gmask, widx, energy, nades, nadeT, cls, nadeMax, supT] = a;
+    const [pid, slot, name, x, y, z, yaw, pitch, hp, maxHp, fl, respawnT, kills, dmg, life, gmask, widx, energy, nades, nadeT, cls, nadeMax, supT, invT] = a;
     slotPid[slot] = pid;
     let q = s.players[pid];
     const dead = !!(fl & 1);
@@ -264,7 +264,7 @@ function applySnap(sim, snap, ctx) {
     q.guns = WIDS.filter((w, i) => gmask & (1 << i)); if (!q.guns.length) q.guns = ['rifle'];
     for (const g of q.guns) if (q.ammoBy[g] === undefined) q.ammoBy[g] = WPN[g].mag;
     q.energy = energy || 0; q.nades = nades | 0; q.nadeT = nadeT || 0; q.nadeMax = nadeMax || 2;
-    q.supT = supT || 0;
+    q.supT = supT || 0; q.invT = invT || 0;
     if (pid !== ctx.pid && typeof cls === 'string') q.cls = cls;
     if (pid !== ctx.pid && WIDS[widx]) q.wpn = WIDS[widx];
     if (pid === ctx.pid) {
@@ -394,7 +394,7 @@ function smoothMirror(sim, dt, now, pid) {
   s.time += dt;
   if (s.phase === 'build') s.timer = Math.max(0, s.timer - dt);
   for (const k in s.lava) s.lava[k] -= dt;
-  for (const id in s.players) { const q = s.players[id]; if (q.supT > 0) q.supT = Math.max(0, q.supT - dt); }
+  for (const id in s.players) { const q = s.players[id]; if (q.supT > 0) q.supT = Math.max(0, q.supT - dt); if (q.invT > 0) q.invT = Math.max(0, q.invT - dt); }
   for (const d of s.devices || []) { if (d.act > 0) d.act = Math.max(0, d.act - dt); else if (d.cd > 0) d.cd = Math.max(0, d.cd - dt); }
 }
 

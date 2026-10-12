@@ -10,6 +10,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { RoomCore, validPeer, validRoom, validPw, LIMITS } from './room-core.js';
+import { sanitize, insert, MAPS, CORS } from './board-core.js';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.argv[2] || process.env.PORT || 8080);
@@ -83,9 +84,37 @@ function roomOf(name) {
   return r;
 }
 
+/* ---------- 无尽排行榜（保存在 server.js 同目录的 leaderboard.json） ---------- */
+const LB_FILE = path.join(DIR, 'leaderboard.json');
+let board = {};
+try { board = JSON.parse(fs.readFileSync(LB_FILE, 'utf8')) || {}; } catch (e) { board = {}; }
+let saveT = null;
+const saveBoard = () => { clearTimeout(saveT); saveT = setTimeout(() => { try { fs.writeFileSync(LB_FILE, JSON.stringify(board)); } catch (e) { /* 只读目录时只保存在内存 */ } }, 500); };
+function handleBoard(req, res, url) {
+  const send = (o, st) => { res.writeHead(st || 200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...CORS }); res.end(JSON.stringify(o)); };
+  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); res.end(); return; }
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', d => { body += d; if (body.length > 4096) req.destroy(); });
+    req.on('end', () => {
+      let o = null; try { o = JSON.parse(body); } catch (e) { o = null; }
+      const e = sanitize(o);
+      if (!e) { send({ ok: false, error: 'bad' }, 400); return; }
+      const r = insert(board[e.map], e); board[e.map] = r.list; saveBoard();
+      send({ ok: true, rank: r.rank, score: e.score, list: r.list.slice(0, 20) });
+    });
+    return;
+  }
+  const map = url.searchParams.get('map');
+  if (map && MAPS.includes(map)) { send({ ok: true, map, list: (board[map] || []).slice(0, 20) }); return; }
+  const all = {}; for (const m of MAPS) all[m] = (board[m] || []).slice(0, 10);
+  send({ ok: true, maps: all });
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok'); return; }
+  if (url.pathname === '/lb') { handleBoard(req, res, url); return; }
   if (url.pathname === '/' || url.pathname === '/index.html') {
     let pg; try { pg = page(); } catch (e) { res.writeHead(404); res.end('public/index.html 不存在'); return; }
     const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || '');

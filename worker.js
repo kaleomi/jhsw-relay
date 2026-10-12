@@ -4,6 +4,7 @@
  */
 import { DurableObject } from 'cloudflare:workers';
 import { RoomCore, validPeer, validRoom, validPw } from './room-core.js';
+import { sanitize, insert, MAPS, CORS } from './board-core.js';
 
 export default {
   async fetch(req, env) {
@@ -15,6 +16,11 @@ export default {
       return env.ROOMS.get(env.ROOMS.idFromName(room)).fetch(req);
     }
     if (url.pathname === '/health') return new Response('ok');
+    // 无尽排行榜：所有数据放在一个专用的 Durable Object 实例里
+    if (url.pathname === '/lb') {
+      if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+      return env.ROOMS.get(env.ROOMS.idFromName('__leaderboard__')).fetch(req);
+    }
     return env.ASSETS.fetch(req);
   },
 };
@@ -48,12 +54,29 @@ export class Room extends DurableObject {
   }
   async fetch(req) {
     const url = new URL(req.url);
+    if (url.pathname === '/lb') return this.board(req, url);
     this.core.name = url.searchParams.get('room') || 'lobby';
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
     this.ctx.acceptWebSocket(server);
     this.core.open(server, url.searchParams.get('peer'), url.searchParams.get('pw') || '');
     return new Response(null, { status: 101, webSocket: client });
+  }
+  async board(req, url) {
+    const json = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...CORS } });
+    if (req.method === 'POST') {
+      let body = null; try { body = JSON.parse(await req.text()); } catch (e) { body = null; }
+      const e = sanitize(body);
+      if (!e) return json({ ok: false, error: 'bad' }, 400);
+      const key = 'lb:' + e.map, r = insert(await this.ctx.storage.get(key), e);
+      await this.ctx.storage.put(key, r.list);
+      return json({ ok: true, rank: r.rank, score: e.score, list: r.list.slice(0, 20) });
+    }
+    const map = url.searchParams.get('map');
+    if (map && MAPS.includes(map)) return json({ ok: true, map, list: ((await this.ctx.storage.get('lb:' + map)) || []).slice(0, 20) });
+    const all = {};
+    for (const m of MAPS) all[m] = ((await this.ctx.storage.get('lb:' + m)) || []).slice(0, 10);
+    return json({ ok: true, maps: all });
   }
   async webSocketMessage(ws, msg) { this.core.message(ws, msg); }
   async webSocketClose(ws, code) {

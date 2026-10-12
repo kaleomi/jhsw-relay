@@ -7,7 +7,7 @@ let fails = 0; const ok = (c, m) => { if (!c) { fails++; console.log('FAIL', m);
 // --- 假运行时 ---
 class DurableObject { constructor(ctx, env) { this.ctx = ctx; this.env = env; } }
 globalThis.WebSocketRequestResponsePair = class { constructor(a, b) { this.a = a; this.b = b; } };
-globalThis.Response = class { constructor(body, init) { this.status = init.status; this.webSocket = init.webSocket; } };
+globalThis.Response = class { constructor(body, init) { init = init || {}; this.status = init.status || 200; this.webSocket = init.webSocket; this.body = body; this.headers = init.headers || {}; } };
 let DO = null; const pending = [];
 class FakeWS {
   constructor() { this.readyState = 1; this.inbox = []; this.att = null; this.other = null; this.server = false; }
@@ -18,9 +18,10 @@ class FakeWS {
 }
 globalThis.WebSocketPair = class { constructor() { const c = new FakeWS(), s = new FakeWS(); c.other = s; s.other = c; s.server = true; this[0] = c; this[1] = s; } };
 const accepted = [];
-const ctx = { acceptWebSocket: ws => accepted.push(ws), getWebSockets: () => accepted.filter(w => w.readyState !== 3 || true), setWebSocketAutoResponse() {} };
+const store = new Map();
+const ctx = { acceptWebSocket: ws => accepted.push(ws), getWebSockets: () => accepted.filter(w => w.readyState !== 3 || true), setWebSocketAutoResponse() {}, storage: { get: async k => store.get(k), put: async (k, v) => { store.set(k, JSON.parse(JSON.stringify(v))); } } };
 // 载入 worker.js（替换 cloudflare:workers 导入）
-const src = fs.readFileSync(path.join(DIR, '../worker.js'), 'utf8').replace("import { DurableObject } from 'cloudflare:workers';", 'const DurableObject = globalThis.__DO;').replace("'./room-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../room-core.js')).href));
+const src = fs.readFileSync(path.join(DIR, '../worker.js'), 'utf8').replace("import { DurableObject } from 'cloudflare:workers';", 'const DurableObject = globalThis.__DO;').replace("'./room-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../room-core.js')).href)).replace("'./board-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../board-core.js')).href));
 globalThis.__DO = DurableObject;
 const tmp = path.join(DIR, '_worker_tmp.mjs'); fs.writeFileSync(tmp, src);
 const { Room } = await import(pathToFileURL(tmp).href);
@@ -80,3 +81,16 @@ DO = new Room(ctx, {});   // 休眠唤醒后密码仍然有效
 const P5 = await DO.fetch({ url: 'https://x/ws?room=jhsw-pw01&peer=pppppp55&pw=nope99' }).then(r => r.webSocket); await flush();
 ok(P5.readyState === 3, 'password survives hibernation');
 console.log(fails ? fails + ' 项失败' : '密码测试通过');
+// 排行榜
+{
+  const post = o => DO.fetch({ url: 'https://x/lb', method: 'POST', text: async () => JSON.stringify(o) }).then(r => ({ st: r.status, j: JSON.parse(r.body) }));
+  const r1 = await post({ map: 'station', diff: 'hard', wave: 20, kills: 500, hp: 60, name: '甲', mut: ['horde'], n: 2 });
+  const r2 = await post({ map: 'station', diff: 'normal', wave: 25, kills: 800, hp: 100, name: '乙', mut: [], n: 1 });
+  const bad = await post({ map: 'nope', diff: 'hard', wave: 3 });
+  ok(r1.st === 200 && r1.j.rank === 1, 'lb first');
+  ok(r2.j.rank === 2 && r2.j.list.length === 2, 'lb rank by score');
+  ok(bad.st === 400, 'lb rejects bad map');
+  const g = JSON.parse((await DO.fetch({ url: 'https://x/lb?map=station', method: 'GET' })).body);
+  ok(g.list.length === 2 && g.list[0].name === '甲', 'lb get');
+  console.log(fails ? fails + ' 项失败' : '排行榜测试通过');
+}
