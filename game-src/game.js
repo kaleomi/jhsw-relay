@@ -3279,7 +3279,7 @@ function trapStats(t) {
   const L = [];
   const arr = (v, f) => Array.isArray(v) ? v.map(f || (x => x)).join(' / ') : (f ? f(v) : v);
   if (t.dmg) L.push(['伤害', arr(t.dmg)]);
-  if (t.gun) L.push(['亲手操控伤害', arr(t.gun) + '（每发）']);
+  if (t.gun) L.push(['操控伤害', arr(t.gun) + '（每发）']);
   if (t.dps) L.push(['每秒伤害', arr(t.dps)]);
   if (t.poison) L.push(['中毒', arr(t.poison) + '（每秒）']);
   if (t.burn) L.push(['灼烧', arr(t.burn) + '（每秒）']);
@@ -3290,33 +3290,36 @@ function trapStats(t) {
   if (t.splash) L.push(['溅射半径', t.splash + ' 米']);
   if (t.push) L.push(['击退', arr(t.push, v => v + ' 米')]);
   if (t.stun) L.push(['眩晕', t.stun + ' 秒']);
-  if (TD.LANE_HP[t.id]) L.push(['放在通道上的耐久', TD.LANE_HP[t.id].join(' / ')]);
+  if (TD.LANE_HP[t.id]) L.push(['通道上耐久', TD.LANE_HP[t.id].join(' / ')]);
   return L;
 }
 function renderBook() {
-  const box = $('bookList'); box.innerHTML = '';
-  const gold = sim ? sim.s.gold : 0;
-  TRAP_GROUPS.forEach((g, gi) => {
-    const sec = document.createElement('section'); sec.className = 'bkGrp';
-    sec.innerHTML = `<h4><span class="kb">${gi + 1}</span>${g.name}陷阱<small>${CAT_NAME[g.cat] || ''}</small></h4>`;
-    const row = document.createElement('div'); row.className = 'bkRow';
-    for (const id of g.traps) {
-      const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost, ev = EVO[id];
-      const card = document.createElement('button'); card.type = 'button';
-      const lk = !isUnlocked(id);
-      card.className = 'bkCard cat-' + t.cat + (tool === id ? ' sel' : '') + (gold < cost ? ' poor' : '') + (lk ? ' locked' : '');
-      const desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
-      card.innerHTML = `<div class="bkTop"><span class="ic">${svgIcon(id)}</span><b>${t.name}</b><span class="kb">${keyCombo(id)}</span><em>${cost}</em></div>
-        <p>${desc}</p>
-        <dl>${trapStats(t).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
-        ${lk ? `<div class="bkLock">${lockText(id)}</div>` : ''}
-        ${ev ? `<div class="bkEvo"><span>满级进阶</span><b>${ev.a.name}</b>：${ev.a.desc}<br><b>${ev.b.name}</b>：${ev.b.desc}</div>` : ''}`;
-      card.addEventListener('click', () => { if (lk) { toast(`${t.name} ${lockText(id)}`, true); return; } selectTool(id); toggleBook(false); });
-      row.appendChild(card);
+  // 左边按分组排的陷阱格子，右边详情（和图鉴同一套）；点格子看详情，点「选用」或双击直接拿在手上
+  buildHelp();
+  const box = $('bookList'); box.className = 'cdx bookCdx';
+  box.innerHTML = '<div class="cdxList" id="bkL"></div><article class="cdxDetail" id="bkD"></article>';
+  const L = $('bkL'), gold = sim ? sim.s.gold : 0;
+  L.innerHTML = TRAP_GROUPS.map((g, gi) => `<div class="cdxGrp"><h4>${gi + 1} · ${g.name}</h4><div class="cdxTiles">${g.traps.map(id => { const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost; return `<button type="button" class="cdxTile${isUnlocked(id) ? '' : ' locked'}${tool === id ? ' cur' : ''}" style="--cc: var(--c-${t.cat})" data-bk="${id}"><span class="ic">${svgIcon(id)}</span><span>${t.name}</span><em class="${gold < cost ? 'poor' : ''}">${isUnlocked(id) ? cost : '未解锁'}</em></button>`; }).join('')}</div></div>`).join('');
+  const show = id => {
+    const it = (CODEX.trap || []).find(x => x.id === id); if (!it) return;
+    for (const b of L.querySelectorAll('[data-bk]')) b.setAttribute('aria-current', b.dataset.bk === id ? 'true' : 'false');
+    const D = $('bkD'); D.style.setProperty('--cc', `var(--c-${TRAP[id].cat})`);
+    D.innerHTML = it.detail();
+    if (isUnlocked(id)) {
+      const u = document.createElement('button'); u.type = 'button'; u.className = 'cta bkUse'; u.dataset.use = id; u.textContent = '选用';
+      u.addEventListener('click', () => { selectTool(id); toggleBook(false); });
+      (D.querySelector('header') || D).appendChild(u);
     }
-    sec.appendChild(row); box.appendChild(sec);
-  });
+    bookSel = id;
+  };
+  for (const b of L.querySelectorAll('[data-bk]')) {
+    b.addEventListener('click', () => show(b.dataset.bk));
+    b.addEventListener('dblclick', () => { if (isUnlocked(b.dataset.bk)) { selectTool(b.dataset.bk); toggleBook(false); } });
+    if (!TOUCH) b.addEventListener('mouseenter', () => show(b.dataset.bk));
+  }
+  show(tool !== 'gun' ? tool : bookSel || TRAP_GROUPS[0].traps[0]);
 }
+let bookSel = null;
 function closePop() { if (popGrp === null) return; popGrp = null; $('trapPop').hidden = true; for (const g of TRAP_GROUPS) setChip(g); }
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = '';
@@ -3353,24 +3356,142 @@ function selectTool(id) {
   if (id !== 'gun') { const d = TRAP[id]; toast(`${d.name} · ${CAT_NAME[d.cat]} · ${sim ? sim.trapCost(id, PID) : d.cost} 金币`); }
   if (evoTrap !== null) closeEvo();
 }
+/* ============================================================
+ * 图鉴：左边图标格子，右边详情，一屏显示完，不需要翻页
+ * ============================================================ */
+function monTags(k) {
+  const m = MON[k], tags = [];
+  if (m.fly) tags.push('飞行，地面陷阱无效');
+  if (m.bomb) tags.push('遇到阻挡会自爆');
+  if (m.elite) tags.push('半血狂暴，免疫击退');
+  if (m.boss) tags.push('BOSS：血量 60% / 25% 时进入第二阶段和狂暴');
+  if (m.heal) tags.push('治疗周围怪物，优先击落');
+  if (m.stealth) tags.push('隐身：炮台锁不住，减速 / 攻击 / 靠近会现形');
+  if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌');
+  if (m.hack) tags.push('骇入附近陷阱，使其瘫痪 10 秒');
+  if (m.ranged) tags.push(`远程射击玩家（射程 ${m.ranged.range} 米，光弹可以躲）`);
+  if (m.burnImmune) tags.push('免疫燃烧');
+  if (m.split) tags.push('击破后分裂');
+  if (m.aura) tags.push('给周围敌人套能量护盾，同一只怪 8 秒内只能套一次');
+  if (m.cannon) tags.push(`炮击 ${m.cannon.range} 米内的炮台与阻挡物，使其瘫痪`);
+  if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%');
+  if (m.blink) tags.push(`每 ${m.blink.every} 秒向前瞬移 ${m.blink.dist} 米，越过阻挡`);
+  if (m.drop) tags.push('空投噬晶蛛');
+  if (m.heavy) tags.push('重装单位，电磁炮优先锁定');
+  if (k === 'mite') tags.push('体型小、速度快');
+  return tags;
+}
+const MON_COUNTER = {
+  shield: '优先在它身边放磁暴塔：磁暴塔、轨道电磁炮对护盾 ×3，激光 ×2.5，枪械 ×1.5；破盾瞬间敌人僵直 0.6 秒。',
+  tank: '护甲厚、几乎不怕眩晕。轨道电磁炮无视护甲并优先打它；炮台放远一点，避开它的炮击范围。',
+  blinker: '会越过一排阻挡，用覆盖整段通道的墙壁陷阱和炮台，而不是只靠一排磁暴塔。',
+  gunship: '防空导弹、岗哨机枪、加特林、电磁炮都能打；碎骨绞盘「引力漩涡」能把它拽到地上。',
+  stalker: '炮台锁不住隐身单位：侦察兵、减速器、亲手开枪都能让它现形。',
+  burrower: '钻地时无敌，冒头后集火；把陷阱铺长一点。',
+  bomber: '遇到阻挡会自爆，别让它贴近磁暴塔；用远程炮台在半路解决。',
+  healer: '会给周围怪回血，优先用防空导弹或枪械击落。',
+  sapper: '会骇入陷阱，用炮台在远处先打掉它。',
+  gunner: '会停下来射击玩家，站在它视线外或者横向跑动躲光弹。',
+  elite: '半血后狂暴提速，狙击枪和电磁炮最有效。',
+};
+const CODEX = {};
+function cdxItem(kind, it) { (CODEX[kind] || (CODEX[kind] = [])).push(it); }
+function dl(rows) { return `<dl class="cdxStats">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`; }
+const CAT_RULE = {
+  floor: '地面陷阱只能放在怪物通道上，对飞行怪无效；斜坡上不能放。',
+  wall: '墙壁陷阱挂在通道两侧的墙上（室外高出 2.5 米的崖壁也算），光束横贯整条通道。',
+  ceil: '天花板陷阱只能挂在室内天花板或二层桥底下。',
+  pad: '炮台可以放在炮台位、空地或地上琥珀色框出的 2×2 炮台位；也能直接放在通道上——会挡住怪物并被攻击（有耐久，会慢慢自我修复）。',
+  heavy: '重型炮台占地 2×2，最适合放在地上琥珀色框出的 2×2 炮台位，也能放在 2×2 的空地上。',
+  hfloor: '2×2 地面陷阱，铺在通道上 2×2 的位置。',
+};
+const TRAP_NOTE = {
+  gatling: '按 F 坐上去亲手扫射：先转管预热，之后每秒 20 发，对地对空都能打；连续开火约 5 秒会过热。F / 空格离开。',
+  mortar: '按 F 站上观测台，用准星在地上选落点开炮：冷却 ×0.55、伤害 ×1.15。',
+};
 function buildHelp() {
-  const lvStat = t => {
-    if (t.dps) return '每秒伤害 ' + t.dps.join(' / ');
-    if (t.slow) return '减速 ' + t.slow.map(v => Math.round(v * 100) + '%').join(' / ');
-    if (t.block) return '耐久 ' + t.hp.join(' / ');
-    const cd = Array.isArray(t.cd) ? t.cd : [t.cd, t.cd, t.cd, t.cd];
-    return '伤害 ' + t.dmg.join(' / ') + (cd[0] ? ` · 每 ${cd[0]}s` : '');
-  };
-  const rows = TRAP_GROUPS.flatMap(g => g.traps.map(id => TRAP[id])).map(t => `<tr><td><span class="kb">${keyCombo(t.id)}</span></td><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td>${CAT_NAME[t.cat]}</td><td class="num">${t.cost}</td><td>${t.desc.split(' · ')[1] || t.desc}<div class="lv">Lv1→4 ${lvStat(t)}</div></td></tr>`).join('');
-  $('trapTable').innerHTML = `<thead><tr><th>键</th><th>陷阱</th><th>位置</th><th>价格</th><th>作用</th></tr></thead><tbody>${rows}</tbody>`;
-  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.aura) tags.push('给周围敌人套能量护盾（同一只怪 8 秒内只能套一次）；磁暴塔、电磁炮对护盾 ×3，激光 ×2.5，枪械 ×1.5，破盾瞬间敌人僵直'); if (m.cannon) tags.push('炮击炮台与阻挡物使其瘫痪'); if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%'); if (m.blink) tags.push('周期性向前瞬移，越过阻挡'); if (m.drop) tags.push('空投噬晶蛛'); if (m.heavy) tags.push('重装单位·电磁炮优先锁定'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
-  $('monList').innerHTML = mons;
-  $('mapList').innerHTML = MAP_LIST.map(d => { const n = Object.keys(d.lanes).length, late = d.laneFrom ? Object.keys(d.laneFrom).length : 0; return `<li><b>${d.name} · ${d.sub}</b><span>${d.desc} 出怪口 ${n} 个${late ? `（${late} 个中途开启）` : ''} · ${d.waves.length} 波${d.outdoor ? ' · 室外 · 有高低差和二层桥' : ''}</span></li>`; }).join('');
-  $('evoTable').innerHTML = `<thead><tr><th>陷阱</th><th>进阶·甲</th><th>进阶·乙</th></tr></thead><tbody>` + TRAPS.map(t => `<tr><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td><b>${EVO[t.id].a.name}</b><div class="lv">${EVO[t.id].a.desc}</div></td><td><b>${EVO[t.id].b.name}</b><div class="lv">${EVO[t.id].b.desc}</div></td></tr>`).join('') + '</tbody>';
-  $('techList').innerHTML = TD.TECH.map((t, i) => `<li><b style="color:${TECH_CSS[i]}">${t.name}</b><span>${t.desc(1)}（每级叠加，最高 ${TD.TECH_MAX} 级） · ${t.cost.join(' / ')} 金币</span></li>`).join('');
-  $('devList').innerHTML = MAP_LIST.map(m => (m.devices || []).map(dv => `<li><b>${m.name} · ${devName(dv)}</b><span>${DEVICE[dv.type].desc}，冷却 ${DEVICE[dv.type].cd} 秒</span></li>`).join('')).join('');
-  $('comboList').innerHTML = COMBOS.map(c => `<li><b>联动 · ${c.name}</b><span>${c.desc}</span></li>`).join('');
-  $('wpnTable').innerHTML = `<thead><tr><th>键</th><th>武器</th><th>价格</th><th>伤害</th><th>弹匣</th><th>特点</th></tr></thead><tbody>` + WEAPONS.map((w, i) => `<tr><td><span class="kb">${i + 1}</span></td><td class="cat-gun"><span class="ic">${svgIcon(w.id)}</span>${w.name}</td><td class="num">${w.cost || '初始'}</td><td>${w.dmg}${w.pellets ? ' × ' + w.pellets : ''}${w.splash ? '（范围）' : ''}</td><td>${w.mag}</td><td>${w.desc}</td></tr>`).join('') + '</tbody>';
+  for (const k in CODEX) delete CODEX[k];
+  // —— 陷阱 ——
+  TRAP_GROUPS.forEach((g, gi) => g.traps.forEach((id, ti) => {
+    const t = TRAP[id];
+    cdxItem('trap', { id, grp: `${gi + 1} · ${g.name}`, name: t.name, icon: svgIcon(id), cat: t.cat, locked: () => !isUnlocked(id), detail: () => {
+      const ev = EVO[id], desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
+      return `<header><span class="ic">${svgIcon(id)}</span><h3>${t.name}</h3><span class="cdxMeta">${CAT_NAME[t.cat]} · ${t.cost} 金币 · 按 <span class="kb">${keyCombo(id)}</span></span></header>
+        <div class="cdxCols"><div>
+        ${isUnlocked(id) ? '' : `<p class="cdxLock">${lockText(id)}</p>`}
+        <p>${desc}</p>
+        ${dl(trapStats(t).map(([k, v]) => [k, v]))}<p class="cdxFoot">数值依次为 Lv1 / Lv2 / Lv3 / Lv4</p></div><div>
+        ${TRAP_NOTE[id] ? `<p class="cdxNote">${TRAP_NOTE[id]}</p>` : ''}
+        ${ev ? `<div class="cdxEvo"><h4>满级进阶（Lv3 → Lv4 二选一）</h4><p><b>${ev.a.name}</b>${ev.a.desc}</p><p><b>${ev.b.name}</b>${ev.b.desc}</p></div>` : ''}
+        <p class="cdxFoot">${CAT_RULE[t.cat] || ''}</p></div></div>`;
+    } });
+  }));
+  // —— 敌人 ——
+  for (const k of Object.keys(MON)) {
+    const m = MON[k], grp = m.boss ? 'BOSS' : m.elite || m.heavy ? '精英与重装' : m.fly ? '空中' : '地面';
+    cdxItem('mon', { id: k, grp, name: m.name, icon: svgIcon(m.boss ? 'ult' : m.fly ? 'aa' : 'spike'), cat: m.boss ? 'heavy' : m.elite || m.heavy ? 'wall' : m.fly ? 'ceil' : 'floor', detail: () => {
+      const tags = monTags(k);
+      return `<header><h3>${m.name}</h3><span class="cdxMeta">${grp}</span></header>
+        <div class="cdxCols"><div>
+        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['击杀奖励', m.bounty + ' 金币'], ['漏到水晶', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 水晶生命']])}
+        ${tags.length ? `<ul class="cdxTags">${tags.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p>基础单位，没有特殊能力。</p>'}</div><div>
+        ${TD.BOSS_TIP && TD.BOSS_TIP[k] ? `<p class="cdxNote">${TD.BOSS_TIP[k]}</p>` : ''}
+        ${MON_COUNTER[k] ? `<div class="cdxEvo"><h4>怎么对付</h4><p>${MON_COUNTER[k]}</p></div>` : ''}</div></div>`;
+    } });
+  }
+  // —— 武器与职业 ——
+  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header><p>${w.desc}</p>
+      ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}` }));
+  cdxItem('wpn', { id: 'nade', grp: '技能', name: SKILL.nade.name, icon: svgIcon('nade'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('nade')}</span><h3>${SKILL.nade.name}</h3><span class="cdxMeta">按 C 投掷</span></header><p>抛物线投掷，${SKILL.nade.fuse} 秒后爆炸。</p>${dl([['伤害', SKILL.nade.dmg], ['范围', SKILL.nade.r + ' 米'], ['数量', `最多 ${SKILL.nade.max} 枚（突击兵 +1）`], ['充能', `每 ${SKILL.nade.recharge} 秒 1 枚`]])}` });
+  cdxItem('wpn', { id: 'ult', grp: '技能', name: SKILL.ult.name, icon: svgIcon('ult'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('ult')}</span><h3>${SKILL.ult.name}</h3><span class="cdxMeta">能量满 100% 后按 Z</span></header><p>用枪造成伤害和击杀会积攒能量；满了以后对准地面呼叫，${SKILL.ult.delay} 秒后落下，大范围重创并眩晕敌人。</p>${dl([['伤害', SKILL.ult.dmg], ['范围', SKILL.ult.r + ' 米'], ['眩晕', SKILL.ult.stun + ' 秒']])}` });
+  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header><p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
+  // —— 关卡 ——
+  for (const d of MAP_LIST) {
+    cdxItem('map', { id: d.id, grp: '关卡', name: d.name, icon: `<canvas class="cdxThumb" data-map="${d.id}"></canvas>`, cat: d.outdoor ? 'hfloor' : 'floor', detail: () => {
+      const n = Object.keys(d.lanes).length, late = d.laneFrom ? Object.keys(d.laneFrom) : [], boss = d.waves[d.waves.length - 1];
+      const bossT = (boss.groups || []).filter(g => MON[g.t] && MON[g.t].boss).map(g => MON[g.t].name);
+      return `<header><h3>${d.name}</h3><span class="cdxMeta">${d.sub}${d.outdoor ? ' · 室外' : ' · 室内'}</span></header><p>${d.desc}</p>
+        ${dl([['出怪口', n + ' 个' + (late.length ? `（${late.map(l => `${d.laneNames[l] || l} 第 ${d.laneFrom[l]} 波开启`).join('，')}）` : '')], ['波次', d.waves.length + ' 波'], ['初始金币', d.gold], ['终局 BOSS', bossT.join(' + ') || '—'], ['地图机关', (d.devices || []).map(dv => devName(dv)).join('、') || '无'], ['科研舱', (d.labs || []).length ? '有' : '无']].concat(d.ladders ? [['梯子', d.ladders.length + ' 处（谷底爬回崖顶）']] : []))}
+        <canvas class="cdxBig" data-map="${d.id}"></canvas>`;
+    } });
+  }
+  // —— 机制 ——
+  const R = (id, grp, name, body) => cdxItem('rule', { id, grp, name, icon: '', cat: 'gun', detail: () => `<header><h3>${name}</h3><span class="cdxMeta">${grp}</span></header>${body}` });
+  R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
+  R('respawn', '基础规则', '复活保护', '<p>阵亡 5 秒后在基地复活，复活后 10 秒内无敌。</p>');
+  R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
+  R('unlock', '基础规则', '重型陷阱解锁', `<ul class="cdxTags">${Object.keys(UNLOCKS).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上。</p>`);
+  R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
+  R('height', '地形', '高地与崖壁', '<p>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯、斜坡或梯子，往下可以直接跳。通道旁高出 2.5 米以上的崖壁可以挂墙壁陷阱。</p>');
+  R('deck', '地形', '二层桥', '<p>桥面能站人、两侧有护栏；只有桥底下有天花板，露天的地方不能放粉碎锤。小地图上琥珀色方块是桥，亮色区域是高处，白色箭头指向上坡，绿色短横是梯子。</p>');
+  R('lab', '科研舱', '科研舱', '<p>每张地图都有一间科研舱（小地图上的紫色「科」）。走到科研终端旁按 F，用全队共享的金币研究科技，全队生效、本局有效；旁边的补给柜可以补满生命、手雷和弹药。</p>');
+  TD.TECH.forEach((t, i) => R('tech-' + t.id, '科研科技', t.name, `<p>${t.desc(1)}，每级叠加，最高 ${TD.TECH_MAX} 级。</p>${dl([['每级花费', t.cost.join(' / ') + ' 金币']])}`));
+  COMBOS.forEach(c => R('combo-' + c.name, '陷阱联动', c.name, `<p>${c.desc}</p>`));
+  for (const kind of ['trap', 'mon', 'wpn', 'map', 'rule']) renderCodexList(kind);
+}
+const cdxSel = {};
+function renderCodexList(kind) {
+  const box = $('cdxL-' + kind); if (!box) return;
+  const items = CODEX[kind] || [], groups = [];
+  for (const it of items) { let g = groups.find(x => x.name === it.grp); if (!g) groups.push(g = { name: it.grp, items: [] }); g.items.push(it); }
+  box.innerHTML = groups.map(g => `<div class="cdxGrp"><h4>${g.name}</h4><div class="cdxTiles${kind === 'map' ? ' maps' : ''}">${g.items.map(it => `<button type="button" class="cdxTile${it.locked && it.locked() ? ' locked' : ''}" style="--cc: var(--c-${it.cat})" data-cdx="${it.id}">${it.icon ? `<span class="ic">${it.icon}</span>` : ''}<span>${it.name}</span></button>`).join('')}</div></div>`).join('');
+  for (const b of box.querySelectorAll('[data-cdx]')) {
+    const show = () => selectCodex(kind, b.dataset.cdx);
+    b.addEventListener('click', show); b.addEventListener('focus', show);
+    if (!TOUCH) b.addEventListener('mouseenter', show);
+  }
+  for (const cv of box.querySelectorAll('canvas[data-map]')) { try { drawThumb(cv, MAPS[cv.dataset.map]); } catch (e) { /* 忽略 */ } }
+  const dd = $('cdxD-' + kind); if (dd) dd.dataset.cur = '';
+  selectCodex(kind, cdxSel[kind] || (items[0] && items[0].id));
+}
+function selectCodex(kind, id) {
+  const it = (CODEX[kind] || []).find(x => x.id === id); if (!it) return;
+  const d0 = $('cdxD-' + kind); if (cdxSel[kind] === id && d0 && d0.dataset.cur === id) return;
+  cdxSel[kind] = id; if (d0) d0.dataset.cur = id;
+  for (const b of document.querySelectorAll(`#cdxL-${kind} [data-cdx]`)) b.setAttribute('aria-current', b.dataset.cdx === id ? 'true' : 'false');
+  const d = $('cdxD-' + kind); d.style.setProperty('--cc', `var(--c-${it.cat})`);
+  d.innerHTML = it.detail();
+  for (const cv of d.querySelectorAll('canvas[data-map]')) { try { drawThumb(cv, MAPS[cv.dataset.map]); } catch (e) { /* 忽略 */ } }
 }
 
 let mapCtx = null, mapBase = null, mapTimer = 0, MMK = 5;
@@ -4512,6 +4633,7 @@ function resumeGame() {
 }
 function openHelp(tab) {
   if (mode === 'play') { pauseGame(); }
+  buildHelp();
   if (tab) setHelpTab(tab);
   show('help', true);
   $('help').scrollTop = 0;

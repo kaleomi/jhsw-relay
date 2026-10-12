@@ -257,10 +257,27 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 .pips i.on { background: var(--tc); box-shadow: 0 0 6px var(--tc); }
 #techBar { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
 #techBar span { font-size: 11px; padding: 1px 6px; color: var(--tc); border: 1px solid var(--tc); background: rgba(0, 0, 0, .35); letter-spacing: .05em; }
-#trapBook { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%); width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 150px); padding: 14px 16px 16px; background: rgba(7, 12, 19, .97); clip-path: var(--cut); pointer-events: auto; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; z-index: 6; }
+#trapBook { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%); width: min(1100px, calc(100vw - 32px)); height: min(600px, calc(100vh - 150px)); padding: 14px 16px 16px; background: rgba(7, 12, 19, .97); clip-path: var(--cut); pointer-events: auto; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; z-index: 6; }
 #trapBook[hidden] { display: none; }
 #trapBook .shopHead { align-items: center; flex-wrap: nowrap; }
-#bookList { overflow-y: auto; display: grid; gap: 14px; padding-right: 4px; scrollbar-width: thin; }
+#bookList { min-height: 0; }
+.bookCdx { grid-template-columns: minmax(0, 1fr) minmax(300px, 50%) !important; height: 100%; }
+.bookCdx .cdxTile em { margin-left: auto; font-style: normal; font-family: var(--f-num); font-size: 12px; color: var(--gold); }
+.bookCdx .cdxTile em.poor { color: var(--danger); }
+.bookCdx .cdxTile.cur { box-shadow: inset 0 -2px 0 var(--cc); }
+.bookCdx .cdxCols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.bkUse { margin-left: auto; padding: 8px 20px; font-size: 14px; letter-spacing: .14em; }
+.bookCdx .cdxTile > span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+@media (max-height: 560px) {
+  #trapBook { padding: 8px 10px 10px; gap: 6px; }
+  #trapBook .shopHead span { display: none; }
+  #trapBook .shopHead h3 { margin: 0; font-size: 15px; }
+  .bookCdx { grid-template-columns: minmax(0, 1fr) minmax(280px, 58%) !important; }
+  .bookCdx .cdxTiles { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+  .bookCdx .cdxTile { padding: 4px 6px; font-size: 11.5px; }
+  .bookCdx .cdxTile em { font-size: 10.5px; }
+  .bkUse { padding: 6px 14px; font-size: 13px; }
+}
 .bkGrp h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; letter-spacing: .06em; }
 .bkGrp h4 small { font-size: 12px; font-weight: 400; color: var(--faint); }
 .bkRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
@@ -280,7 +297,7 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 .bkEvo { font-size: 11.5px; line-height: 1.55; color: var(--dim); padding-top: 6px; border-top: 1px dashed var(--line); }
 .bkEvo span { display: block; color: var(--faint); margin-bottom: 2px; }
 .bkEvo b { color: var(--gold); font-weight: 600; }
-body.touch #trapBook { max-height: calc(100vh - 24px); top: 50%; transform: translate(-50%, -50%); }
+body.touch #trapBook { height: calc(100vh - 24px); top: 50%; transform: translate(-50%, -50%); }
 body.touch .bkRow { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 #shopList { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
 .wcard { position: relative; display: grid; gap: 4px; align-content: start; text-align: left; padding: 10px 10px 12px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); cursor: pointer; color: var(--ink); }
@@ -553,7 +570,7 @@ body.touch .pitch { font-size: 13px; }
 .lbList li small { grid-column: 2; color: var(--dim); font-size: 12px; }
 .lbList li em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-size: 20px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
 .lbList .empty { display: block; color: var(--dim); background: none; border: 0; }
-.fullPage { background: rgba(3, 6, 10, .97) !important; backdrop-filter: none !important; z-index: 20; }
+.fullPage { background: #04070c !important; backdrop-filter: none !important; z-index: 20; }
 .fpIn { width: 100%; min-height: 100%; display: flex; flex-direction: column; }
 .fpHead { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 14px; padding: calc(10px + env(safe-area-inset-top, 0px)) calc(16px + env(safe-area-inset-right, 0px)) 10px calc(16px + env(safe-area-inset-left, 0px)); background: rgba(6, 10, 16, .98); border-bottom: 1px solid var(--line); }
 .fpHead h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 26px; letter-spacing: .12em; white-space: nowrap; }
@@ -563,6 +580,81 @@ body.touch .pitch { font-size: 13px; }
 .fpClose { flex: none; padding: 10px 18px; font-size: 15px; font-weight: 600; letter-spacing: .1em; color: #04222c; background: var(--crys); border: 0; cursor: pointer; clip-path: var(--cut); }
 .fpBody { width: min(980px, 100%); box-sizing: border-box; margin: 0 auto; padding: 18px calc(16px + env(safe-area-inset-right, 0px)) 40px calc(16px + env(safe-area-inset-left, 0px)); display: grid; gap: 14px; }
 .fpBody section { display: grid; gap: 12px; align-content: start; }
+/* 图鉴：一屏显示，左边格子、右边详情 */
+#help { overflow: hidden; }
+.cdxIn { height: 100%; min-height: 0; }
+.cdxBody { flex: 1; min-height: 0; width: min(1280px, 100%); padding-bottom: 16px; display: block; }
+.cdxBody > section { height: 100%; }
+.cdxBody > section[hidden] { display: none; }
+.cdxBody > section[data-htab="ctrl"], .cdxBody > section[data-htab="credit"] { overflow: auto; align-content: start; }
+.cdx { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 46%); gap: 18px; min-height: 0; }
+.cdxList { display: grid; align-content: start; gap: 12px; min-height: 0; overflow: auto; scrollbar-width: thin; }
+.cdxGrp h4 { margin: 0 0 6px; font-size: 12.5px; font-weight: 500; color: var(--faint); letter-spacing: .06em; }
+.cdxTiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 6px; }
+.cdxTiles.maps { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.cdxTile { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; font: inherit; font-size: 13.5px; color: var(--ink); text-align: left; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); border-left: 3px solid var(--cc); cursor: pointer; }
+.cdxTile > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdxTile .ic { flex: none; display: grid; place-items: center; width: 20px; height: 20px; color: var(--cc); }
+.cdxTile .ic svg { width: 100%; height: 100%; }
+.cdxTiles.maps .cdxTile { flex-direction: column; align-items: stretch; gap: 6px; }
+.cdxTiles.maps .ic { width: 100%; height: 64px; }
+.cdxThumb { width: 100%; height: 64px; object-fit: contain; image-rendering: pixelated; }
+.cdxTile:hover, .cdxTile:focus-visible { background: color-mix(in srgb, var(--cc) 10%, transparent); outline: none; }
+.cdxTile[aria-current="true"] { background: color-mix(in srgb, var(--cc) 18%, transparent); border-color: var(--cc); }
+.cdxTile.locked { opacity: .55; }
+.clsMark { font-family: var(--f-disp); font-weight: 400; font-size: 16px; color: var(--cc); }
+.cdxDetail { --cc: var(--crys); min-height: 0; overflow: auto; scrollbar-width: thin; display: grid; gap: 10px; align-content: start; padding: 16px 18px 18px; background: linear-gradient(170deg, rgba(14, 24, 36, .9), rgba(7, 12, 19, .9)); border: 1px solid var(--line); border-top: 2px solid var(--cc); font-size: 13.5px; line-height: 1.65; }
+.cdxDetail header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.cdxDetail header .ic { width: 30px; height: 30px; color: var(--cc); }
+.cdxDetail header .ic svg { width: 100%; height: 100%; }
+.cdxDetail h3 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 28px; letter-spacing: .08em; color: var(--cc); }
+.cdxMeta { font-size: 12.5px; color: var(--dim); }
+.cdxDetail p { margin: 0; color: var(--ink); }
+.cdxNote { padding: 8px 10px; background: rgba(95, 227, 255, .06); border-left: 2px solid var(--crys); color: var(--ink); }
+.cdxLock { padding: 6px 10px; background: rgba(255, 181, 71, .08); border-left: 2px solid var(--gold); color: var(--gold) !important; }
+.cdxFoot { font-size: 12.5px; color: var(--dim) !important; }
+.cdxStats { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; font-size: 13px; }
+.cdxStats dt { color: var(--faint); white-space: nowrap; }
+.cdxStats dd { margin: 0; font-family: var(--f-num); }
+.cdxTags { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; color: var(--ink); }
+.cdxEvo { display: grid; gap: 4px; padding-top: 8px; border-top: 1px dashed var(--line); }
+.cdxEvo h4 { margin: 0; font-size: 12.5px; font-weight: 500; color: var(--faint); }
+.cdxEvo b { color: var(--gold); font-weight: 600; margin-right: 8px; }
+.cdxCols { display: grid; gap: 10px; align-content: start; }
+.cdxCols > div { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.cdxCols > div:empty { display: none; }
+@media (min-width: 1100px) { .cdxCols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; } }
+.cdxBig { width: 100%; max-height: 30vh; object-fit: contain; image-rendering: pixelated; background: #05080c; border: 1px solid var(--line); }
+@media (max-height: 560px) {
+  .cdxBody { padding-top: 8px; padding-bottom: 8px; }
+  .cdx { grid-template-columns: minmax(0, 1fr) minmax(300px, 64%); gap: 10px; }
+  .cdxCols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+  .cdxFoot { display: none; }
+  .cdxNote { padding: 4px 8px; }
+  .cdxEvo { gap: 1px; padding-top: 4px; }
+  .cdxDetail header .ic { width: 22px; height: 22px; }
+  .cdxTiles { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 3px; }
+  .cdxTile { padding: 4px 6px; font-size: 11.5px; gap: 5px; }
+  .cdxTile .ic { width: 15px; height: 15px; }
+  #help .fpHead { padding-top: calc(4px + env(safe-area-inset-top, 0px)); padding-bottom: 4px; }
+  #help .fpHead h2 { font-size: 20px; }
+  #help .fpTabs button { padding: 6px 10px; font-size: 13px; }
+  #help .fpClose { padding: 7px 12px; font-size: 13px; }
+  .cdxBig { display: none; }
+  .cdxStats { font-size: 12px; gap: 2px 10px; }
+  .cdxTags { gap: 1px; }
+  .cdxGrp h4 { margin-bottom: 3px; font-size: 11px; }
+  .cdxList { gap: 6px; }
+  .cdxDetail { padding: 10px 12px; font-size: 12.5px; line-height: 1.5; gap: 6px; }
+  .cdxDetail h3 { font-size: 21px; }
+  .cdxTiles.maps .ic, .cdxThumb { height: 40px; }
+  .cdxBig { max-height: 22vh; }
+}
+@media (max-width: 700px) { .cdx { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); } }
+@media (max-height: 680px) and (min-height: 561px) { .cdxBig { max-height: 20vh; } }
+@media (max-height: 400px) { .bkUse { padding: 4px 12px; font-size: 12px; } .bookCdx .cdxGrp h4 { display: none; } .bookCdx .cdxList { gap: 4px; } .cdxDetail { font-size: 11.5px; line-height: 1.4; padding: 8px 10px; gap: 4px; } .cdxDetail h3 { font-size: 18px; } .cdxStats { font-size: 11px; } .cdxCols > div { gap: 4px; } .cdxEvo h4 { font-size: 11px; } }
+.cdxBody .keys { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cdxBody .credits { columns: 2; column-gap: 28px; font-size: 12.5px; }
 .setRow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; border-bottom: 1px solid rgba(120, 190, 225, .1); }
 .setRow > div { display: grid; gap: 2px; }
 .setRow b { font-weight: 500; font-size: 14px; }
@@ -778,7 +870,7 @@ body.tEditOnly #hud { background: #05080c; }
     <div id="evoList" class="pickList"></div>
   </div>
   <div id="trapBook" hidden>
-    <div class="shopHead"><h3>陷阱一览</h3><span>按 1-5 打开分组，再按数字选组内第几个 · 点卡片直接选中 · Tab / Esc 关闭</span><button type="button" class="pClose" data-close="book" aria-label="关闭">✕</button></div>
+    <div class="shopHead"><h3>陷阱一览</h3><span>按 1-5 打开分组，再按数字选组内第几个 · 点格子看详情，双击或点「选用」直接拿在手上 · Tab / Esc 关闭</span><button type="button" class="pClose" data-close="book" aria-label="关闭">✕</button></div>
     <div id="bookList"></div>
   </div>
   <div id="shop" hidden>
@@ -1002,52 +1094,16 @@ body.tEditOnly #hud { background: #05080c; }
 </div>
 
 <div id="help" class="overlay fullPage" hidden>
-  <div class="fpIn">
+  <div class="fpIn cdxIn">
     <div class="fpHead"><h2>图鉴</h2><nav class="fpTabs" id="helpTabs">
-      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="evo">进阶联动</button><button type="button" data-htab="map">地图与规则</button><button type="button" data-htab="wpn">武器技能</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
+      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="wpn">武器与职业</button><button type="button" data-htab="map">关卡</button><button type="button" data-htab="rule">机制</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
     </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
-    <div class="fpBody">
-      <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
-    <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在地上琥珀色框出的 2×2 炮台位（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
-    <p class="fine"><b>加特林炮塔（按 4 再按 3 选择）</b>放在炮台位或空地上，没人时会自动扫射（火力较弱）；走到旁边按 F 坐上去亲手操控：按住左键先转管预热，转速起来后每秒 20 发，对地对空随意扫射，伤害随炮塔等级提升。连续开火约 5 秒会过热，要松手等枪管冷却（进阶「液冷枪管」不会过热）。再按 F 或空格离开。</p>
-    <p class="fine"><b>重型陷阱（按 5 打开分组，需要先解锁）</b>轨道电磁炮：通关「空间站·中枢」；碎骨绞盘：通关「三岔要塞」；等离子迫击炮：累计击杀 800 只怪物（任意难度、单人联机都算）。占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
-    <p class="fine"><b>BOSS 分阶段</b>：BOSS 血量降到 60% 时进入第二阶段，会怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫；降到 25% 时进入狂暴，移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>
-    </section>
-      <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
-    <ul id="comboList" class="comboList"></ul>
-    </section>
-      <section data-htab="map" hidden><h3>关卡</h3><ul id="mapList" class="comboList"></ul>
-    <h3 style="margin-top:14px">地形：高低差与二层</h3>
-    <ul class="comboList">
-      <li><b>高地与崖壁</b><span>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你（远程怪仍然能射你）；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯或斜坡，往下可以直接跳。</span></li>
-      <li><b>崖壁当墙用</b><span>通道旁边高出 2.5 米以上的崖壁可以挂墙壁陷阱（激光、火焰）。</span></li>
-      <li><b>二层桥</b><span>桥面能站人、两侧有护栏；只有桥底下有天花板，露天的地方不能放天花板陷阱（粉碎锤）。小地图上琥珀色方块就是桥，亮色区域是高处，白色箭头指向上坡方向。</span></li>
-      <li><b>斜坡</b><span>斜坡上不能放地面陷阱。</span></li>
-    </ul>
-    <h3 style="margin-top:14px">规则</h3>
-    <ul class="comboList">
-      <li><b>复活保护</b><span>阵亡 5 秒后在基地复活，复活后 10 秒内无敌。</span></li>
-      <li><b>躲子弹</b><span>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</span></li>
-      <li><b>无尽排行榜</b><span>无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</span></li>
-    </ul>
-    <h3 style="margin-top:14px">地图机关</h3><ul id="devList" class="comboList"></ul>
-    <h3 style="margin-top:14px">科研舱</h3><p class="fine">每张地图都有一间科研舱（小地图上的紫色「科」标记）。走到<b>科研终端</b>旁按 F 打开研究面板，用全队共享的金币研究科技，效果全队生效、本局有效，房间里的服务器机柜每研究一级亮一盏灯；中央的全息沙盘实时显示整张地图的敌人位置。旁边的<b>补给柜</b>按 F 可补满生命、手雷和全部弹匣，并充能 25% 轨道打击，每人冷却 50 秒。</p>
-    <ul id="techList" class="comboList"></ul>
-    </section>
-      <section data-htab="wpn" hidden><div class="tblWrap"><table id="wpnTable"></table></div>
-    <p class="fine">B 打开军械库购买武器（花全队共享的金币，本局有效），Q 在已拥有的武器间切换。C 投掷电浆手雷（最多 2 枚，每 14 秒充能 1 枚）。用枪造成伤害和击杀会积攒能量，满 100% 后按 Z 对准地面呼叫轨道打击：1.3 秒后落下，大范围重创并眩晕敌人。</p>
-    </section>
-      <section data-htab="mon" hidden>
-    <h3>克制要点</h3>
-    <ul class="comboList">
-      <li><b>棱盾守卫</b><span>护盾先吸收伤害，同一只怪 8 秒内只能被套一次盾。磁暴塔、轨道电磁炮对护盾 ×3，激光 ×2.5，枪械 ×1.5；破盾瞬间敌人僵直 0.6 秒。优先在守卫身边放磁暴塔。</span></li>
-      <li><b>铁蹄坦克</b><span>护甲 40%、眩晕时间减 60%，会炮击 15 米内的炮台和阻挡物让它们瘫痪。轨道电磁炮无视护甲、优先打它；把炮台放远一点。</span></li>
-      <li><b>相位行者</b><span>每隔几秒沿路线向前瞬移 6 米，能越过阻挡。用覆盖整段通道的墙壁陷阱和炮台，而不是只靠一排磁暴塔。</span></li>
-      <li><b>天穹炮艇</b><span>重装飞行单位，会射击玩家并空投噬晶蛛。防空导弹、岗哨机枪、电磁炮都能打；碎骨绞盘「引力漩涡」能把它拽到地上。</span></li>
-      <li><b>精英 / BOSS</b><span>半血狂暴；BOSS 有各自的技能，见每波开战时的提示。狙击枪和电磁炮最有效。</span></li>
-    </ul>
-    <h3 style="margin-top:14px">全部敌人</h3><ul id="monList"></ul>
-    </section>
+    <div class="fpBody cdxBody">
+      <section data-htab="trap" class="cdx"><div class="cdxList" id="cdxL-trap"></div><article class="cdxDetail" id="cdxD-trap"></article></section>
+      <section data-htab="mon" class="cdx" hidden><div class="cdxList" id="cdxL-mon"></div><article class="cdxDetail" id="cdxD-mon"></article></section>
+      <section data-htab="wpn" class="cdx" hidden><div class="cdxList" id="cdxL-wpn"></div><article class="cdxDetail" id="cdxD-wpn"></article></section>
+      <section data-htab="map" class="cdx" hidden><div class="cdxList" id="cdxL-map"></div><article class="cdxDetail" id="cdxD-map"></article></section>
+      <section data-htab="rule" class="cdx" hidden><div class="cdxList" id="cdxL-rule"></div><article class="cdxDetail" id="cdxD-rule"></article></section>
       <section data-htab="ctrl" hidden><div id="ctrlHelp" class="keys"></div><p id="ctrlTouch" class="fine" hidden>触屏：左半屏拖动移动（推到底冲刺），右半屏滑动转视角；右下角开火 / 跳跃 / 换弹 / 手雷 / 轨道打击 / 瞄准 / 切枪；顶部陷阱栏点选后按「放置」；走近机关或科研舱、对准陷阱时，屏幕下方会出现互动、升级、拆除按钮。按钮位置可以在 设置 → 触屏按钮 里调整。</p></section>
       <section data-htab="credit" hidden><p class="fine credits">赛博格步兵 / 重装赛博格：RobotExpressive，作者 Tomás Laulhé（Quaternius），CC0。<br>疾行猎犬：Fox，模型 PixelMannen（CC0），绑定与动画 tomkranis（CC BY 4.0），glTF 转换 AsoboStudio 与 scurest（CC BY 4.0）。<br>浮游无人机、脉冲步枪、岗哨机枪枪身：Kenney Starter Kit FPS（MIT）。<br>其余模型、特效与音效为程序生成。</p>
     </section>
