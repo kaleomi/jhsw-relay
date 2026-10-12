@@ -83,6 +83,9 @@ const TRAPS = [
     desc: '重型炮台 2×2 · 远程曲射，自动轰击怪物最密集的位置，大范围溅射（只打地面）' },
   { id: 'grinder', key: '=', name: '碎骨绞盘', cat: 'hfloor', big: true, cost: 540, dps: [150, 235, 350, 500], slow: [0.3, 0.35, 0.4, 0.45],
     desc: '地面 2×2 · 铺在通道上的巨型绞盘，持续撕碎经过的地面敌人并减速（无视护甲）' },
+  // —— 可操控炮台：走到旁边按 F 坐上去，亲手扫射 ——
+  { id: 'gatling', key: '[', name: '加特林炮塔', cat: 'pad', cost: 420, cd: 0.1, range: [18, 19, 20, 22], dmg: [9, 14, 20, 29], gun: [16, 24, 35, 50],
+    desc: '炮台位 · 无人时自动扫射（火力较弱）；走到旁边按 F 亲自操控：枪管转起来后每秒 20 发，对地对空随意扫射，连续开火约 5 秒会过热' },
 ];
 const BIG_CATS = { heavy: 1, hfloor: 1 };
 const kindOfCat = cat => (cat === 'pad' || cat === 'heavy' || cat === 'hfloor') ? 'floor' : cat;
@@ -98,6 +101,7 @@ const EVO = {
   laser: { a: { name: '过载激光', desc: '伤害 ×1.6' }, b: { name: '棱镜光束', desc: '光束延长到 6 格，并减速被照射的敌人' } },
   flame: { a: { name: '凝固汽油', desc: '灼烧时间延长到 5 秒，灼烧伤害 ×1.4' }, b: { name: '蓝焰', desc: '伤害 ×1.4，对精英和 BOSS 再 +50%' } },
   crusher: { a: { name: '重锤', desc: '伤害 ×1.5，眩晕延长到 1.6 秒' }, b: { name: '连击锤', desc: '冷却缩短 40%' } },
+  gatling: { a: { name: '六管转膛', desc: '射速 +35%（亲手操控和自动扫射都生效）' }, b: { name: '液冷枪管', desc: '亲手操控不会过热，自动扫射伤害 ×1.5' } },
   rail: { a: { name: '超载线圈', desc: '伤害 ×1.6，命中的非 BOSS 敌人眩晕 0.8 秒' }, b: { name: '速射轨道', desc: '冷却缩短 45%' } },
   mortar: { a: { name: '燃烧弹', desc: '落点燃起烈焰，灼烧范围内敌人 4 秒' }, b: { name: '集束弹', desc: '炮弹炸开后再散落 4 枚子弹药' } },
   grinder: { a: { name: '锯刃风暴', desc: '伤害 ×1.6' }, b: { name: '引力漩涡', desc: '把 5 米内的飞行敌人拽到地面撕碎，减速范围扩大一圈' } },
@@ -174,7 +178,7 @@ const COMBOS = [
 const UPG_MUL = [0.8, 1.2, 1.6];   // Lv1→2, 2→3, 3→4
 const MAX_LV = 4;
 // 炮台类放在怪物通道上时的耐久（会挡路并被攻击）
-const LANE_HP = { sentry: [900, 1400, 2000, 2800], aa: [800, 1250, 1800, 2500] };
+const LANE_HP = { sentry: [900, 1400, 2000, 2800], aa: [800, 1250, 1800, 2500], gatling: [1000, 1500, 2200, 3000] };
 const CAT_NAME = { floor: '地面', pad: '炮台位', wall: '墙壁', ceil: '天花板', heavy: '重型炮台位', hfloor: '通道 2×2' };
 
 /* ---------- 武器 / 技能 ----------
@@ -192,6 +196,17 @@ const WEAPONS = [
     desc: '火箭弹范围爆炸，地面和空中目标都能炸' },
 ];
 const WPN = {}; WEAPONS.forEach(w => { WPN[w.id] = w; w.maxHit = w.dmg * (w.head || 1) * (w.pellets || 1); });
+// 坐上加特林炮塔时使用的“武器”（不在军械库里出售）；伤害随炮塔等级变化
+const GATLING_W = {};
+function gatlingW(lv, br) {
+  const k = lv + br;
+  if (!GATLING_W[k]) {
+    const d = [16, 24, 35, 50][lv - 1];
+    GATLING_W[k] = { id: 'gatling', name: '加特林炮塔', dmg: d, rps: 20 * (br === 'a' ? 1.35 : 1), mag: 999, reload: 0, spread: 0.016, bloom: 0.02, head: 1.5, kick: 0.12, maxHit: d * 1.5, noHeat: br === 'b' };
+  }
+  return GATLING_W[k];
+}
+WPN.gatling = gatlingW(4, 'a');   // 仅用于伤害上限校验
 const SKILL = {
   nade: { name: '电浆手雷', max: 2, recharge: 14, dmg: 260, r: 3.6, fuse: 1.6 },
   ult: { name: '轨道打击', dmg: 1100, r: 5.5, delay: 1.3, stun: 1.6 },
@@ -906,6 +921,37 @@ class Sim {
     if (!p.dead && p.hp <= 0) p.hp = p.maxHp;
     p.nadeMax = SKILL.nade.max + p.tal.grenade + (p.cls === 'assault' ? 1 : 0);
   }
+  // 加特林炮塔：玩家当前操控的炮塔（炮塔没了就自动下来）
+  mountOf(p) {
+    if (!p.mount) return null;
+    const tr = this.s.traps.find(t => t.id === p.mount);
+    if (!tr || tr.type !== 'gatling' || p.dead) { p.mount = 0; return null; }
+    return tr;
+  }
+  gunnerOf(tr) {
+    for (const id in this.s.players) { const q = this.s.players[id]; if (q.mount === tr.id && !q.dead) return q; }
+    return null;
+  }
+  // 能否坐上某座炮塔（距离 / 有没有人）
+  canMount(p, tr) {
+    if (!p || p.dead || !tr || tr.type !== 'gatling') return { ok: false };
+    if (Math.hypot(p.x - tr.wx, p.z - tr.wz) > 3.2) return { ok: false, reason: '离炮塔太远' };
+    const g = this.gunnerOf(tr);
+    if (g && g !== p) return { ok: false, reason: `${g.name} 正在操控这座炮塔` };
+    return { ok: true };
+  }
+  // 坐上 / 离开炮塔（本机直接调用；队友通过位置上报同步）
+  setMount(p, id) {
+    if (!id) { if (p.mount) { const tr = this.mountOf(p); p.mount = 0; if (tr) { p.x = tr.wx + Math.sin(p.yaw) * 1.5; p.z = tr.wz + Math.cos(p.yaw) * 1.5; this._collide(p); p.y = this.groundAt(p.x, p.z, p.y + 0.3); p.vy = 0; } } return { ok: true }; }
+    const tr = this.s.traps.find(t => t.id === id), r = this.canMount(p, tr);
+    if (!r.ok) return r;
+    p.mount = id; p.spin = 0; p.heat = p.heat || 0; p.reloadT = 0; p.vx = p.vz = p.vy = 0;
+    return { ok: true };
+  }
+  wpnOf(p) {
+    const tr = p.mount ? this.mountOf(p) : null;
+    return tr ? gatlingW(tr.lv, tr.br) : (WPN[p.wpn] || WPN.rifle);
+  }
   gunMul(p) { return (1 + 0.08 * ((p.tal && p.tal.gunDmg) || 0)) * (1 + 0.12 * this.techLv('ammo')) *(this.hasMut('glass') ? 2 : 1) * (p.cls === 'assault' ? 1.2 : 1) * (p.cls === 'scout' && p.wpn === 'sniper' ? 1.25 : 1); }
   setClass(p, cls) { if (!CLS[cls] || p.cls === cls) return; p.cls = cls; this.setTalents(p, p.tal); }
   removePlayer(pid) {
@@ -920,6 +966,7 @@ class Sim {
     p.x = p.ox = (sp[0] + 0.5) * T; p.z = p.oz = (sp[1] + 0.5) * T; p.y = p.oy = this.tileH(sp[0], sp[1]);
     p.vx = p.vy = p.vz = 0; p.hp = p.maxHp; p.dead = false; p.ammo = p.mag; p.reloadT = 0; p.life++;
     p.invT = 10;   // 复活后 10 秒无敌
+    p.mount = 0; p.heat = 0; p.overheat = false;
     for (const g of p.guns) p.ammoBy[g] = WPN[g].mag;
     this.ev('respawn', { pid: p.id });
   }
@@ -942,6 +989,8 @@ class Sim {
         p.x = cmd.x; p.y = Math.max(0, cmd.y); p.z = cmd.z; p.yaw = cmd.yaw; p.pitch = cmd.pitch;
         p.input.fire = !!cmd.fire; p.input.yaw = cmd.yaw; p.input.pitch = cmd.pitch;
         if (cmd.wpn && p.guns.includes(cmd.wpn)) p.wpn = cmd.wpn;
+        if ((cmd.mount | 0) !== (p.mount | 0)) { if (cmd.mount) { const tr = s.traps.find(t => t.id === cmd.mount); if (this.canMount(p, tr).ok) p.mount = cmd.mount; } else p.mount = 0; }
+        if (p.mount) { const tr = this.mountOf(p); if (tr) tr.aimYaw = p.yaw; }
         return { ok: true };
       }
       case 'use': {
@@ -1034,7 +1083,7 @@ class Sim {
       case 'dmg': {
         if (!p || !Array.isArray(cmd.h)) return { ok: false };
         let n = 0;
-        const cap = (WPN[p.wpn] || WPN.rifle).maxHit * this.gunMul(p);
+        const cap = Math.max(this.wpnOf(p).maxHit, (WPN[p.wpn] || WPN.rifle).maxHit) * this.gunMul(p);
         for (const h of cmd.h.slice(0, 40)) {
           const m = this._mById.get(h[0]) || s.monsters.find(q => q.id === h[0]);
           if (!m || m.dead) continue;
@@ -1403,6 +1452,24 @@ class Sim {
             this.damage(tgt, def.dmg[lv - 1] * (br === 'b' ? 1.6 : 1), 'trap');
             tr.cd = def.cd * (br === 'a' ? 0.5 : 1); tr.fireT = s.time;
             this.ev('tshot', { id: tr.id, x: tgt.x, y: tgt.y + MON[tgt.type].body[0], z: tgt.z });
+          }
+          break;
+        }
+        case 'gatling': {
+          const gp = this.gunnerOf(tr);
+          if (gp) { tr.aimYaw = gp.yaw; tr.tgt = 0; if (gp.input.fire || gp.fire) tr.fireT = s.time; break; }
+          tr.scanT -= dt;
+          const R = def.range[lv - 1];
+          let tgt = tr.tgt ? this._mById.get(tr.tgt) : null;
+          if (tgt && (tgt.dead || Math.hypot(tgt.x - tr.wx, tgt.z - tr.wz) > R)) tgt = null;
+          if (!tgt || tr.scanT <= 0) { tgt = this._pickTarget(tr, R, true, true); tr.tgt = tgt ? tgt.id : 0; tr.scanT = 0.3; }
+          tr.spin = Math.max(0, Math.min(1, (tr.spin || 0) + (tgt ? dt / 0.6 : -dt / 1.2)));
+          if (!tgt) { if (tr.cd < 0) tr.cd = 0; break; }
+          tr.aimYaw = Math.atan2(-(tgt.x - tr.wx), -(tgt.z - tr.wz));
+          if (tr.cd <= 0 && tr.spin > 0.4) {
+            this.damage(tgt, def.dmg[lv - 1] * (br === 'b' ? 1.5 : 1), 'trap');
+            tr.cd = def.cd / (br === 'a' ? 1.35 : 1) / (0.4 + 0.6 * tr.spin); tr.fireT = s.time;
+            if ((tr.shots = (tr.shots || 0) + 1) % 2 === 0) this.ev('tshot', { id: tr.id, x: tgt.x, y: tgt.y + MON[tgt.type].body[0], z: tgt.z });
           }
           break;
         }
@@ -2147,6 +2214,14 @@ class Sim {
   movePlayer(p, dt) {
     const inp = p.input;
     p.yaw = inp.yaw; p.pitch = Math.max(-1.5, Math.min(1.5, inp.pitch));
+    const mt = p.mount ? this.mountOf(p) : null;
+    if (mt) {
+      // 坐在炮塔上：站在枪身后面的踏板上（抬高 0.5 米），跟着视角绕炮塔转动，不能走动
+      mt.aimYaw = p.yaw;
+      p.x = mt.wx + Math.sin(p.yaw) * 0.55; p.z = mt.wz + Math.cos(p.yaw) * 0.55; p.y = mt.wy + 0.5; p.vx = p.vy = p.vz = 0; p.ground = true;
+      p.pitch = Math.max(-0.75, Math.min(0.9, p.pitch));
+      return;
+    }
     const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), rx = Math.cos(p.yaw), rz = -Math.sin(p.yaw);
     let wx = fx * inp.mz + rx * inp.mx, wz = fz * inp.mz + rz * inp.mx;
     const wl = Math.hypot(wx, wz); if (wl > 1) { wx /= wl; wz /= wl; }
@@ -2181,6 +2256,8 @@ class Sim {
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {
+    const mt = p.mount ? this.mountOf(p) : null;
+    if (mt) return this._gatlingFire(p, mt, dt);
     const inp = p.input, W = WPN[p.wpn] || WPN.rifle;
     let fired = false;
     p.fireCd -= dt; p.bloom = Math.max(0, p.bloom - dt * 2.5);
@@ -2196,6 +2273,25 @@ class Sim {
       p.fireCd = Math.max(0, p.fireCd) + 1 / W.rps;
       p.ammo--;
       p.bloom = Math.min(1, p.bloom + W.bloom);
+      fired = true;
+    }
+    if (p.fireCd < 0) p.fireCd = 0;
+    return fired;
+  }
+  // 操控加特林：先转管预热，转速越高射速越快；持续开火积累热量，过热后要等枪管冷却
+  _gatlingFire(p, tr, dt) {
+    const W = gatlingW(tr.lv, tr.br), inp = p.input;
+    p.heat = p.heat || 0; p.spin = p.spin || 0;
+    const want = inp.fire && !p.overheat && tr.disT <= 0;
+    p.spin = Math.max(0, Math.min(1, p.spin + (want ? dt / 0.45 : -dt / 0.9)));
+    if (p.overheat) { p.heat -= dt * 0.45; if (p.heat <= 0.2) { p.heat = Math.max(0, p.heat); p.overheat = false; } }
+    else if (!want) p.heat = Math.max(0, p.heat - dt * 0.4);
+    p.fireCd -= dt; p.bloom = Math.max(0, p.bloom - dt * 2.5);
+    let fired = false;
+    if (want && p.spin > 0.3 && p.fireCd <= 0) {
+      p.fireCd = Math.max(0, p.fireCd) + 1 / (W.rps * (0.25 + 0.75 * p.spin));
+      p.bloom = Math.min(0.6, p.bloom + W.bloom);
+      if (!W.noHeat) { p.heat += 1 / (W.rps * 5); if (p.heat >= 1) { p.heat = 1; p.overheat = true; } }
       fired = true;
     }
     if (p.fireCd < 0) p.fireCd = 0;
@@ -2219,7 +2315,7 @@ class Sim {
   }
   // 一次开火的全部弹道（霰弹多颗、狙击贯穿）：返回命中列表与弹道终点
   traceFire(p, rnd) {
-    const W = WPN[p.wpn] || WPN.rifle, hits = [], ends = [];
+    const W = this.wpnOf(p), hits = [], ends = [];
     const n = W.pellets || 1;
     let spread = W.spread + p.bloom * 0.03;
     if (W.adsSpread !== undefined && p.input.ads) spread = W.adsSpread;
@@ -2263,7 +2359,7 @@ class Sim {
   }
   // 本机 / 主机自己开火：结算伤害并发事件
   _fire(p) {
-    const W = WPN[p.wpn] || WPN.rifle;
+    const W = this.wpnOf(p);
     if (W.proj) {
       const cp = Math.cos(p.pitch), d = [-Math.sin(p.yaw) * cp, Math.sin(p.pitch), -Math.cos(p.yaw) * cp];
       this._launchRocket(p, [p.x + d[0] * 0.6, p.y + 1.5 + d[1] * 0.6, p.z + d[2] * 0.6], d);

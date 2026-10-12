@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 12;
+const VERSION = 13;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
@@ -164,7 +164,7 @@ function encodeSnap(sim, o) {
   const p = Object.values(s.players).map(q => [q.id, q.slot, q.name, r2(q.x), r2(q.y), r2(q.z), r3(q.yaw), r3(q.pitch), Math.ceil(q.hp), q.maxHp,
     (q.dead ? 1 : 0) | (q.input.fire && !q.dead && (q.remote || (q.ammo > 0 && q.reloadT <= 0)) ? 2 : 0) | (q.ready ? 4 : 0) | (q.ground ? 8 : 0),
     r2(q.respawnT), q.kills, Math.round(q.dmg), q.life || 0,
-    q.guns.reduce((m, g) => m | (1 << WIDS.indexOf(g)), 0), WIDS.indexOf(q.wpn), Math.floor(q.energy), q.nades, r2(q.nadeT), q.cls || 'assault', q.nadeMax || 2, Math.ceil(q.supT || 0), r2(q.invT || 0)]);
+    q.guns.reduce((m, g) => m | (1 << WIDS.indexOf(g)), 0), WIDS.indexOf(q.wpn), Math.floor(q.energy), q.nades, r2(q.nadeT), q.cls || 'assault', q.nadeMax || 2, Math.ceil(q.supT || 0), r2(q.invT || 0), q.mount || 0]);
   const tt = [];
   for (const tr of s.traps) if (tr.type === 'tesla' && s.time - tr.fireT < 0.16 && tr.targets && tr.targets.length) tt.push([tr.id, ...tr.targets]);
   const pj = [];
@@ -248,7 +248,7 @@ function applySnap(sim, snap, ctx) {
   const seenP = new Set((snap.p || []).map(a => a[0])), slotPid = {};
   for (const pid in s.players) if (!seenP.has(pid)) delete s.players[pid];
   for (const a of snap.p || []) {
-    const [pid, slot, name, x, y, z, yaw, pitch, hp, maxHp, fl, respawnT, kills, dmg, life, gmask, widx, energy, nades, nadeT, cls, nadeMax, supT, invT] = a;
+    const [pid, slot, name, x, y, z, yaw, pitch, hp, maxHp, fl, respawnT, kills, dmg, life, gmask, widx, energy, nades, nadeT, cls, nadeMax, supT, invT, mount] = a;
     slotPid[slot] = pid;
     let q = s.players[pid];
     const dead = !!(fl & 1);
@@ -265,6 +265,7 @@ function applySnap(sim, snap, ctx) {
     for (const g of q.guns) if (q.ammoBy[g] === undefined) q.ammoBy[g] = WPN[g].mag;
     q.energy = energy || 0; q.nades = nades | 0; q.nadeT = nadeT || 0; q.nadeMax = nadeMax || 2;
     q.supT = supT || 0; q.invT = invT || 0;
+    if (pid === ctx.pid) q.hostMount = mount || 0; else q.mount = mount || 0;
     if (pid !== ctx.pid && typeof cls === 'string') q.cls = cls;
     if (pid !== ctx.pid && WIDS[widx]) q.wpn = WIDS[widx];
     if (pid === ctx.pid) {

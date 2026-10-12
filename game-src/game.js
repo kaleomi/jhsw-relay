@@ -66,7 +66,7 @@ const KEY_ACTIONS = [
   ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
   ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
 ];
-const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit0', 'Minus', 'Equal', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit0', 'Minus', 'Equal', 'BracketLeft', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
 let keyInv = new Map(), keyAway = new Set();
 function rebuildKeys() {
   keyInv = new Map(); keyAway = new Set();
@@ -319,7 +319,7 @@ function hostPump() {
     if (pr.cls && pr.cls !== p.cls && sim.s.wave === 0) sim.setClass(p, pr.cls);
     const st = pr.s;
     if (Array.isArray(st) && st.length >= 7 && st.slice(0, 5).every(Number.isFinite)) {
-      sim.apply({ t: 'pos', pid: peer, x: clamp(st[0], 0, sim.W * T), y: clamp(st[1], 0, WALL_H), z: clamp(st[2], 0, sim.H * T), yaw: st[3], pitch: clamp(st[4], -1.5, 1.5), fire: !!(st[5] & 1), life: st[6], wpn: WEAPONS[st[7] | 0] ? WEAPONS[st[7] | 0].id : 'rifle' });
+      sim.apply({ t: 'pos', pid: peer, x: clamp(st[0], 0, sim.W * T), y: clamp(st[1], 0, WALL_H), z: clamp(st[2], 0, sim.H * T), yaw: st[3], pitch: clamp(st[4], -1.5, 1.5), fire: !!(st[5] & 1), life: st[6], wpn: WEAPONS[st[7] | 0] ? WEAPONS[st[7] | 0].id : 'rifle', mount: st[8] | 0 });
     }
     if (!Array.isArray(pr.c)) continue;
     let last = MP.lastSeq.get(peer) || 0;
@@ -420,7 +420,7 @@ function onSnapMsg(msg) {
 }
 // 队友本地射击：按自己画面判定，命中结果汇总后上报
 function clientShoot(lp) {
-  const W = WPN[lp.wpn] || WPN.rifle;
+  const W = sim.wpnOf(lp);
   if (W.proj) {
     // 火箭弹由主机生成弹体，本地只做开火反馈
     const cp = Math.cos(lp.pitch), d = [-Math.sin(lp.yaw) * cp, Math.sin(lp.pitch), -Math.cos(lp.yaw) * cp];
@@ -456,7 +456,7 @@ function clientPresence(force) {
   if (MP.ping) pr.pg = MP.ping; if (MP.qc) pr.qc = MP.qc; if (MP.ch) pr.ch = MP.ch;
   if (lp) {
     const firing = lp.input.fire && !lp.dead && lp.ammo > 0 && lp.reloadT <= 0;
-    pr.s = [r2n(lp.x), r2n(lp.y), r2n(lp.z), r3n(lp.yaw), r3n(lp.pitch), firing ? 1 : 0, lp.life || 0, Math.max(0, WEAPONS.findIndex(w => w.id === lp.wpn))];
+    pr.s = [r2n(lp.x), r2n(lp.y), r2n(lp.z), r3n(lp.yaw), r3n(lp.pitch), firing ? 1 : 0, lp.life || 0, Math.max(0, WEAPONS.findIndex(w => w.id === lp.wpn)), lp.mount || 0];
   }
   const key = JSON.stringify(pr);
   if (key === MP.sentPres) return;
@@ -626,6 +626,9 @@ const Snd = {
     const v = sp.v, p = sp.p;
     switch (name) {
       case 'shot': this.hiss(0.09, 'bandpass', 2400, 600, 0.8, 0.5 * v, p); this.tone('square', 180, 60, 0.07, 0.18 * v, p); break;
+      case 'gatling': this.hiss(0.06, 'bandpass', 1700, 500, 0.9, 0.42 * v, p); this.tone('square', 120, 45, 0.05, 0.16 * v, p); break;
+      case 'spinUp': this.tone('sawtooth', 70, 260, 0.4, 0.07 * v, p); break;
+      case 'overheat': this.hiss(0.7, 'highpass', 3000, 6000, 1, 0.25 * v, p); this.tone('square', 520, 380, 0.25, 0.1 * v, p); break;
       case 'shot2': this.hiss(0.08, 'bandpass', 2000, 600, 0.8, 0.3 * v, p); this.tone('square', 160, 60, 0.06, 0.1 * v, p); break;
       case 'shotgun': this.hiss(0.22, 'lowpass', 2600, 300, 0.7, 0.65 * v, p); this.tone('sine', 110, 40, 0.18, 0.4 * v, p); this.hiss(0.05, 'highpass', 4000, 2000, 1, 0.15, p, 0.32); this.tone('square', 300, 200, 0.04, 0.06, p, 0.38); break;
       case 'sniper': this.hiss(0.05, 'highpass', 6000, 3000, 0.8, 0.5 * v, p); this.tone('sawtooth', 1400, 90, 0.35, 0.22 * v, p); this.hiss(0.6, 'bandpass', 1200, 300, 2, 0.18 * v, p, 0.05); break;
@@ -1570,6 +1573,147 @@ function lvPips(lv, lx, ly, lz, horizontal) {
     else Q('box', lx + o, ly, lz, 0.12, 0.12, 0.04, c(0.37, 0.89, 1.0, 1, 1));
   }
 }
+// 加特林炮塔：转台底座 + 防弹护盾 + 六管旋转枪管；自己坐在上面时只画底座（上半部分由第一人称模型画）
+function drawGatling(S, tr, lv, since) {
+  const lp = S.s.players[PID], mine = !GHOST && lp && lp.mount === tr.id;
+  Q('cyl', 0, 0.22, 0, 1.25, 0.44, 1.25, tc(0.24, 0.25, 0.28));
+  Q('cyl', 0, 0.47, 0, 1.0, 0.08, 1.0, tc(0.13, 0.14, 0.16));
+  for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; Q('box', Math.cos(a) * 0.6, 0.3, Math.sin(a) * 0.6, 0.08, 0.3, 0.08, tc(0.95, 0.6, 0.18, 0.5)); }
+  const yaw = GHOST ? 0 : (tr.cAim === undefined ? tr.aimYaw || 0 : tr.cAim);
+  TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+  Q('cyl', 0, 0.62, 0, 0.75, 0.16, 0.75, tc(0.3, 0.31, 0.33));
+  Q('box', 0, 0.62, 0.62, 0.7, 0.12, 0.55, tc(0.2, 0.21, 0.23));   // 射手踏板
+  Q('cyl', 0, 0.86, 0, 0.62, 0.36, 0.62, tc(0.22, 0.23, 0.26));
+  Q('box', 0, 1.06, 0, 0.95, 0.08, 0.5, tc(0.28, 0.29, 0.31));
+  if (mine) { TX.yaw = 0; TX.cy = 1; TX.sy = 0; lvPips(lv, 0, 0.45, 0.66, true); return; }
+  // 俯仰：有人操控时跟随射手视角
+  let P = 0;
+  if (!GHOST) for (const id in S.s.players) { const q = S.s.players[id]; if (q.mount === tr.id && !q.dead) { P = clamp(q.pitch || 0, -0.6, 0.8); break; } }
+  const cP = Math.cos(P), sP = Math.sin(P), PY = 1.38, K = 1.22;
+  const R = (ly, lz) => [PY + (ly * cP - lz * sP) * K, (ly * sP + lz * cP) * K];
+  const QP = (g, lx, ly, lz, sx, sy, sz, cc, extra) => { const o = R(ly, lz); QR(g, lx * K, o[0], o[1], 0, P + (extra || 0), 0, sx * K, sy * K, sz * K, cc); };
+  const firing = !GHOST && since < 0.2;
+  tr.spinV = lerp(tr.spinV || 0, firing ? 1 : 0, 0.08); tr.spinA = (tr.spinA || 0) + tr.spinV * 0.55;
+  // 支架（U 形托架）
+  for (const sd of [-1, 1]) { Q('box', sd * 0.43, 1.25, 0, 0.1, 0.42, 0.4, tc(0.26, 0.27, 0.29)); QR('cyl', sd * 0.38, PY, 0, 0, 0, Math.PI / 2, 0.2, 0.1, 0.2, tc(0.95, 0.6, 0.18, 0.5)); }
+  // 机匣与供弹箱
+  QP('box', 0, 0, 0.05, 0.46, 0.38, 0.62, tc(0.32, 0.33, 0.3));
+  for (let i = 0; i < 4; i++) QP('box', 0, 0.2, -0.18 + i * 0.12, 0.48, 0.03, 0.05, tc(0.2, 0.21, 0.22));
+  QP('box', 0, 0.3, 0.08, 0.06, 0.12, 0.34, tc(0.22, 0.22, 0.24));
+  QP('box', 0, 0.21, 0.05, 0.3, 0.04, 0.5, tc(0.95, 0.6, 0.18, 0.4));
+  QP('box', -0.38, -0.08, 0.1, 0.3, 0.34, 0.44, tc(0.33, 0.36, 0.24));
+  for (let i = 0; i < 4; i++) QP('box', -0.2, 0.0 - i * 0.02, -0.08 + i * 0.07, 0.08, 0.04, 0.05, tc(0.9, 0.7, 0.3));
+  // 防弹护盾（中间留射击口）
+  for (const sd of [-1, 1]) QP('box', sd * 0.42, 0.05, -0.32, 0.42, 0.8, 0.06, tc(0.38, 0.4, 0.36));
+  QP('box', 0, 0.36, -0.32, 1.26, 0.18, 0.06, tc(0.38, 0.4, 0.36));
+  for (const sd of [-1, 1]) QP('box', sd * 0.42, 0.3, -0.36, 0.3, 0.035, 0.02, tc(1, 0.6, 0.18, 0.7));
+  // 六根枪管（旋转）
+  const heat = !GHOST && since < 0.2 ? 0.25 : 0;
+  for (let i = 0; i < 6; i++) {
+    const a = tr.spinA + i / 6 * Math.PI * 2, bx = Math.cos(a) * 0.1, by = Math.sin(a) * 0.1;
+    QP('cyl', bx, by, -0.85, 0.07, 1.0, 0.07, tc(0.16 + heat, 0.16, 0.18), Math.PI / 2);
+  }
+  for (const z of [-0.45, -1.05, -1.33]) QP('cyl', 0, 0, z, 0.3, 0.05, 0.3, tc(0.26, 0.27, 0.3), Math.PI / 2);
+  QP('cyl', 0, 0, -0.85, 0.06, 1.0, 0.06, tc(0.1, 0.1, 0.11), Math.PI / 2);
+  // 握把
+  for (const sd of [-1, 1]) QP('box', sd * 0.2, -0.05, 0.48, 0.05, 0.2, 0.05, tc(0.15, 0.15, 0.16));
+  QP('box', 0, -0.05, 0.42, 0.45, 0.04, 0.04, tc(0.25, 0.25, 0.27));
+  if (!GHOST && since < 0.05) {
+    const o = R(0, -1.5);
+    Q('sphere', 0, o[0], o[1], 0.42, 0.42, 0.42, c(1, 0.78, 0.4, 0.9, 1, 0, true));
+  }
+  TX.yaw = 0; TX.cy = 1; TX.sy = 0;
+  lvPips(lv, 0, 0.45, 0.66, true);
+}
+// 第一人称：坐在加特林上看到的枪身
+function drawGatlingVM(p, tr, dt) {
+  const spin = p.spin || 0, heat = p.heat || 0;
+  vm.gspin = (vm.gspin || 0) + dt * spin * 38;
+  const firing = p.input.fire && spin > 0.3 && !p.overheat;
+  const jx = firing ? rnd(-0.004, 0.004) : 0, jy = firing ? rnd(-0.004, 0.004) : 0;
+  const AX = 0 + jx, AY = -0.34 + jy, k = vm.kick * 0.03;
+  const hc = [0.16 + heat * 0.84, 0.16 + heat * 0.3, 0.18 - heat * 0.1];
+  const P2 = Math.PI / 2;
+  // 枪管
+  for (let i = 0; i < 6; i++) {
+    const a = vm.gspin + i / 6 * Math.PI * 2;
+    V('cyl', AX + Math.cos(a) * 0.085, AY + Math.sin(a) * 0.085, -1.0 + k, 0.065, 1.0, 0.065, c(hc[0], hc[1], hc[2], 1, heat > 0.5 ? (heat - 0.5) * 1.6 : 0), P2);
+  }
+  V('cyl', AX, AY, -1.0 + k, 0.05, 1.0, 0.05, c(0.08, 0.08, 0.09), P2);
+  for (const z of [-0.62, -1.15, -1.46]) V('cyl', AX, AY, z + k, 0.27, 0.045, 0.27, c(0.26, 0.27, 0.3), P2);
+  // 机匣、护盾边缘、握把
+  V('box', AX, AY - 0.06, -0.42 + k, 0.3, 0.2, 0.34, c(0.3, 0.31, 0.29));
+  V('box', AX, AY + 0.045, -0.46 + k, 0.12, 0.012, 0.2, c(0.95, 0.6, 0.18, 1, 0.35));
+  V('box', AX - 0.3, AY - 0.14, -0.4 + k, 0.22, 0.22, 0.32, c(0.33, 0.36, 0.24));
+  for (let i = 0; i < 5; i++) V('box', AX - 0.17, AY - 0.06 + Math.sin(vm.gspin * 0.5 + i) * 0.004, -0.52 + i * 0.05 + k, 0.06, 0.03, 0.035, c(0.9, 0.7, 0.3));
+  // 防弹护盾：只露出顶边，压在画面下方，不挡视线
+  V('box', AX, AY - 0.24, -0.8, 1.1, 0.26, 0.05, c(0.36, 0.38, 0.34));
+  V('box', AX, AY - 0.11, -0.82, 1.0, 0.02, 0.02, c(1, 0.6, 0.18, 1, 0.5));
+  for (const sd of [-1, 1]) {
+    V('box', AX + sd * 0.72, AY - 0.12, -0.7, 0.06, 0.4, 0.3, c(0.3, 0.31, 0.29));
+    V('box', AX + sd * 0.17, AY - 0.12, -0.02, 0.05, 0.16, 0.05, c(0.13, 0.13, 0.14));
+  }
+  V('box', AX, AY - 0.06, -0.02, 0.38, 0.035, 0.035, c(0.24, 0.24, 0.26));
+  // 热量条（机匣顶上）
+  V('box', AX + 0.1 + heat * 0.06, AY + 0.045, -0.3 + k, 0.12 * Math.max(0.02, heat), 0.01, 0.015, c(1, 0.4 + 0.5 * (1 - heat), 0.15, 1, 1));
+  vm.mz = [AX, AY, -1.52];
+  if (vm.flash > 0) {
+    const o = vm.mz;
+    V('sphere', o[0], o[1], o[2], 0.16, 0.16, 0.16, c(1, 0.85, 0.5, 0.95, 1, 0, true));
+    V('box', o[0], o[1], o[2], 0.4, 0.03, 0.03, c(1, 0.7, 0.3, 0.8, 1, 0, true), 0, timeNow * 40);
+    V('box', o[0], o[1], o[2], 0.03, 0.4, 0.03, c(1, 0.7, 0.3, 0.8, 1, 0, true), 0, timeNow * 40);
+  }
+  if (heat > 0.6 && Math.random() < 0.15 * heat) { const q = camLocal([AX + rnd(-0.06, 0.06), AY + 0.08, -1.0]); particle({ x: q[0], y: q[1], z: q[2], vx: rnd(-0.2, 0.2), vy: rnd(0.5, 1.1), vz: rnd(-0.2, 0.2), life: rnd(0.6, 1.1), s0: 0.06, s1: 0.3, c: [0.6, 0.6, 0.62], add: false, a0: 0.35 }); }
+}
+// 防空导弹·对地模式：履带底座 + 低平的 2×3 对地火箭巢 + 火控雷达
+function drawAAGround(tr, lv, since) {
+  // 注意：c()/tc() 返回共享数组，必须现用现取
+  const ARM = () => tc(0.4, 0.42, 0.36), DK = () => tc(0.12, 0.12, 0.13), MID = () => tc(0.22, 0.23, 0.22), OR = () => tc(1, 0.5, 0.15, 1), RED = () => tc(1, 0.2, 0.15, 1);
+  // 履带底座
+  Q('box', 0, 0.22, 0, 1.15, 0.36, 1.25, MID());
+  for (const sd of [-1, 1]) {
+    Q('box', sd * 0.68, 0.24, 0, 0.28, 0.44, 1.5, DK());
+    for (let i = 0; i < 5; i++) Q('box', sd * 0.68, 0.47, -0.6 + i * 0.3, 0.3, 0.025, 0.12, tc(0.32, 0.32, 0.34));
+    for (const zz of [-0.6, 0, 0.6]) QR('cyl', sd * 0.83, 0.24, zz, 0, 0, Math.PI / 2, 0.3, 0.05, 0.3, tc(0.4, 0.4, 0.42));
+  }
+  Q('box', 0, 0.42, 0.63, 0.9, 0.03, 0.02, tc(1, 0.5, 0.15, 0.6));
+  // 转台
+  const yaw = GHOST ? 0 : (tr.cAim || 0);
+  TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
+  Q('cyl', 0, 0.5, 0, 1.0, 0.16, 1.0, ARM());
+  Q('cyl', 0, 0.6, 0, 0.7, 0.08, 0.7, DK());
+  // 火箭巢：略微上扬，正面 2×3 发射管
+  const P = 0.14, cP = Math.cos(P), sP = Math.sin(P), Y0 = 1.0;
+  const rot = (ly, lz) => [Y0 + ly * cP - lz * sP, ly * sP + lz * cP];
+  const rec = !GHOST && since < 0.12 ? 0.07 : 0;
+  { const o = rot(0, 0.05 + rec); QR('box', 0, o[0], o[1], 0, P, 0, 1.1, 0.62, 1.2, ARM()); }
+  { const o = rot(0.33, 0.05 + rec); QR('box', 0, o[0], o[1], 0, P, 0, 1.0, 0.06, 1.0, MID()); }
+  for (const sd of [-1, 1]) { const o = rot(0, 0.05 + rec); QR('box', sd * 0.58, o[0], o[1], 0, P, 0, 0.06, 0.7, 1.26, DK()); }
+  { const o = rot(0, -0.57 + rec); QR('box', 0, o[0], o[1], 0, P, 0, 1.14, 0.66, 0.06, DK()); }
+  for (let r = 0; r < 2; r++) for (let k = 0; k < 3; k++) {
+    const lx = (k - 1) * 0.34, ly = r ? -0.15 : 0.15, o = rot(ly, -0.6 + rec), o2 = rot(ly, -0.68 + rec);
+    QR('cyl', lx, o[0], o[1], 0, P + Math.PI / 2, 0, 0.24, 0.05, 0.24, tc(0.06, 0.06, 0.07));
+    if (GHOST || since > 0.35 || (r * 3 + k) % 2) { QR('cyl', lx, o[0], o[1], 0, P + Math.PI / 2, 0, 0.16, 0.08, 0.16, tc(0.8, 0.8, 0.78)); QR('cone', lx, o2[0], o2[1], 0, P - Math.PI / 2, 0, 0.16, 0.2, 0.16, OR()); }
+  }
+  // 侧面装甲条纹与警示灯
+  for (const sd of [-1, 1]) {
+    const o = rot(0.12, 0.1 + rec);
+    QR('box', sd * 0.615, o[0], o[1], 0, P, 0, 0.012, 0.08, 0.9, OR());
+  }
+  // 火控雷达：转台侧上方，红色镜头 + 天线
+  Q('box', 0.38, 1.5, 0.3, 0.3, 0.24, 0.34, MID());
+  Q('box', 0.38, 1.5, 0.12, 0.22, 0.08, 0.02, RED());
+  Q('cyl', -0.35, 1.55, 0.42, 0.04, 0.5, 0.04, tc(0.5, 0.5, 0.52));
+  Q('sphere', -0.35, 1.82, 0.42, 0.07, 0.07, 0.07, tc(1, 0.3, 0.2, GHOST ? 0 : 0.6 + 0.4 * Math.sin(simNow * 6 + tr.x)));
+  // 尾部散热口
+  { const o = rot(0.05, 0.66 + rec); QR('box', 0, o[0], o[1], 0, P, 0, 0.8, 0.3, 0.04, tc(0.9, 0.35, 0.1, 0.5)); }
+  if (!GHOST && since < 0.1) {
+    const o = rot(0, -0.85);
+    Q('sphere', 0, o[0], o[1], 0.55, 0.4, 0.55, c(1, 0.6, 0.25, 0.8, 1, 0, true));
+  }
+  TX.yaw = 0; TX.cy = 1; TX.sy = 0;
+  lvPips(lv, 0, 0.45, 0.66, true);
+}
 function drawTrap(S, tr, ghost) {
   GHOST = ghost || null; TDIS = !ghost && tr.disT > 0; TBR = (!ghost && tr.br) || '';
   const def = TRAP[tr.type], lv = tr.lv || 1;
@@ -1660,7 +1804,9 @@ function drawTrap(S, tr, ghost) {
       lvPips(lv, 0, 0.61, 0.5, true);
       break;
     }
+    case 'gatling': { drawGatling(S, tr, lv, since); break; }
     case 'aa': {
+      if (TBR === 'b') { drawAAGround(tr, lv, since); break; }
       Q('box', 0, 0.3, 0, 1.3, 0.6, 1.3, tc(0.24, 0.25, 0.28));
       const yaw = GHOST ? 0 : (tr.cAim || 0);
       TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
@@ -1813,7 +1959,7 @@ function drawTrap(S, tr, ghost) {
 
 /* ---------- 陷阱进阶外观：每个分支一套专属造型 + 底座光环 ---------- */
 const EVO_COL = {
-  rail: { a: [0.55, 0.85, 1], b: [1, 0.6, 0.25] }, mortar: { a: [1, 0.5, 0.15], b: [0.75, 0.5, 1] }, grinder: { a: [1, 0.3, 0.2], b: [0.7, 0.4, 1] },
+  rail: { a: [0.55, 0.85, 1], b: [1, 0.6, 0.25] }, mortar: { a: [1, 0.5, 0.15], b: [0.75, 0.5, 1] }, grinder: { a: [1, 0.3, 0.2], b: [0.7, 0.4, 1] }, gatling: { a: [1, 0.7, 0.25], b: [0.35, 0.8, 1] },
   slow: { a: [0.75, 0.95, 1], b: [0.3, 0.85, 1] }, spike: { a: [0.35, 1, 0.35], b: [1, 0.7, 0.25] },
   push: { a: [1, 0.45, 0.2], b: [0.3, 0.9, 1] }, tesla: { a: [0.7, 0.55, 1], b: [1, 0.85, 0.25] },
   sentry: { a: [1, 0.6, 0.2], b: [1, 0.25, 0.3] }, aa: { a: [1, 0.8, 0.3], b: [1, 0.45, 0.15] },
@@ -1954,13 +2100,7 @@ function evoFx(S, tr, since) {
       }
       break;
     }
-    case 'aab': {     // 对地模式：下倾的对地炮管 + 火控灯
-      const yaw = tr.cAim || 0; TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
-      { const z0 = -0.4, z1 = -1.2; E.pushBeam('cyl', TX.x + TX.sy * z0, TX.y + 0.95, TX.z + TX.cy * z0, TX.x + TX.sy * z1, TX.y + 0.65, TX.z + TX.cy * z1, 0.26, 0.26, tc(0.2, 0.2, 0.22), true); }
-      Q('sphere', 0, 0.62, -1.15, 0.2, 0.2, 0.2, C(0.9 + 0.3 * Math.sin(t * 6)));
-      for (const sd of [-1, 1]) Q('box', sd * 0.66, 0.4, 0, 0.06, 0.5, 1.2, C(0.8));
-      break;
-    }
+    case 'aab': break;   // 对地模式整体换成 drawAAGround 的模型
     case 'lasera': {  // 过载激光：散热鳍片 + 白热发射口
       for (let i = -2; i <= 2; i++) Q('box', i * 0.18, 0.45, 0.1, 0.06, 0.22, 0.28, i % 2 ? tc(0.3, 0.3, 0.34) : C(0.8));
       Q('cyl', 0, 0, -0.12, 0.42, 0.12, 0.42, C(1));
@@ -2227,6 +2367,7 @@ function drawViewmodel(dt) {
   const sw = vm.switchT > 0 ? vm.switchT / 0.25 : 0;
   const W = WPN[p.wpn] || WPN.rifle;
   const reload = p.reloadT > 0 ? Math.sin(Math.min(1, (W.reload - p.reloadT) / W.reload) * Math.PI) : 0;
+  { const mt = myMount(); if (mt) { drawGatlingVM(p, mt, dt); E.setLayer(0); return; } }
   if (tool === 'gun' && W.id === 'sniper' && cam.ads > 0.85) { E.setLayer(0); vm.mz = [0, -0.05, -0.3]; return; }
   const bob = Math.sin(cam.bob * 2) * 0.006 * (1 - ads);
   const bx = lerp(0.2, 0.0, ads) + vm.swayX, by = lerp(-0.24, -0.135, ads) - sw * 0.3 - reload * 0.08 + vm.swayY + bob;
@@ -2340,6 +2481,7 @@ function computeAim() {
   // 先找视线上的陷阱实体（高的炮台/塔）
   let best = null, bt = hit ? hit.t : 20;
   for (const tr of sim.s.traps) {
+    if (tr.id === p.mount) continue;   // 自己坐着的炮塔不参与瞄准
     const def = TRAP[tr.type];
     const h = def.block ? 1.6 : def.cat === 'heavy' ? 1.5 : def.cat === 'hfloor' ? 0.3 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? -1 : (tr.kind === 'wall' ? 0 : 0.3)));
     const r = def.block ? 1.0 : def.big ? 1.7 : (def.cat === 'pad' ? 0.9 : 0.75);
@@ -2351,7 +2493,7 @@ function computeAim() {
   }
   if (!best && hit) {
     const kinds = hit.kind === 'wall' ? [{ kind: 'wall', x: hit.x, z: hit.z, dir: hit.dir }] : [{ kind: hit.kind, x: hit.x, z: hit.z }];
-    for (const k of kinds) { const t = sim.trapAtSlot(k); if (t) best = t; }
+    for (const k of kinds) { const t = sim.trapAtSlot(k); if (t && t.id !== p.mount) best = t; }
   }
   res.trap = best;
   if (tool !== 'gun') {
@@ -2580,19 +2722,19 @@ function handleEvents(S) {
           const mz = muzzleWorld();
           if (timeNow - (vm.lastFire || 0) > 0.04) {
             vm.lastFire = timeNow;
-            const kick = { rifle: 0.004, shotgun: 0.045, sniper: 0.06, rocket: 0.05 }[W.id] || 0.004;
-            vm.kick = Math.min(1, vm.kick + 0.4 * W.kick + (W.id !== 'rifle' ? 0.5 : 0)); vm.flash = W.id === 'rifle' ? 0.045 : 0.08;
-            cam.pitch = clamp(cam.pitch + kick * (1 - cam.ads * 0.5), -1.5, 1.5); cam.yaw += rnd(-0.0015, 0.0015) * (W.id === 'rifle' ? 1 : 6);
-            flashLight(mz[0], mz[1], mz[2], W.id === 'rifle' ? 7 : 11, [1, 0.75, 0.4], W.id === 'rifle' ? 1.4 : 2.4, 0.06);
-            Snd.play(W.id === 'rifle' ? 'shot' : W.id === 'shotgun' ? 'shotgun' : W.id === 'sniper' ? 'sniper' : 'rocketFire');
-            if (W.id !== 'rifle') shake(W.id === 'shotgun' ? 0.12 : 0.18);
+            const kick = { rifle: 0.004, shotgun: 0.045, sniper: 0.06, rocket: 0.05, gatling: 0.0022 }[W.id] || 0.004;
+            vm.kick = Math.min(1, vm.kick + 0.4 * W.kick + (W.id !== 'rifle' && W.id !== 'gatling' ? 0.5 : 0)); vm.flash = W.id === 'rifle' || W.id === 'gatling' ? 0.045 : 0.08;
+            cam.pitch = clamp(cam.pitch + kick * (1 - cam.ads * 0.5), -1.5, 1.5); cam.yaw += rnd(-0.0015, 0.0015) * (W.id === 'rifle' ? 1 : W.id === 'gatling' ? 2 : 6);
+            flashLight(mz[0], mz[1], mz[2], W.id === 'rifle' || W.id === 'gatling' ? 7 : 11, [1, 0.75, 0.4], W.id === 'gatling' ? 0.7 : W.id === 'rifle' ? 1.4 : 2.4, 0.06);
+            Snd.play(W.id === 'gatling' ? 'gatling' : W.id === 'rifle' ? 'shot' : W.id === 'shotgun' ? 'shotgun' : W.id === 'sniper' ? 'sniper' : 'rocketFire');
+            if (W.id === 'gatling') shake(0.035); else if (W.id !== 'rifle') shake(W.id === 'shotgun' ? 0.12 : 0.18);
             if (W.id === 'rocket') for (let i = 0; i < 10; i++) particle({ x: mz[0], y: mz[1], z: mz[2], vx: -cam.fx * rnd(1, 4) + rnd(-1, 1), vy: rnd(0, 1.5), vz: -cam.fz * rnd(1, 4) + rnd(-1, 1), life: rnd(0.5, 1), s0: 0.2, s1: 0.9, c: [0.6, 0.6, 0.62], add: false, a0: 0.4 });
           }
           if (W.id === 'sniper') tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: e.x, y2: e.y, z2: e.z, t: 0, life: 0.35, c: [0.45, 0.9, 1], w: 3 });
           else if (W.id !== 'rocket') tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: e.x, y2: e.y, z2: e.z, t: 0, life: W.id === 'shotgun' ? 0.09 : 0.07 });
         }
-        if (e.pid === PID && W.id !== 'rocket') {
-          const ej = camLocal(vm.ej || [0.26, -0.18, -0.5]);
+        if (e.pid === PID && W.id !== 'rocket' && (W.id !== 'gatling' || (vm.ejN = (vm.ejN || 0) + 1) % 4 === 0)) {
+          const ej = camLocal(W.id === 'gatling' ? [0.3, -0.42, -0.7] : vm.ej || [0.26, -0.18, -0.5]);
           particle({ x: ej[0], y: ej[1], z: ej[2], vx: cam.rx * rnd(1.6, 2.6) + rnd(-0.3, 0.3), vy: rnd(1.4, 2.4), vz: cam.rz * rnd(1.6, 2.6) + rnd(-0.3, 0.3), life: 1.0, s0: 0.035, s1: 0.035, c: [0.95, 0.7, 0.28], g: 'box', add: false, grav: 13, bounce: true, drag: 0.2 });
         }
         if (e.wall) { burst(e.x, e.y, e.z, 6, { c: [1, 0.8, 0.45], sp0: 1.5, sp1: 5, l0: 0.1, l1: 0.35, s0: 0.05, grav: 12 }); addDecal(e); particle({ x: e.x, y: e.y, z: e.z, vy: 0.4, life: 0.5, s0: 0.12, s1: 0.5, c: [0.5, 0.5, 0.52], add: false, a0: 0.35 }); }
@@ -2926,6 +3068,7 @@ const ICONS = {
   crusher: '<path d="M3 3h18M12 3v6M5 9h14v5H5zM5 20h14M8 17l-2 3M16 17l2 3"/>',
   rail: '<path d="M3 21h18M6 21v-4h12v4M8 17l2-5h4l2 5M10 12l9-7M12 10l9-7M17 4l3 3"/>',
   mortar: '<path d="M3 21h18M6 21l2-5h8l2 5M9 16l3-8 3 8M12 8a6 6 0 0 1 8-3M18 3l3 2-2 2"/>',
+  gatling: '<path d="M4 20h10M7 20v-4h4v4"/><rect x="6" y="9" width="7" height="5" rx="1"/><path d="M13 10h8M13 11.5h8M13 13h8M3 11h3"/>',
   grinder: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="3"/><circle cx="15.5" cy="15.5" r="3"/><path d="M8.5 4v2M8.5 11v2M4 8.5h2M11 8.5h2M15.5 11v2M15.5 18v2M11 15.5h2M18 15.5h2"/>',
   rifle: '<path d="M2 10h14l2-2h4v4h-3l-1 2h-5l-1 4H8l1-4H2z"/>',
   shotgun: '<path d="M2 9h16v3H2zM2 13h12M18 10.5h4M14 12l1 6h3l-1-6"/>',
@@ -2950,6 +3093,7 @@ function buildHotbar() {
 }
 function selectTool(id) {
   if (tool === id) return;
+  if (id !== 'gun' && myMount()) dismount();
   tool = id; vm.switchT = 0.25;
   for (const el of $('hotbar').children) el.classList.toggle('sel', el.dataset.id === id);
   if (id !== 'gun') { const d = TRAP[id]; toast(`${d.name} · ${CAT_NAME[d.cat]} · ${sim ? sim.trapCost(id, PID) : d.cost} 金币`); }
@@ -3110,9 +3254,21 @@ function updateHUD(dt) {
     setStyle($('hpFill'), 'width', (p.hp / p.maxHp * 100).toFixed(1) + '%');
     setText('hpNum', String(Math.ceil(p.hp)));
     setText('ammoNum', p.reloadT > 0 ? '装填' : String(p.ammo));
-    const W = WPN[p.wpn] || WPN.rifle;
-    setText('wpn', `${W.name} · R 换弹 · Q 切枪 · B 军械库`);
-    setText('magNum', '/ ' + p.mag);
+    const W = WPN[p.wpn] || WPN.rifle, mt = myMount();
+    if (mt) {
+      setText('ammoNum', p.overheat ? '过热' : Math.round((p.heat || 0) * 100) + '%');
+      setText('wpn', `加特林炮塔 Lv${mt.lv} · F 离开`);
+      setText('magNum', '热量');
+      if (p.overheat && !cache.oh) Snd.play('overheat');
+      cache.oh = !!p.overheat;
+      const spinning = p.input.fire && !p.overheat;
+      if (spinning && !cache.spinning && (p.spin || 0) < 0.3) Snd.play('spinUp');
+      cache.spinning = spinning;
+      if (MP.role === 'client' && (p.hostMount | 0) !== p.mount) { mountMiss += dt; if (mountMiss > 2.5) { dismount(); toast('队友已经在操控这座炮塔', true); } } else mountMiss = 0;
+    } else {
+      setText('wpn', `${W.name} · R 换弹 · Q 切枪 · B 军械库`);
+      setText('magNum', '/ ' + p.mag);
+    }
     setText('nadeN', String(p.nades));
     setStyle($('nadeFill'), 'width', (p.nades >= (p.nadeMax || SKILL.nade.max) ? 100 : (1 - p.nadeT / SKILL.nade.recharge) * 100).toFixed(0) + '%');
     $('skNade').classList.toggle('empty', p.nades < 1);
@@ -3122,7 +3278,7 @@ function updateHUD(dt) {
     const gs = $('hotbar').firstChild;
     if (gs && cache.gunSlot !== p.wpn) { cache.gunSlot = p.wpn; gs.querySelector('svg').outerHTML = svgIcon(p.wpn); gs.querySelector('.n').textContent = W.name; }
     if (shopOpen) renderShop();
-    $('ammo').classList.toggle('low', p.ammo <= 6 && p.reloadT <= 0);
+    $('ammo').classList.toggle('low', mt ? (p.heat || 0) > 0.75 : p.ammo <= 6 && p.reloadT <= 0);
     $('deadMsg').hidden = !p.dead;
     if (p.dead) setText('respawnT', String(Math.ceil(p.respawnT)));
   }
@@ -3164,6 +3320,14 @@ function updateHUD(dt) {
     else { pr = p.supT > 0 ? `补给柜冷却中 ${Math.ceil(p.supT)} 秒` : 'F 使用补给柜：补满生命、手雷、弹药，轨道打击充能 +25%'; prCls = p.supT > 0 ? '' : 'ok'; }
   }
   if (labOpen) { if (!lo || lo.kind !== 'term') toggleLab(false); else renderLab(); }
+  // 加特林炮塔提示
+  if (mode === 'play' && p && !p.dead) {
+    if (myMount()) { pr = p.overheat ? '枪管过热，正在冷却…' : '按住左键扫射（枪管转起来后射速更快）· F / 空格 离开炮塔'; prCls = p.overheat ? 'bad' : 'ok'; }
+    else if (tool === 'gun') {
+      const g = nearGatling();
+      if (g) { const gp = sim.gunnerOf(g); pr = gp && gp.id !== PID ? `${gp.name} 正在操控这座加特林炮塔` : 'F 操控加特林炮塔：亲手扫射，对地对空都能打'; prCls = gp ? '' : 'ok'; }
+    }
+  }
   const tk = TD.TECH.map(t => sim.techLv(t.id)).join();
   if (cache.techBar !== tk) {
     cache.techBar = tk;
@@ -3337,17 +3501,18 @@ function onKey(code, e) {
   if (labOpen && code === 'Escape') { toggleLab(false); return; }
   if (d && shopOpen) { buyWeapon(+d[1] - 1); return; }
   if (d) { const t = TRAPS[+d[1] - 1]; if (t) selectTool(t.id); return; }
-  { const hk = { Digit0: '0', Minus: '-', Equal: '=' }[code]; if (hk) { const t = TRAPS.find(x => x.key === hk); if (t) selectTool(t.id); return; } }
+  { const hk = { Digit0: '0', Minus: '-', Equal: '=', BracketLeft: '[' }[code]; if (hk) { const t = TRAPS.find(x => x.key === hk); if (t) selectTool(t.id); return; } }
   if (shopOpen && code === 'Escape') { toggleShop(false); return; }
   switch (code) {
-    case 'KeyQ': if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
+    case 'KeyQ': if (myMount()) break; if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
+    case 'Space': if (myMount()) dismount(); break;
     case 'KeyB': toggleShop(); break;
     case 'KeyF': useDevice(); break;
     case 'KeyT': doPing(); break;
     case 'KeyV': toggleQuick(); break;
     case 'KeyC': throwNade(); break;
     case 'KeyZ': callStrike(); break;
-    case 'KeyR': reloadReq = true; break;
+    case 'KeyR': if (!myMount()) reloadReq = true; break;
     case 'KeyE': doUpgrade(); break;
     case 'KeyX': doSell(); break;
     case 'KeyG': case 'Enter': {
@@ -3531,8 +3696,31 @@ function nearDevice() {
   sim.def.devices.forEach((dv, i) => { const w = sim.deviceWorld(dv), d = Math.hypot(p.x - w.x, p.z - w.z); if (d < bd) { bd = d; best = i; } });
   return best;
 }
+/* ---------- 加特林炮塔：坐上去亲手扫射 ---------- */
+function myMount() { const p = sim && sim.s.players[PID]; return p && p.mount ? sim.mountOf(p) : null; }
+// 附近可以操控的加特林：优先准星对着的那座，其次最近的
+function nearGatling() {
+  const p = sim && sim.s.players[PID]; if (!p || p.dead) return null;
+  if (aim && aim.trap && aim.trap.type === 'gatling' && Math.hypot(aim.trap.wx - p.x, aim.trap.wz - p.z) <= 3.2) return aim.trap;
+  let best = null, bd = 3.2;
+  for (const tr of sim.s.traps) if (tr.type === 'gatling') { const d = Math.hypot(tr.wx - p.x, tr.wz - p.z); if (d < bd) { bd = d; best = tr; } }
+  return best;
+}
+function mountGatling(tr) {
+  const p = sim.s.players[PID];
+  const r = sim.setMount(p, tr.id);
+  if (!r.ok) { toast(r.reason || '无法操控', true); Snd.play('deny'); return; }
+  selectTool('gun'); mountMiss = 0;
+  cam.yaw = tr.aimYaw || cam.yaw; cam.pitch = 0;
+  Snd.play('build');
+  toast('已操控加特林炮塔 · 按住左键扫射 · F / 空格 离开');
+}
+function dismount() { const p = sim && sim.s.players[PID]; if (p && p.mount) { sim.setMount(p, 0); Snd.play('jump'); } }
+let mountMiss = 0;
 function useDevice() {
+  if (myMount()) { dismount(); return; }
   if (labOpen) { toggleLab(false); return; }
+  { const g = nearGatling(); if (g) { mountGatling(g); return; } }
   const lo = nearLabObj();
   if (lo) { if (lo.kind === 'term') toggleLab(true); else doResupply(); return; }
   const i = nearDevice();
@@ -3868,6 +4056,7 @@ function sendInput() {
   let turn = 0, look = 0;
   if (k.ArrowLeft) turn += 1; if (k.ArrowRight) turn -= 1; if (k.ArrowUp) look += 1; if (k.ArrowDown) look -= 1;
   cam.yaw += turn * 2.2 * STEP * settings.sens; cam.pitch = clamp(cam.pitch + look * 1.6 * STEP * settings.sens, -1.5, 1.5);
+  if (myMount()) cam.pitch = clamp(cam.pitch, -0.75, 0.9);
   let mx = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0), mz = (k.KeyW ? 1 : 0) - (k.KeyS ? 1 : 0);
   if (joy.on && (joy.x || joy.z)) { mx = joy.x; mz = joy.z; }
   const inp = {
@@ -4360,7 +4549,7 @@ function frame(now) {
   simNow = S.s.time + frameAlpha * STEP;
   trapIndex.clear(); for (const tr of S.s.traps) trapIndex.set(tr.id, tr);
   // 炮台客户端瞄准平滑
-  for (const tr of S.s.traps) if (tr.type === 'sentry' || tr.type === 'aa' || tr.type === 'rail' || tr.type === 'mortar') {
+  for (const tr of S.s.traps) if (tr.type === 'sentry' || tr.type === 'aa' || tr.type === 'rail' || tr.type === 'mortar' || tr.type === 'gatling') {
     const tgt = tr.aimYaw || 0;
     if (tr.cAim === undefined) tr.cAim = tgt;
     let d = tgt - tr.cAim; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
@@ -5070,7 +5259,7 @@ function updateTouchHUD(p, lo, di) {
     setText('tbUltN', p.energy >= 100 ? '就绪' : Math.floor(p.energy) + '%'); $('tbUlt').classList.toggle('ready', p.energy >= 100);
     setText('tbWpn', WSHORT[p.wpn] || '步枪');
   }
-  const nearUse = mode === 'play' && p && !p.dead && (nearLabObj() || nearDevice() >= 0);
+  const nearUse = mode === 'play' && p && !p.dead && (nearLabObj() || nearDevice() >= 0 || myMount() || nearGatling());
   $('tbUse').hidden = !nearUse && !labOpen;
   const tr = aim && aim.trap && (tool === 'gun' || !aim.slot || (aim.can && !aim.can.ok));
   $('tbUp').hidden = !tr || aim.trap.lv >= MAX_LV;
