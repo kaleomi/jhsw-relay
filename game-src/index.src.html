@@ -253,6 +253,31 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 .pips i.on { background: var(--tc); box-shadow: 0 0 6px var(--tc); }
 #techBar { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-top: 4px; }
 #techBar span { font-size: 11px; padding: 1px 6px; color: var(--tc); border: 1px solid var(--tc); background: rgba(0, 0, 0, .35); letter-spacing: .05em; }
+#trapBook { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -52%); width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 150px); padding: 14px 16px 16px; background: rgba(7, 12, 19, .97); clip-path: var(--cut); pointer-events: auto; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; z-index: 6; }
+#trapBook[hidden] { display: none; }
+#trapBook .shopHead { align-items: center; flex-wrap: nowrap; }
+#bookList { overflow-y: auto; display: grid; gap: 14px; padding-right: 4px; scrollbar-width: thin; }
+.bkGrp h4 { margin: 0 0 8px; display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+.bkGrp h4 small { font-size: 12px; font-weight: 400; color: var(--faint); }
+.bkRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.bkCard { display: grid; gap: 6px; align-content: start; padding: 10px 12px; text-align: left; font: inherit; color: var(--ink); background: rgba(255, 255, 255, .03); border: 1px solid var(--line); border-top: 2px solid var(--cc); cursor: pointer; }
+.bkCard:hover, .bkCard:focus-visible { background: color-mix(in srgb, var(--cc) 12%, transparent); outline: none; }
+.bkCard.sel { background: color-mix(in srgb, var(--cc) 18%, transparent); border-color: var(--cc); }
+.bkCard.poor em { color: var(--danger); }
+.bkTop { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: 8px; }
+.bkTop .ic { width: 22px; height: 22px; color: var(--cc); }
+.bkTop .ic svg { width: 100%; height: 100%; }
+.bkTop b { font-size: 15px; font-weight: 600; color: var(--cc); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bkTop em { font-style: normal; font-family: var(--f-num); font-size: 13px; color: var(--gold); }
+.bkCard p { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--dim); }
+.bkCard dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 10px; font-size: 12px; }
+.bkCard dt { color: var(--faint); white-space: nowrap; }
+.bkCard dd { margin: 0; color: var(--ink); font-family: var(--f-num); }
+.bkEvo { font-size: 11.5px; line-height: 1.55; color: var(--dim); padding-top: 6px; border-top: 1px dashed var(--line); }
+.bkEvo span { display: block; color: var(--faint); margin-bottom: 2px; }
+.bkEvo b { color: var(--gold); font-weight: 600; }
+body.touch #trapBook { max-height: calc(100vh - 24px); top: 50%; transform: translate(-50%, -50%); }
+body.touch .bkRow { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 #shopList { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
 .wcard { position: relative; display: grid; gap: 4px; align-content: start; text-align: left; padding: 10px 10px 12px; background: rgba(255, 255, 255, .04); border: 1px solid var(--line); cursor: pointer; color: var(--ink); }
 .wcard .kb { position: absolute; right: 8px; top: 8px; }
@@ -280,7 +305,6 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 
 /* ---------- 覆盖层 ---------- */
 .overlay { position: fixed; inset: 0; display: flex; overflow-y: auto; }
-#menu { background: linear-gradient(90deg, rgba(4, 7, 11, .94) 0%, rgba(4, 7, 11, .78) 38%, rgba(4, 7, 11, .15) 70%, transparent 100%); }
 .menuIn { width: min(600px, 100%); box-sizing: border-box; padding: max(5vh, 24px) 16px 24px clamp(16px, 6vw, 80px); display: flex; flex-direction: column; gap: 22px; margin: auto 0; }
 .eyebrow { font-size: 12px; letter-spacing: .32em; color: var(--crys); }
 h1 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: clamp(54px, 9vw, 96px); line-height: .95; letter-spacing: .06em; color: var(--ink); text-shadow: 0 0 40px rgba(95, 227, 255, .28); }
@@ -320,6 +344,16 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 .grade.gD { color: var(--danger); text-shadow: 0 0 24px rgba(255, 82, 102, .6); }
 #trapTable .lv, #wpnTable .lv, #evoTable .lv { font-family: var(--f-num); font-size: 11px; color: var(--faint); margin-top: 2px; }
 #end.lose h2 { color: var(--danger); }
+#endTraps h3 { margin: 0 0 8px; font-size: 14px; font-weight: 600; letter-spacing: .08em; color: var(--dim); }
+#endTrapList { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 6px 22px; }
+#endTrapList li { --cc: var(--c-gun); display: grid; grid-template-columns: 20px 6.5em minmax(0, 1fr) auto; align-items: center; gap: 8px; font-size: 13px; }
+#endTrapList .ic { width: 18px; height: 18px; color: var(--cc); }
+#endTrapList .ic svg { width: 100%; height: 100%; }
+#endTrapList b { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#endTrapList .bar { height: 8px; background: rgba(255, 255, 255, .06); }
+#endTrapList .bar i { display: block; height: 100%; background: var(--cc); box-shadow: 0 0 8px color-mix(in srgb, var(--cc) 60%, transparent); }
+#endTrapList em { font-style: normal; font-family: var(--f-num); color: var(--dim); white-space: nowrap; min-width: 8.5em; text-align: right; }
+#endTrapList em strong { color: var(--ink); font-weight: 600; margin-left: 6px; }
 #endStats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px 22px; margin: 0; }
 #endStats div { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 #endStats dt { font-size: 12px; color: var(--dim); letter-spacing: .12em; }
@@ -552,59 +586,117 @@ body.tEditOnly #hud > :not(#touchUI) { visibility: hidden; }
 body.tEditOnly #hud { background: #05080c; }
 #teBar { display: none; position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel2); pointer-events: auto; z-index: 3; font-size: 13px; color: var(--dim); white-space: nowrap; }
 #touchUI.editing #teBar { display: flex; }
-/* 手机主菜单 */
-.mHead { display: none; }
-/* 电脑端主菜单：一屏布局 */
-body:not(.touch) #menu { overflow: hidden; background: linear-gradient(90deg, rgba(4, 7, 11, .95) 0%, rgba(4, 7, 11, .7) 30%, rgba(4, 7, 11, .08) 48%, rgba(4, 7, 11, .45) 62%, rgba(4, 7, 11, .9) 100%); }
-.menuIn.desk { width: 100%; max-width: none; height: 100vh; margin: 0; box-sizing: border-box; padding: clamp(18px, 4vh, 44px) clamp(18px, 3vw, 48px); display: grid; grid-template-columns: minmax(300px, 400px) minmax(0, 1fr) minmax(500px, 620px); gap: 24px; overflow: hidden; }
-.menuIn.desk .dLeft { grid-column: 1; display: flex; flex-direction: column; gap: clamp(12px, 2.4vh, 22px); min-height: 0; }
-.menuIn.desk .dRight { grid-column: 3; display: flex; flex-direction: column; min-height: 0; background: linear-gradient(165deg, rgba(10, 18, 28, .9), rgba(5, 9, 15, .86)); border: 1px solid var(--line); clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); backdrop-filter: blur(4px); }
-.menuIn.desk .dActs { display: grid; gap: 10px; }
-.menuIn.desk .dActs .cta { width: 100%; padding: 18px 28px; font-size: 22px; }
-.menuIn.desk .dMore { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.menuIn.desk .dMore .ghostBtn { padding: 10px 12px; font-size: 13.5px; letter-spacing: .08em; background: rgba(8, 14, 21, .55); }
-.menuIn.desk .dMore #tutBtn { border-color: rgba(108, 240, 164, .5); color: var(--ok); }
-.menuIn.desk .dKeys { display: none; }
-.menuIn.desk h1 { font-size: clamp(52px, 5.4vw, 84px); white-space: nowrap; }
-.menuIn.desk .dLeft .pitch { font-size: 14px; }
-.menuIn.desk .mapDesc { padding: 10px 12px; background: rgba(255, 255, 255, .03); border-left: 2px solid var(--crys); }
-.menuIn.desk .dTabs { display: flex; gap: 2px; padding: 12px 14px 0; border-bottom: 1px solid var(--line); }
-.menuIn.desk .dTabs button { padding: 10px 16px; font: inherit; font-size: 14.5px; letter-spacing: .06em; color: var(--dim); background: transparent; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
-.menuIn.desk .dTabs button[aria-selected="true"] { color: var(--crys); border-bottom-color: var(--crys); }
-.menuIn.desk .dPanels { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 18px; scrollbar-width: thin; }
-.menuIn.desk .dPanel { display: grid; gap: 18px; align-content: start; }
-.menuIn.desk .dPanel[hidden] { display: none; }
-.menuIn.desk .dPanel .mpBox { background: transparent; border: 0; padding: 0; clip-path: none; }
-.menuIn.desk .dSum { display: flex; gap: 10px; align-items: baseline; padding: 10px 18px 12px; border-top: 1px solid var(--line); font-size: 13px; }
-.menuIn.desk .dSum span { color: var(--faint); font-size: 12px; white-space: nowrap; }
-.menuIn.desk .dSum b { color: var(--gold); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.menuIn.desk .mapDesc { max-width: none; }
-@media (max-width: 1180px) { .menuIn.desk { grid-template-columns: minmax(280px, 360px) minmax(0, 1fr); } .menuIn.desk .dRight { grid-column: 2; } body:not(.touch) #menu { background: linear-gradient(90deg, rgba(4, 7, 11, .95), rgba(4, 7, 11, .75)); } }
-@media (max-height: 760px) { .menuIn.desk h1 { font-size: 54px; } .menuIn.desk .pitch { font-size: 13px; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; } .menuIn.desk .dKeys { display: none; } }
-@media (max-height: 600px) { .menuIn.desk .pitch, .menuIn.desk .eyebrow { display: none; } }
-body.touch #menu { background: linear-gradient(180deg, rgba(4, 7, 11, .93), rgba(4, 7, 11, .86)); }
-body.touch .menuIn { width: 100%; max-width: none; margin: 0; min-height: 100%; padding: 0 calc(12px + env(safe-area-inset-right, 0px)) 16px calc(12px + env(safe-area-inset-left, 0px)); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; gap: 10px 16px; }
-body.touch .menuIn > * { grid-column: 1 / -1; }
-body.touch .menuIn[data-cur="cfg"] > [data-tab="cfg"] { grid-column: auto; }
-body.touch .menuIn > [data-tab]:not(.mHead) { display: none; }
-body.touch .menuIn[data-cur="map"] > [data-tab="map"], body.touch .menuIn[data-cur="cfg"] > [data-tab="cfg"], body.touch .menuIn[data-cur="mp"] > [data-tab="mp"], body.touch .menuIn[data-cur="info"] > [data-tab="info"] { display: block; }
-body.touch .menuIn[data-cur="info"] > .row2[data-tab="info"] { display: flex; }
-body.touch .menuIn[data-cur="mp"] > #mpBox { display: grid; }
-body.touch .mHead { display: flex; align-items: center; gap: 10px; position: sticky; top: 0; z-index: 3; margin: 0 -12px; padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 6px; background: rgba(4, 7, 11, .96); border-bottom: 1px solid var(--line); }
-.mBrand { font-family: var(--f-disp); font-weight: 400; font-size: 22px; letter-spacing: .06em; white-space: nowrap; }
-.mBrand em { font-style: normal; color: var(--crys); }
-.mTabs { display: flex; gap: 4px; }
-.mTabs button { padding: 8px 14px; font-size: 14px; background: transparent; border: 1px solid transparent; color: var(--dim); cursor: pointer; }
-.mTabs button[aria-selected="true"] { color: var(--crys); border-color: var(--crys); background: rgba(95, 227, 255, .1); }
-.mSum { flex: 1; min-width: 0; font-size: 11px; color: var(--faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
-body.touch .mHead #startBtn { padding: 10px 18px; font-size: 15px; letter-spacing: .2em; flex: none; }
-body.touch .mapCards { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
-body.touch .mapDesc { font-size: 12px; max-width: none; }
-body.touch .seg button { min-width: 70px; padding: 7px 8px 6px; }
-body.touch .seg button b { font-size: 14px; }
-body.touch .mpBox { max-width: 640px; }
-body.touch .mpRow input { padding: 10px; }
-@media (max-width: 700px) { .mSum { display: none; } .mTabs button { padding: 8px 10px; } }
+/* ============ 主菜单：首页 / 多人游戏 / 开局设置 ============ */
+#menu { background: radial-gradient(ellipse 62% 78% at 50% 50%, rgba(4, 8, 13, .9) 0%, rgba(4, 8, 13, .72) 55%, rgba(4, 8, 13, .35) 100%); overflow: hidden; }
+#menu .scr { margin: auto; box-sizing: border-box; }
+#menu .scr[hidden] { display: none; }
+/* 首页 */
+.scrHome { width: min(460px, calc(100vw - 32px)); display: grid; gap: clamp(14px, 2.6vh, 26px); justify-items: center; padding: 24px 0; }
+.brand { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; }
+.brand h1 { position: relative; font-size: clamp(56px, 8.5vw, 104px); letter-spacing: .14em; margin-right: -.14em; white-space: nowrap; }
+.brand h1 em { font-style: normal; color: var(--crys); }
+.tagline { margin: 0; font-size: 14px; letter-spacing: .32em; margin-right: -.32em; color: var(--dim); }
+.core { position: absolute; left: 50%; top: 46%; width: 0; height: 0; pointer-events: none; }
+.core i { position: absolute; left: -90px; top: -90px; width: 180px; height: 180px; border: 1px solid rgba(95, 227, 255, .22); clip-path: polygon(25% 3%, 75% 3%, 100% 50%, 75% 97%, 25% 97%, 0 50%); animation: coreSpin 26s linear infinite; }
+.core i::before { content: ''; position: absolute; inset: 0; border: 1px solid rgba(95, 227, 255, .25); clip-path: inherit; }
+.core i:nth-child(2) { left: -130px; top: -130px; width: 260px; height: 260px; opacity: .55; animation-duration: 40s; animation-direction: reverse; }
+.core i:nth-child(3) { left: -36px; top: -36px; width: 72px; height: 72px; background: radial-gradient(circle, rgba(95, 227, 255, .35), transparent 70%); border: 0; animation: corePulse 3.2s ease-in-out infinite; }
+@keyframes coreSpin { to { transform: rotate(360deg); } }
+@keyframes corePulse { 50% { opacity: .45; transform: scale(.85); } }
+.homeNav { width: 100%; display: grid; gap: 8px; }
+.hBtn { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: baseline; column-gap: 16px; padding: 14px 20px; text-align: left; color: var(--ink); background: rgba(8, 14, 21, .66); border: 1px solid var(--line); clip-path: var(--cut); cursor: pointer; transition: background .15s, border-color .15s; }
+.hBtn::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--crys); transform: scaleY(0); transition: transform .18s; }
+.hBtn:hover, .hBtn:focus-visible { border-color: rgba(95, 227, 255, .6); background: rgba(14, 30, 42, .82); outline: none; }
+.hBtn:hover::before, .hBtn:focus-visible::before { transform: scaleY(1); }
+.hBtn b { font-family: var(--f-disp); font-weight: 400; font-size: 24px; letter-spacing: .12em; white-space: nowrap; }
+.hBtn small { font-size: 12.5px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; justify-self: end; }
+.hBtn.primary { padding: 18px 22px; background: linear-gradient(90deg, rgba(95, 227, 255, .2), rgba(95, 227, 255, .04) 70%); border-color: rgba(95, 227, 255, .45); }
+.hBtn.primary b { font-size: 30px; color: var(--crys); text-shadow: 0 0 18px rgba(95, 227, 255, .35); }
+.hBtn.primary:hover { background: linear-gradient(90deg, rgba(95, 227, 255, .32), rgba(95, 227, 255, .08) 75%); }
+#tutBtn b { color: var(--ok); }
+#tutBtn::before { background: var(--ok); }
+.hBtn:disabled { opacity: .5; cursor: default; }
+.hGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.hBtn.sm { grid-template-columns: 1fr; justify-items: center; row-gap: 4px; padding: 12px 6px 11px; text-align: center; }
+.hBtn.sm b { font-size: 17px; letter-spacing: .08em; }
+.hBtn.sm small { justify-self: center; font-size: 11px; color: var(--faint); max-width: 100%; }
+#starTag { color: var(--gold); }
+.homeNote { margin: 0; text-align: center; }
+/* 面板页（多人游戏 / 开局设置） */
+.scrPanel { width: min(1080px, calc(100vw - 32px)); max-height: calc(100vh - 40px); display: grid; grid-template-rows: auto minmax(0, 1fr) auto; background: linear-gradient(165deg, rgba(10, 18, 28, .95), rgba(5, 9, 15, .93)); border: 1px solid var(--line); clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); backdrop-filter: blur(6px); }
+.pHead { display: flex; align-items: center; gap: 18px; padding: 14px 20px; border-bottom: 1px solid var(--line); min-width: 0; }
+.pHead h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 28px; letter-spacing: .12em; white-space: nowrap; }
+.pHead .mpStatus { margin-left: auto; }
+.backBtn { flex: none; padding: 8px 14px 8px 26px; position: relative; font: inherit; font-size: 14px; color: var(--dim); background: transparent; border: 1px solid var(--line); cursor: pointer; }
+.backBtn::before { content: ''; position: absolute; left: 11px; top: 50%; width: 7px; height: 7px; border-left: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: translateY(-50%) rotate(45deg); }
+.backBtn:hover, .backBtn:focus-visible { color: var(--crys); border-color: var(--crys); outline: none; }
+.scrPanel .mpBox { min-height: 0; overflow-y: auto; background: transparent; border: 0; clip-path: none; padding: 20px 22px 22px; gap: 14px; align-content: start; }
+#mpIdle:not([hidden]) { display: grid; grid-template-columns: minmax(260px, 340px) minmax(0, 1fr); gap: 22px; align-items: start; }
+.createBox, .joinBox { display: grid; gap: 12px; align-content: start; }
+.createBox { padding: 16px; background: rgba(95, 227, 255, .05); border: 1px solid rgba(95, 227, 255, .25); }
+.createBox h3, .joinBox h3 { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: .08em; color: var(--ink); }
+.createBox .mpRow { grid-template-columns: 3em minmax(0, 1fr); }
+.createBox .cta { width: 100%; }
+.joinBox .roomList { margin-top: 0; max-height: 52vh; overflow-y: auto; }
+#mpRoom:not([hidden]) { display: grid; gap: 14px; }
+.roomActs { display: flex; justify-content: flex-end; gap: 10px; }
+.roomActs .cta { min-width: 220px; }
+/* 步骤条：这是真正的先后顺序，所以用数字 */
+.stepper { list-style: none; display: flex; margin: 0 0 0 auto; padding: 0; gap: 0; }
+.stepper li { display: flex; align-items: center; }
+.stepper li + li::before { content: ''; width: clamp(14px, 3vw, 40px); height: 1px; background: var(--line); margin: 0 6px; }
+.stepper button { display: flex; align-items: center; gap: 8px; padding: 6px 8px; font: inherit; font-size: 14px; color: var(--faint); background: transparent; border: 0; cursor: pointer; white-space: nowrap; }
+.stepper i { display: grid; place-items: center; width: 24px; height: 24px; font-style: normal; font-family: var(--f-num); font-size: 12px; border: 1px solid currentColor; border-radius: 50%; }
+.stepper li.done button { color: var(--dim); }
+.stepper li.done i { background: rgba(95, 227, 255, .14); border-color: rgba(95, 227, 255, .5); color: var(--crys); }
+.stepper li.cur button { color: var(--crys); }
+.stepper li.cur i { background: var(--crys); color: #03222c; border-color: var(--crys); box-shadow: 0 0 12px rgba(95, 227, 255, .5); }
+.stepper li.done + li::before, .stepper li.cur + li::before { background: rgba(95, 227, 255, .45); }
+.steps { min-height: 0; overflow-y: auto; padding: 20px 22px; scrollbar-width: thin; }
+.step { display: grid; gap: 16px; align-content: start; }
+.step[hidden] { display: none; }
+.scrSetup .mapCards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.scrSetup .mapCard { padding: 10px; }
+.scrSetup .mapDesc { max-width: none; margin: 0; padding: 12px 14px; background: rgba(255, 255, 255, .03); border-left: 2px solid var(--crys); }
+.segBig { gap: 10px; }
+.segBig button { padding: 18px 18px 16px; min-width: 150px; }
+.segBig button b { font-family: var(--f-disp); font-weight: 400; font-size: 24px; letter-spacing: .1em; }
+.segBig button small { font-size: 12.5px; margin-top: 6px; }
+.clsSeg.segBig { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.pFoot { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-top: 1px solid var(--line); }
+.pFoot .sum { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: baseline; font-size: 13px; }
+.pFoot .sum span { color: var(--faint); white-space: nowrap; }
+.pFoot .sum b { color: var(--gold); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pFoot .cta { min-width: 180px; padding: 13px 24px; font-size: 17px; letter-spacing: .24em; }
+.pFoot .cta:disabled { filter: grayscale(.7) brightness(.7); cursor: default; transform: none; }
+.pFoot .ghostBtn[hidden], .pFoot .cta[hidden] { display: none; }
+@media (max-width: 860px) { .scrSetup .mapCards { grid-template-columns: repeat(2, minmax(0, 1fr)); } #mpIdle:not([hidden]) { grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: 14px; } }
+@media (max-width: 600px) { #mpIdle:not([hidden]) { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .stepper button span { display: none; } }
+/* 矮屏（手机横屏）：首页压缩成三行，面板铺满屏幕 */
+@media (max-height: 560px) {
+  .scrHome { width: min(760px, calc(100vw - 32px)); gap: 10px; padding: 10px 0; }
+  .brand h1 { font-size: 44px; }
+  .tagline { font-size: 12px; letter-spacing: .2em; }
+  .core { display: none; }
+  .homeNav { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+  .hBtn { grid-template-columns: 1fr; row-gap: 2px; padding: 10px 12px; }
+  .hBtn b, .hBtn.primary b { font-size: 21px; }
+  .hBtn.primary { padding: 10px 12px; }
+  .hBtn small { justify-self: start; font-size: 11px; }
+  .hGrid { grid-column: 1 / -1; margin-top: 0; gap: 6px; }
+  .hBtn.sm { padding: 8px 4px; }
+  .hBtn.sm b { font-size: 15px; }
+  .scrPanel { width: 100vw; max-height: 100vh; height: 100vh; clip-path: none; border: 0; padding: 0 env(safe-area-inset-right, 0px) 0 env(safe-area-inset-left, 0px); }
+  .pHead { padding: 8px 14px; gap: 12px; }
+  .pHead h2 { font-size: 20px; }
+  .steps, .scrPanel .mpBox { padding: 12px 14px; }
+  .pFoot { padding: 8px 14px; }
+  .pFoot .cta { min-width: 130px; padding: 10px 16px; font-size: 15px; }
+  .segBig button { padding: 12px 12px 10px; }
+  .segBig button b { font-size: 19px; }
+}
+@media (max-width: 640px) { .pFoot .sum { display: none; } .stepper li + li::before { width: 8px; margin: 0 2px; } }
 @media (orientation: portrait) {
   body.touch #rotateNote { display: grid; position: fixed; inset: 0; z-index: 50; place-content: center; justify-items: center; gap: 8px; background: rgba(3, 6, 10, .96); font-size: 20px; color: var(--crys); letter-spacing: .1em; }
   body.touch #rotateNote small { font-size: 13px; color: var(--dim); letter-spacing: .05em; }
@@ -681,6 +773,10 @@ body.touch .mpRow input { padding: 10px; }
     <div class="shopHead"><h3 id="evoTitle">进阶</h3><span>按 1 / 2 选择进阶方向 · E / Esc 取消</span><button type="button" class="pClose" data-close="evo" aria-label="关闭">✕</button></div>
     <div id="evoList" class="pickList"></div>
   </div>
+  <div id="trapBook" hidden>
+    <div class="shopHead"><h3>陷阱一览</h3><span>按 1-5 打开分组，再按数字选组内第几个 · 点卡片直接选中 · Tab / Esc 关闭</span><button type="button" class="pClose" data-close="book" aria-label="关闭">✕</button></div>
+    <div id="bookList"></div>
+  </div>
   <div id="shop" hidden>
     <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
     <div id="shopList"></div>
@@ -697,6 +793,7 @@ body.touch .mpRow input { padding: 10px; }
     <div id="tbUtil">
       <button type="button" class="tb sm" data-k="Escape">菜单</button>
       <button type="button" class="tb sm" data-k="KeyB">军械<small>B</small></button>
+      <button type="button" class="tb sm" data-k="Tab">陷阱<small>Tab</small></button>
       <button type="button" class="tb sm" data-k="KeyM">地图<small>M</small></button>
       <button type="button" class="tb sm" data-k="KeyT">标记<small>T</small></button>
       <button type="button" class="tb sm" data-k="KeyV" id="tbQuick">消息<small>V</small></button>
@@ -719,89 +816,106 @@ body.touch .mpRow input { padding: 10px; }
 </div>
 <div id="rotateNote">请把手机横过来<small>横屏才能看清战场</small></div>
 
-<div id="menu" class="overlay">
-  <div class="menuIn">
-    <div>
-      <div class="eyebrow">第一人称 · 塔防射击</div>
+<div id="menu" class="overlay" data-scr="home">
+  <!-- 首页：标题 + 竖排菜单 -->
+  <section class="scr scrHome" data-scr="home" aria-label="主菜单">
+    <header class="brand">
+      <div class="core" aria-hidden="true"><i></i><i></i><i></i></div>
       <h1>晶核<em>守卫</em></h1>
-    </div>
-    <p class="pitch">赛博格大军沿固定路线从各个出怪口冲向<b>核心水晶</b>。你在通道里来回奔跑，把陷阱布在<b>地面、墙壁、天花板和炮台位</b>上，靠陷阱打出主要伤害，用枪械、手雷和轨道打击补刀，关键时刻拉下地图机关。守住全部波次并击败终局 BOSS 即为胜利。</p>
+      <p class="tagline">第一人称塔防射击 · 守住核心水晶</p>
+    </header>
     <div id="menuErr" hidden></div>
     <div id="touchNote" hidden>本游戏需要键盘和鼠标，请在电脑上游玩。</div>
-    <div id="touchHelp" class="fine" hidden>触屏操作：左半屏拖动移动（推到底冲刺），右半屏滑动转视角；右下角开火 / 跳跃 / 换弹 / 手雷 / 轨道打击；顶部陷阱栏点选后按「放置」；走近机关或科研舱、对准陷阱时，屏幕下方会出现互动、升级、拆除按钮。</div>
-    <div>
-      <h3 style="margin-bottom:8px">关卡</h3>
-      <div id="mapCards" class="mapCards" role="group" aria-label="关卡"></div>
-      <p id="mapDesc" class="mapDesc"></p>
-    </div>
-    <div class="selRow">
-      <div>
-        <h3 style="margin-bottom:8px">模式</h3>
-        <div class="seg" role="group" aria-label="模式">
-          <button type="button" data-mode="std" aria-pressed="true"><b>标准</b><small>打完全部波次</small></button>
-          <button type="button" data-mode="endless" aria-pressed="false"><b>无尽</b><small>坚持越久越好</small></button>
-          <button type="button" data-mode="daily" aria-pressed="false"><b>每日挑战</b><small id="dailySub">每天一套固定组合</small><em id="dailyBest"></em></button>
-        </div>
+    <nav class="homeNav" aria-label="主菜单">
+      <button type="button" class="hBtn" id="tutBtn"><b>新手引导</b><small>9 步学会布防、升级和射击</small></button>
+      <button type="button" class="hBtn primary" id="soloBtn"><b>单人游戏</b><small id="soloSub">选择关卡、模式、难度和职业</small></button>
+      <button type="button" class="hBtn primary" id="mpBtn"><b>多人游戏</b><small id="mpSub">创建或加入房间，最多 4 人合作</small></button>
+      <div class="hGrid">
+        <button type="button" class="hBtn sm" id="talentBtn"><b>天赋</b><small id="starTag"></small></button>
+        <button type="button" class="hBtn sm" id="menuHelpBtn"><b>图鉴</b><small>陷阱 · 敌人 · 操作</small></button>
+        <button type="button" class="hBtn sm" id="menuSetBtn"><b>设置</b><small>画面 · 声音 · 按键</small></button>
+        <button type="button" class="hBtn sm" id="lbBtn"><b>无尽排行榜</b><small>各关卡全服前 20</small></button>
       </div>
-    </div>
-    <div>
-      <div class="mutHead"><h3>突变（可选，叠加提升难度）</h3><span id="mutScore"></span></div>
-      <div id="mutChips" class="mutChips" role="group" aria-label="突变词缀"></div>
-    </div>
-    <div>
-      <h3 style="margin-bottom:8px">职业</h3>
-      <div class="seg clsSeg" id="clsSeg" role="group" aria-label="职业"></div>
-    </div>
-    <div>
-      <h3 style="margin-bottom:8px">难度</h3>
-      <div class="seg" role="group" aria-label="难度">
-        <button type="button" data-diff="normal" aria-pressed="true"><b>普通</b><small>适合熟悉玩法</small><em></em></button>
-        <button type="button" data-diff="hard" aria-pressed="false"><b>困难</b><small>怪物血量 ×1.7</small><em></em></button>
-        <button type="button" data-diff="hell" aria-pressed="false"><b>炼狱</b><small>怪物血量 ×2.4</small><em></em></button>
-      </div>
-    </div>
-    <div class="row2">
-      <button type="button" class="cta" id="startBtn">进入战场</button>
-      <button type="button" class="ghostBtn" id="menuHelpBtn">陷阱与怪物图鉴</button>
-      <button type="button" class="ghostBtn" id="menuSetBtn">设置</button>
-      <button type="button" class="ghostBtn" id="talentBtn">天赋 <span id="starTag"></span></button>
-      <button type="button" class="ghostBtn" id="lbBtn">无尽排行榜</button>
-      <button type="button" class="ghostBtn" id="tutBtn">新手引导</button>
-    </div>
-    <section id="mpBox" class="mpBox" aria-label="联机合作">
-      <div class="mpHead"><h3>联机合作 · 最多 4 人</h3><span id="mpStatus" class="mpStatus">连接中…</span></div>
+    </nav>
+    <p id="touchHelp" class="fine homeNote" hidden>触屏：左半屏拖动移动，右半屏滑动转视角；顶部陷阱栏点选后按「放置」。</p>
+  </section>
+
+  <!-- 多人游戏：大厅 / 房间 -->
+  <section class="scr scrPanel" data-scr="mp" hidden aria-label="多人游戏">
+    <header class="pHead">
+      <button type="button" class="backBtn" data-back="home" aria-label="返回主菜单">返回</button>
+      <h2>多人游戏</h2>
+      <span id="mpStatus" class="mpStatus">连接中…</span>
+    </header>
+    <div id="mpBox" class="mpBox">
       <p id="mpOff" class="fine" hidden>联机需要在 claude.ai 中打开这个页面（队友也需要有这个页面的访问权限）。现在可以先单人游玩。</p>
       <div id="srvRow" class="mpRow" hidden><label for="srvIn">服务器</label><input id="srvIn" maxlength="120" autocomplete="off" spellcheck="false" placeholder="例如 jhsw-relay.名字.workers.dev"><button type="button" class="ghostBtn" id="srvBtn">连接</button></div>
       <div id="mpIdle" hidden>
-        <div class="mpRow"><label for="nick">昵称</label><input id="nick" maxlength="12" autocomplete="off" spellcheck="false"><button type="button" class="ghostBtn" id="hostBtn">创建房间</button></div>
-        <div class="mpRow"><label for="roomPw">密码</label><input id="roomPw" maxlength="16" autocomplete="off" spellcheck="false" placeholder="可选：创建房间时设置，留空为公开房间"><span></span></div>
-        <div id="roomList" class="roomList"></div>
+        <div class="createBox">
+          <h3>创建房间</h3>
+          <div class="mpRow"><label for="nick">昵称</label><input id="nick" maxlength="12" autocomplete="off" spellcheck="false"></div>
+          <div class="mpRow"><label for="roomPw">密码</label><input id="roomPw" maxlength="16" autocomplete="off" spellcheck="false" placeholder="可选，留空为公开房间"></div>
+          <button type="button" class="cta" id="hostBtn">创建房间</button>
+        </div>
+        <div class="joinBox">
+          <h3>加入房间</h3>
+          <div id="roomList" class="roomList"></div>
+        </div>
       </div>
       <div id="mpRoom" hidden>
         <div class="mpHead"><b id="roomTitle"></b><span id="roomRole" class="mpStatus"></span></div>
         <ol id="roster" class="roster"></ol>
-        <p class="fine" style="margin:0">房主选择的关卡、模式、难度对全队生效；金币全队共享，陷阱谁都能升级和拆除。布防阶段全员按 G 准备即可提前开战。</p>
-        <div class="row2"><button type="button" class="ghostBtn small" id="leaveBtn">离开房间</button></div>
+        <p class="fine" style="margin:0">房主选择的关卡、模式、难度对全队生效；职业每人自选。金币全队共享，陷阱谁都能升级和拆除。</p>
+        <div class="roomActs"><button type="button" class="ghostBtn" id="leaveBtn">离开房间</button><button type="button" class="cta" id="roomNext">下一步</button></div>
       </div>
       <p id="mpNote" class="mpNote" hidden></p>
-    </section>
-    <div class="keys">
-      <div><span class="kb">WASD</span>移动 · <span class="kb">Shift</span>冲刺</div>
-      <div><span class="kb">空格</span>跳跃 · <span class="kb">R</span>换弹</div>
-      <div><span class="kb">左键</span>射击 / 放置陷阱</div>
-      <div><span class="kb">右键</span>瞄准 / 收起陷阱</div>
-      <div><span class="kb">1-9</span>选择陷阱 · <span class="kb">Q</span>步枪</div>
-      <div><span class="kb">E</span>升级 · <span class="kb">X</span>拆除陷阱</div>
-      <div><span class="kb">B</span>军械库 · <span class="kb">Q</span>切枪</div>
-      <div><span class="kb">C</span>手雷 · <span class="kb">Z</span>轨道打击</div>
-      <div><span class="kb">F</span>启动地图机关</div>
-      <div><span class="kb">T</span>标记 · <span class="kb">V</span>快捷消息</div>
-      <div><span class="kb">G</span>提前开战 / 联机时准备</div>
-      <div><span class="kb">M</span>大地图 · <span class="kb">H</span>图鉴</div>
-      <div><span class="kb">Esc</span>暂停 / 设置</div>
     </div>
-    <p class="fine">玩法参考《逆战》塔防模式。怪物与枪械模型采用 Quaternius、Kenney 等免费授权素材（详见图鉴），其余为原创。联机时由房主运行权威模拟，队友本地预测移动与射击。</p>
-  </div>
+  </section>
+
+  <!-- 开局设置：关卡 → 模式 → 难度 → 职业 -->
+  <section class="scr scrPanel scrSetup" data-scr="setup" hidden aria-label="开局设置">
+    <header class="pHead">
+      <button type="button" class="backBtn" id="setupBack">返回</button>
+      <h2 id="setupTitle">单人游戏</h2>
+      <ol class="stepper" id="stepper" aria-label="设置步骤">
+        <li data-stepi="0"><button type="button"><i>1</i><span>关卡</span></button></li>
+        <li data-stepi="1"><button type="button"><i>2</i><span>模式</span></button></li>
+        <li data-stepi="2"><button type="button"><i>3</i><span>难度</span></button></li>
+        <li data-stepi="3"><button type="button"><i>4</i><span>职业</span></button></li>
+      </ol>
+    </header>
+    <div class="steps">
+      <div class="step" data-step="0">
+        <div id="mapCards" class="mapCards" role="group" aria-label="关卡"></div>
+        <p id="mapDesc" class="mapDesc"></p>
+      </div>
+      <div class="step" data-step="1" hidden>
+        <div class="seg segBig" role="group" aria-label="模式">
+          <button type="button" data-mode="std" aria-pressed="true"><b>标准</b><small>打完全部波次，击败终局 BOSS</small></button>
+          <button type="button" data-mode="endless" aria-pressed="false"><b>无尽</b><small>坚持越久越好，成绩上排行榜</small></button>
+          <button type="button" data-mode="daily" aria-pressed="false"><b>每日挑战</b><small id="dailySub">每天一套固定组合</small><em id="dailyBest"></em></button>
+        </div>
+        <div class="mutHead"><h3>突变</h3><span id="mutScore"></span></div>
+        <div id="mutChips" class="mutChips" role="group" aria-label="突变词缀"></div>
+      </div>
+      <div class="step" data-step="2" hidden>
+        <div class="seg segBig" role="group" aria-label="难度">
+          <button type="button" data-diff="normal" aria-pressed="true"><b>普通</b><small>适合熟悉玩法</small><em></em></button>
+          <button type="button" data-diff="hard" aria-pressed="false"><b>困难</b><small>怪物血量 ×1.7</small><em></em></button>
+          <button type="button" data-diff="hell" aria-pressed="false"><b>炼狱</b><small>怪物血量 ×2.4</small><em></em></button>
+        </div>
+      </div>
+      <div class="step" data-step="3" hidden>
+        <div class="seg clsSeg segBig" id="clsSeg" role="group" aria-label="职业"></div>
+      </div>
+    </div>
+    <footer class="pFoot">
+      <div class="sum"><span>已选</span><b id="dSum"></b></div>
+      <button type="button" class="ghostBtn" id="stepPrev">上一步</button>
+      <button type="button" class="cta" id="stepNext">下一步</button>
+      <button type="button" class="cta" id="startBtn" hidden>开始游戏</button>
+    </footer>
+  </section>
 </div>
 
 <div id="pause" class="overlay" hidden>
@@ -828,11 +942,12 @@ body.touch .mpRow input { padding: 10px; }
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>材质精细度</b><span class="fine">地面、墙面、岩石等纹理细节；手机发热或掉帧时选“低”</span></div><button type="button" class="ghostBtn small" id="detailBtn" aria-pressed="true">高</button></div>
+        <div class="setRow"><div><b>屏幕震动</b><span class="fine">爆炸、BOSS 脚步和践踏时画面晃动（离得越近越明显），晕 3D 可以关闭</span></div><button type="button" class="ghostBtn small" id="shakeBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>显示帧率</b><span class="fine">左上角显示每秒帧数和当前渲染分辨率，方便判断手机能否跑得动</span></div><button type="button" class="ghostBtn small" id="fpsBtn" aria-pressed="false">关</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
       </section>
       <section data-stab="keys" hidden>
-        <p class="fine" style="margin:0 0 8px">点一个按键，再按下想用的新键（Esc 取消）。和其他功能冲突时会互换。数字键 1-9 固定用来选陷阱。</p>
+        <p class="fine" style="margin:0 0 8px">点一个按键，再按下想用的新键（Esc 取消）。和其他功能冲突时会互换。数字键 1-9 固定用来选陷阱（1-5 打开分组，再按数字选组内第几个），Tab 固定打开陷阱一览。</p>
         <div id="keyList" class="keyList"></div>
         <div class="row2" style="margin-top:12px"><button type="button" class="ghostBtn small" id="keysReset">恢复默认按键</button></div>
       </section>
@@ -850,6 +965,7 @@ body.touch .mpRow input { padding: 10px; }
   <div class="modal">
     <div class="endHead"><div id="endGrade" class="grade"></div><div><h2 id="endTitle"></h2><div id="endBest" class="fine"></div></div></div>
     <dl id="endStats"></dl>
+    <section id="endTraps" hidden><h3>陷阱输出占比</h3><ol id="endTrapList"></ol></section>
     <ul id="endTeam" hidden></ul>
     <p id="endLb" class="endStar" hidden></p>
     <p id="endStar" class="endStar" hidden></p>
@@ -889,8 +1005,8 @@ body.touch .mpRow input { padding: 10px; }
     <div class="fpBody">
       <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在地上琥珀色框出的 2×2 炮台位（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
-    <p class="fine"><b>加特林炮塔（按 [ 选择）</b>放在炮台位或空地上，没人时会自动扫射（火力较弱）；走到旁边按 F 坐上去亲手操控：按住左键先转管预热，转速起来后每秒 20 发，对地对空随意扫射，伤害随炮塔等级提升。连续开火约 5 秒会过热，要松手等枪管冷却（进阶「液冷枪管」不会过热）。再按 F 或空格离开。</p>
-    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine"><b>加特林炮塔（按 4 再按 3 选择）</b>放在炮台位或空地上，没人时会自动扫射（火力较弱）；走到旁边按 F 坐上去亲手操控：按住左键先转管预热，转速起来后每秒 20 发，对地对空随意扫射，伤害随炮塔等级提升。连续开火约 5 秒会过热，要松手等枪管冷却（进阶「液冷枪管」不会过热）。再按 F 或空格离开。</p>
+    <p class="fine"><b>重型陷阱（按 5 打开分组）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
     <p class="fine"><b>BOSS 分阶段</b>：BOSS 血量降到 60% 时进入第二阶段，会怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫；降到 25% 时进入狂暴，移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>
     </section>
       <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>

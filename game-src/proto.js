@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 14;
+const VERSION = 15;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
@@ -176,6 +176,8 @@ function encodeSnap(sim, o) {
   const cf = { mut: s.mut || [], tal: s.tal || {}, daily: s.daily || null };
   const tc = TECH.map(t => (s.tech && s.tech[t.id]) | 0);
   const head = { g: o.gid, q: o.seq, k: 0, n: 1, h, st, p, tt, pj, lv, dv, cf, tc, r: o.acks || {}, e: [], tr: '', m: '' };
+  // 结算时附上各类陷阱的输出（平时不发，省流量）
+  if (s.phase === 'victory' || s.phase === 'defeat') { const bt = {}; for (const k in s.stats.byTrap || {}) bt[k] = Math.round(s.stats.byTrap[k]); head.bt = bt; }
   // 事件：最多占用 ~1100 字节
   const baseB = bytes(head);
   head.e = o.events ? o.events.take(Math.min(1100, LIMIT - baseB - 200)) : [];
@@ -244,6 +246,7 @@ function applySnap(sim, snap, ctx) {
   const st = snap.st || [];
   Object.assign(s.stats, { kills: st[0] | 0, leaks: st[1] | 0, dmgGun: st[2] || 0, dmgTrap: st[3] || 0, built: st[4] | 0, spent: st[5] | 0, startTime: st[6] || 0 });
   if (st[7]) s.stats.endlessBest = st[7];
+  if (snap.bt && typeof snap.bt === 'object') s.stats.byTrap = snap.bt;
 
   // 玩家
   const seenP = new Set((snap.p || []).map(a => a[0])), slotPid = {};

@@ -66,7 +66,7 @@ const KEY_ACTIONS = [
   ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
   ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
 ];
-const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Digit0', 'Minus', 'Equal', 'BracketLeft', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
+const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Tab', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
 let keyInv = new Map(), keyAway = new Set();
 function rebuildKeys() {
   keyInv = new Map(); keyAway = new Set();
@@ -464,12 +464,14 @@ function clientPresence(force) {
   MP.game.presence(pr).catch(() => {});
 }
 
-/* ---------- 房主后台运行：标签页隐藏时 rAF 停止，用定时器继续推进模拟 ---------- */
+/* ---------- 后台运行：标签页隐藏时 rAF 停止，用 Worker 定时器继续推进模拟（单人和房主都适用；只有按 Esc 才暂停） ---------- */
 let bgTicker = null, bgLast = 0;
 function ensureBgTicker() {
   if (bgTicker) return;
   const tick = () => {
-    if (MP.role !== 'host' || !sim || !MP.gid || !document.hidden || mode === 'menu') { bgLast = 0; return; }
+    // 单人：只要没按 Esc 暂停就继续跑；房主：一直跑（联机不暂停）
+    const run = sim && document.hidden && mode !== 'menu' && (MP.role === 'solo' ? mode === 'play' : MP.role === 'host' && MP.gid);
+    if (!run) { bgLast = 0; return; }
     const now = performance.now();
     if (!bgLast) bgLast = now;
     const dt = Math.min(0.25, (now - bgLast) / 1000); bgLast = now;
@@ -680,6 +682,7 @@ const Snd = {
       case 'boss': this.tone('sawtooth', 70, 55, 1.6, 0.35, 0); this.tone('sawtooth', 105, 82, 1.6, 0.2, 0); this.hiss(1.4, 'lowpass', 400, 120, 1, 0.3, 0); break;
       case 'emp': this.tone('sine', 1600, 60, 0.7, 0.3 * v + 0.1, p); this.hiss(0.6, 'bandpass', 3000, 300, 3, 0.2, p); break;
       case 'stomp': this.tone('sine', 70, 28, 0.5, 0.6 * v, p); break;
+      case 'bstep': this.tone('sine', 58, 26, 0.32, 0.5 * v, p); this.hiss(0.18, 'lowpass', 300, 90, 1, 0.22 * v, p); break;
       case 'roar': this.tone('sawtooth', 160, 70, 0.8, 0.3 * v, p); this.hiss(0.7, 'bandpass', 700, 300, 2, 0.25 * v, p); break;
       case 'broken': this.hiss(0.4, 'lowpass', 3000, 300, 1, 0.3 * v, p); this.tone('square', 300, 80, 0.3, 0.12 * v, p); break;
       case 'win': [0, 0.15, 0.3, 0.45, 0.7].forEach((d, i) => this.tone('triangle', [392, 523, 659, 784, 1046][i], [392, 523, 659, 784, 1046][i] * 1.01, 0.4, 0.18, 0, d)); break;
@@ -703,9 +706,14 @@ const Music = {
   PROG: {
     calm: [[57, 'm'], [53, 'M'], [48, 'M'], [55, 'M']],
     battle: [[57, 'm'], [57, 'm'], [53, 'M'], [55, 'M'], [57, 'm'], [57, 'm'], [52, 'm'], [55, 'M']],
-    boss: [[50, 'm'], [46, 'M'], [43, 'm'], [45, 'M']],
+    // BOSS 战：D 和声小调，8 小节 Dm-Dm-B♭-B♭-Gm-Gm-A-A（A 大三和弦制造紧张感）
+    boss: [[50, 'm'], [50, 'm'], [46, 'M'], [46, 'M'], [43, 'm'], [43, 'm'], [45, 'M'], [45, 'M']],
   },
-  BPM: { calm: 84, battle: 122, boss: 136 },
+  BPM: { calm: 84, battle: 122, boss: 152 },
+  inten: 1,   // BOSS 阶段 1-3：越往后编制越满
+  // BOSS 主旋律（每小节 8 个八分音符，0 = 休止）
+  LEAD: [[74, 0, 77, 81, 82, 81, 77, 76], [74, 0, 74, 76, 77, 79, 81, 0], [82, 0, 81, 77, 74, 77, 81, 82], [86, 0, 85, 82, 81, 0, 77, 0],
+    [79, 0, 82, 86, 85, 82, 81, 79], [77, 0, 79, 81, 82, 0, 79, 77], [81, 0, 85, 88, 86, 85, 82, 81], [85, 0, 81, 0, 76, 79, 81, 85]],
   hz: n => 440 * Math.pow(2, (n - 69) / 12),
   start() {
     const A = Snd.ctx; if (!A || this.g) return;
@@ -730,6 +738,8 @@ const Music = {
       if (m === 'calm') {
         if (st === 0) { this.pad(t, tones, sixteenth * 16, 0.05); this.bass(t, root - 12, sixteenth * 14, 0.11, 'triangle'); }
         if (st % 4 === 2) this.pluck(t, this.hz(tones[(st / 4 + this.bar) % 4 | 0] + 12), sixteenth * 3, 0.03);
+      } else if (m === 'boss') {
+        this.playBoss(t, st, sixteenth, root, tones, ch[1] === 'M');
       } else {
         const boss = m === 'boss';
         if (st === 0) this.pad(t, tones, sixteenth * 16, boss ? 0.045 : 0.035);
@@ -742,6 +752,54 @@ const Music = {
     }
     this.step++; if (this.step % 16 === 0) this.bar++;
     this.next = t + sixteenth;
+  },
+  // BOSS 战编曲：疾走的 galloping 低音 + 双踩 + 铜管重音 + 合唱铺底 + 主旋律，阶段越高越满
+  playBoss(t, st, s16, root, tones, major) {
+    const I = this.inten || 1, bar = this.bar;
+    if (st === 0) { this.choir(t, tones, s16 * 16, 0.045 + 0.01 * I); }
+    // 低音：每拍「哒-哒哒」三连（第 0、2、3 个十六分）
+    if (st % 4 !== 1) this.dbass(t, root - 12, s16 * (st % 4 === 0 ? 1.6 : 0.9), st % 4 === 0 ? 0.2 : 0.14);
+    // 鼓：每拍底鼓，第二阶段起加双踩；2、4 拍军鼓，每 4 小节最后一拍滚奏
+    if (st % 4 === 0) this.kick(t, 0.55);
+    else if (I >= 2 && st % 4 === 2) this.kick(t, 0.32);
+    else if (I >= 3 && st % 2 === 1) this.kick(t, 0.22);
+    if (st === 4 || st === 12) this.snare(t, 0.26);
+    if (bar % 4 === 3 && st >= 12) this.snare(t, 0.1 + (st - 11) * 0.04);
+    if (st % 2 === 0) this.hat(t, st % 4 === 2 ? 0.06 : 0.035);
+    // 铜管重音
+    if ((bar % 2 === 0 && (st === 0 || st === 3 || st === 6 || st === 10)) || (I >= 3 && st === 14)) this.brass(t, tones, s16 * (st === 0 ? 3 : 1.6), 0.05 + 0.012 * I);
+    // 主旋律（八分音符）；狂暴阶段高八度叠加
+    if (st % 2 === 0) {
+      let n = this.LEAD[bar % 8][st / 2]; if (!major && n === 85) n = 84;
+      if (n) { this.lead(t, n - (I === 1 ? 12 : 0), s16 * 1.8, 0.03); if (I >= 3) this.lead(t, n + 12, s16 * 1.4, 0.014); }
+    } else if (I >= 2 && st % 4 === 3) this.pluck(t, this.hz(tones[(st >> 2) % 4] + 24), s16 * 0.8, 0.012);
+  },
+  shaper() { if (!this._ws) { const c = new Float32Array(256); for (let i = 0; i < 256; i++) { const x = i / 128 - 1; c[i] = Math.tanh(x * 3.2); } this._ws = c; } return this._ws; },
+  dbass(t, n, dur, vol) {
+    const A = Snd.ctx, o = A.createOscillator(), o2 = A.createOscillator(), w = A.createWaveShaper(), f = A.createBiquadFilter();
+    o.type = 'sawtooth'; o2.type = 'square'; o.frequency.value = this.hz(n); o2.frequency.value = this.hz(n - 12);
+    w.curve = this.shaper(); f.type = 'lowpass'; f.frequency.setValueAtTime(1400, t); f.frequency.exponentialRampToValueAtTime(260, t + dur);
+    o.connect(w); o2.connect(w); w.connect(f); f.connect(this.env(t, vol, 0.004, dur));
+    o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
+  },
+  brass(t, tones, dur, vol) {
+    const A = Snd.ctx, f = A.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 2;
+    f.frequency.setValueAtTime(400, t); f.frequency.exponentialRampToValueAtTime(2600, t + 0.05); f.frequency.exponentialRampToValueAtTime(700, t + dur);
+    f.connect(this.env(t, vol, 0.02, dur));
+    for (const n of [tones[0], tones[1], tones[2], tones[0] + 12]) for (const det of [-9, 9]) { const o = A.createOscillator(); o.type = 'sawtooth'; o.frequency.value = this.hz(n); o.detune.value = det; o.connect(f); o.start(t); o.stop(t + dur + 0.1); }
+  },
+  choir(t, tones, dur, vol) {
+    const A = Snd.ctx, f = A.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 0.6;
+    const g = this.env(t, vol, dur * 0.35, dur * 0.7); f.connect(g);
+    const lfo = A.createOscillator(), lg = A.createGain(); lfo.frequency.value = 5.2; lg.gain.value = 6; lfo.connect(lg); lfo.start(t); lfo.stop(t + dur * 1.1);
+    for (const n of [tones[0], tones[1], tones[2], tones[0] + 12]) { const o = A.createOscillator(); o.type = 'triangle'; o.frequency.value = this.hz(n + 12); lg.connect(o.detune); o.connect(f); o.start(t); o.stop(t + dur * 1.1); }
+  },
+  lead(t, n, dur, vol) {
+    const A = Snd.ctx, o = A.createOscillator(), o2 = A.createOscillator(), f = A.createBiquadFilter();
+    o.type = 'sawtooth'; o2.type = 'square'; o.frequency.value = this.hz(n); o2.frequency.value = this.hz(n); o2.detune.value = 7;
+    f.type = 'lowpass'; f.frequency.value = 2400;
+    o.connect(f); o2.connect(f); f.connect(this.env(t, vol, 0.01, dur));
+    o.start(t); o2.start(t); o.stop(t + dur + 0.05); o2.stop(t + dur + 0.05);
   },
   env(t, peak, a, d) { const g = Snd.ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); g.connect(this.g); return g; },
   pad(t, tones, dur, vol) {
@@ -2962,7 +3020,7 @@ function handleEvents(S) {
       case 'summon': if (!e.brood && !e.drop) feed('BOSS 召唤了援军', 'bad'); burst(e.x, 1, e.z, 20, { c: [1, 0.3, 0.25], sp0: 2, sp1: 5, s0: 0.2 }); break;
       case 'stomp': {
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: e.r, t: 0, life: 0.45, c: [1, 0.6, 0.3] });
-        const d = Math.hypot(e.x - cam.x, e.z - cam.z); if (d < 20) shake(0.5 * (1 - d / 20));
+        shakeAt(e.x, e.z, 0.85, 34);
         Snd.play('stomp', e.x, e.z, { range: 70 });
         break;
       }
@@ -2970,7 +3028,7 @@ function handleEvents(S) {
         const m = S._mById.get(e.id), nm = m ? MON[m.type].name : 'BOSS';
         if (e.phase === 2) { banner(`${nm} · 第二阶段`, '套上能量护盾并召唤护卫——电系陷阱、电磁炮破盾最快', true); feed(`${nm} 进入第二阶段：能量护盾 + 护卫`, 'bad'); }
         else { banner(`${nm} · 狂暴`, '移动加快、技能冷却大幅缩短，再召唤一批护卫——全力输出！', true); feed(`${nm} 进入狂暴阶段！`, 'bad'); }
-        Snd.play('roar', e.x, e.z, { range: 120 }); Snd.play('boss'); shake(0.5);
+        Snd.play('roar', e.x, e.z, { range: 120 }); Snd.play('boss'); shakeAt(e.x, e.z, 0.7, 60);
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: 12, t: 0, life: 0.7, c: e.phase === 2 ? [0.45, 0.88, 1] : [1, 0.3, 0.2] });
         break;
       }
@@ -3072,7 +3130,23 @@ function nextWaveHTML(w) {
     return `<span class="chip${cls}">${m.name} ×${pv.agg[t].n}<i>${laneTxt(pv.agg[t].lanes)}</i></span>`;
   }).join('') + (pv.opened.length ? `<span class="nw-tip warn">新出怪口开启：${pv.opened.map(l => names[l] || l).join('、')}</span>` : '') + (W.tip ? `<span class="nw-tip">${W.tip}</span>` : '') + (isEndless && w === sim.waves.length + 1 ? '<span class="nw-tip">剧本波次已全部清除，进入无尽模式</span>' : '');
 }
-function shake(v) { cam.shake = Math.min(1.2, cam.shake + v); }
+function shake(v) { if (settings.shake === false) return; cam.shake = Math.min(1.2, cam.shake + v); }
+// 按距离衰减的震动：离得越近越强
+function shakeAt(x, z, amt, range) { const d = Math.hypot(x - cam.x, z - cam.z); if (d < range) shake(amt * Math.pow(1 - d / range, 1.5)); }
+// BOSS 脚步：体型庞大，每一步都带来震感（离得越近越明显）
+function bossTremor(S, dt) {
+  for (const m of S.s.monsters) {
+    if (m.dead || !MON[m.type].boss || MON[m.type].fly) continue;
+    const mv = m._px === undefined ? 0 : Math.hypot(m.x - m._px, m.z - m._pz);
+    m._px = m.x; m._pz = m.z;
+    if (mv < 0.002 || m.stunT > 0) continue;
+    m._stepT = (m._stepT || 0) - dt;
+    if (m._stepT > 0) continue;
+    m._stepT = 0.68 / (m.bossSpd || 1);
+    const d = Math.hypot(m.x - cam.x, m.z - cam.z);
+    if (d < 38) { shakeAt(m.x, m.z, 0.22, 38); Snd.play('bstep', m.x, m.z, { range: 60 }); }
+  }
+}
 function feed(text, cls, ms, who) {
   const el = document.createElement('div');
   el.className = 'f ' + (cls || '');
@@ -3116,7 +3190,7 @@ const ICONS = {
 function svgIcon(id) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg>`; }
 /* ---------- 快捷栏：枪 + 5 个陷阱分组（可收起）----------
  * 每组只显示一个格子（上次选过的陷阱）；点一下选中它并展开同组的其他陷阱，再点一次收起。
- * 数字键照旧直接选陷阱。 */
+ * 数字键 1-5 打开分组，再按数字选组内第几个；Tab 打开陷阱一览。 */
 const TRAP_GROUPS = [
   { id: 'floor', name: '地面', cat: 'floor', traps: ['slow', 'spike', 'push', 'tesla'] },
   { id: 'wall', name: '墙壁', cat: 'wall', traps: ['laser', 'flame'] },
@@ -3128,6 +3202,16 @@ for (const t of TRAPS) if (!TRAP_GROUPS.some(g => g.traps.includes(t.id))) TRAP_
 const grpOf = id => TRAP_GROUPS.find(g => g.traps.includes(id));
 const grpPick = {};
 let popGrp = null;
+// 数字键：1-5 打开对应分组，分组展开时再按数字选组内第几个（按 1 再按 2 = 地面组第 2 个）
+function trapKey(n) {
+  if (popGrp) {
+    const g = TRAP_GROUPS.find(x => x.id === popGrp);
+    if (g && n >= 1 && n <= g.traps.length) { selectTool(g.traps[n - 1]); closePop(); return; }
+  }
+  const g = TRAP_GROUPS[n - 1];
+  if (g) openPop(g.id, true);
+}
+const keyCombo = id => { const gi = TRAP_GROUPS.findIndex(g => g.traps.includes(id)); return gi < 0 ? '' : `${gi + 1} ${TRAP_GROUPS[gi].traps.indexOf(id) + 1}`; };
 function slotHTML(id, key, name, cost) {
   return `<span class="k">${key}</span>${svgIcon(id)}<span class="n">${name}</span>${cost ? `<span class="c">${cost}</span>` : '<span class="c inf">∞</span>'}`;
 }
@@ -3135,18 +3219,18 @@ function setChip(g) {
   const el = document.querySelector(`#hotbar .grp[data-grp="${g.id}"]`); if (!el) return;
   const t = TRAP[grpPick[g.id] || g.traps[0]];
   el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '');
-  el.innerHTML = slotHTML(t.id, t.key, t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (g.traps.length > 1 ? `<span class="more">${g.traps.length}</span>` : '');
+  el.innerHTML = slotHTML(t.id, String(TRAP_GROUPS.indexOf(g) + 1), t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (g.traps.length > 1 ? `<span class="more">${g.traps.length}</span>` : '');
 }
-function openPop(gid) {
+function openPop(gid, byKey) {
   popGrp = gid;
   const pop = $('trapPop'), g = TRAP_GROUPS.find(x => x.id === gid);
   for (const gg of TRAP_GROUPS) setChip(gg);
-  if (!g || g.traps.length < 2) { pop.hidden = true; popGrp = null; return; }
-  pop.innerHTML = `<b class="pt">${g.name}陷阱</b>`;
+  if (!g || (g.traps.length < 2 && !byKey)) { pop.hidden = true; popGrp = null; return; }
+  pop.innerHTML = `<b class="pt">${g.name}</b>`;
   for (const id of g.traps) {
     const t = TRAP[id], d = document.createElement('div');
     d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : ''); d.dataset.id = id;
-    d.innerHTML = slotHTML(id, t.key, t.name, sim ? sim.trapCost(id, PID) : t.cost);
+    d.innerHTML = slotHTML(id, String(g.traps.indexOf(id) + 1), t.name, sim ? sim.trapCost(id, PID) : t.cost);
     d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); selectTool(id); closePop(); });
     pop.appendChild(d);
   }
@@ -3158,6 +3242,53 @@ function openPop(gid) {
   let left = cr.left + cr.width / 2 - pw / 2 - hr.left;
   left = Math.max(-hr.left + 6, Math.min(left, innerWidth - hr.left - pw - 6));
   pop.style.left = left + 'px';
+}
+/* ---------- 陷阱一览（Tab）：按分组列出全部陷阱的详细说明，点一下就选中 ---------- */
+let bookOpen = false;
+function toggleBook(on) {
+  bookOpen = on === undefined ? !bookOpen : on;
+  $('trapBook').hidden = !bookOpen;
+  if (bookOpen) { closePop(); if (shopOpen) toggleShop(false); if (labOpen) toggleLab(false); panelOpened(true); renderBook(); } else panelClosed();
+}
+function trapStats(t) {
+  const L = [];
+  const arr = (v, f) => Array.isArray(v) ? v.map(f || (x => x)).join(' / ') : (f ? f(v) : v);
+  if (t.dmg) L.push(['伤害', arr(t.dmg)]);
+  if (t.gun) L.push(['亲手操控伤害', arr(t.gun) + '（每发）']);
+  if (t.dps) L.push(['每秒伤害', arr(t.dps)]);
+  if (t.poison) L.push(['中毒', arr(t.poison) + '（每秒）']);
+  if (t.burn) L.push(['灼烧', arr(t.burn) + '（每秒）']);
+  if (t.slow) L.push(['减速', arr(t.slow, v => Math.round(v * 100) + '%')]);
+  if (t.hp) L.push(['耐久', arr(t.hp)]);
+  if (t.cd) L.push(['间隔', arr(t.cd, v => v + ' 秒')]);
+  if (t.range) L.push(['射程', arr(t.range, v => v + ' 米')]);
+  if (t.splash) L.push(['溅射半径', t.splash + ' 米']);
+  if (t.push) L.push(['击退', arr(t.push, v => v + ' 米')]);
+  if (t.stun) L.push(['眩晕', t.stun + ' 秒']);
+  if (TD.LANE_HP[t.id]) L.push(['放在通道上的耐久', TD.LANE_HP[t.id].join(' / ')]);
+  return L;
+}
+function renderBook() {
+  const box = $('bookList'); box.innerHTML = '';
+  const gold = sim ? sim.s.gold : 0;
+  TRAP_GROUPS.forEach((g, gi) => {
+    const sec = document.createElement('section'); sec.className = 'bkGrp';
+    sec.innerHTML = `<h4><span class="kb">${gi + 1}</span>${g.name}陷阱<small>${CAT_NAME[g.cat] || ''}</small></h4>`;
+    const row = document.createElement('div'); row.className = 'bkRow';
+    for (const id of g.traps) {
+      const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost, ev = EVO[id];
+      const card = document.createElement('button'); card.type = 'button';
+      card.className = 'bkCard cat-' + t.cat + (tool === id ? ' sel' : '') + (gold < cost ? ' poor' : '');
+      const desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
+      card.innerHTML = `<div class="bkTop"><span class="ic">${svgIcon(id)}</span><b>${t.name}</b><span class="kb">${keyCombo(id)}</span><em>${cost}</em></div>
+        <p>${desc}</p>
+        <dl>${trapStats(t).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        ${ev ? `<div class="bkEvo"><span>满级进阶</span><b>${ev.a.name}</b>：${ev.a.desc}<br><b>${ev.b.name}</b>：${ev.b.desc}</div>` : ''}`;
+      card.addEventListener('click', () => { selectTool(id); toggleBook(false); });
+      row.appendChild(card);
+    }
+    sec.appendChild(row); box.appendChild(sec);
+  });
 }
 function closePop() { if (popGrp === null) return; popGrp = null; $('trapPop').hidden = true; for (const g of TRAP_GROUPS) setChip(g); }
 function buildHotbar() {
@@ -3202,7 +3333,7 @@ function buildHelp() {
     const cd = Array.isArray(t.cd) ? t.cd : [t.cd, t.cd, t.cd, t.cd];
     return '伤害 ' + t.dmg.join(' / ') + (cd[0] ? ` · 每 ${cd[0]}s` : '');
   };
-  const rows = TRAPS.map(t => `<tr><td><span class="kb">${t.key}</span></td><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td>${CAT_NAME[t.cat]}</td><td class="num">${t.cost}</td><td>${t.desc.split(' · ')[1] || t.desc}<div class="lv">Lv1→4 ${lvStat(t)}</div></td></tr>`).join('');
+  const rows = TRAP_GROUPS.flatMap(g => g.traps.map(id => TRAP[id])).map(t => `<tr><td><span class="kb">${keyCombo(t.id)}</span></td><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td>${CAT_NAME[t.cat]}</td><td class="num">${t.cost}</td><td>${t.desc.split(' · ')[1] || t.desc}<div class="lv">Lv1→4 ${lvStat(t)}</div></td></tr>`).join('');
   $('trapTable').innerHTML = `<thead><tr><th>键</th><th>陷阱</th><th>位置</th><th>价格</th><th>作用</th></tr></thead><tbody>${rows}</tbody>`;
   const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.aura) tags.push('给周围敌人套能量护盾（同一只怪 8 秒内只能套一次）；磁暴塔、电磁炮对护盾 ×3，激光 ×2.5，枪械 ×1.5，破盾瞬间敌人僵直'); if (m.cannon) tags.push('炮击炮台与阻挡物使其瘫痪'); if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%'); if (m.blink) tags.push('周期性向前瞬移，越过阻挡'); if (m.drop) tags.push('空投噬晶蛛'); if (m.heavy) tags.push('重装单位·电磁炮优先锁定'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
   $('monList').innerHTML = mons;
@@ -3308,6 +3439,7 @@ function drawMinimap(S) {
 
 const autoReady = { wave: -1, since: 0 };
 function updateHUD(dt) {
+  if (sim && mode === 'play') bossTremor(sim, dt);
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
   const cf = s.crystal.hp / s.crystal.max;
@@ -3339,6 +3471,7 @@ function updateHUD(dt) {
   $('bossBar').hidden = !boss;
   if (boss) {
     const r = boss.hp / boss.maxHp, ph = r <= 0.25 ? 3 : r <= 0.6 ? 2 : 1;
+    Music.inten = ph;
     setStyle($('bossFill'), 'width', (r * 100).toFixed(1) + '%'); setText('bossNum', `${Math.ceil(boss.hp)}`);
     setText('bossName', MON[boss.type].name + (ph === 3 ? ' · 狂暴' : ph === 2 ? ' · 第二阶段' : '') + (boss.shield > 0 ? ' · 护盾' : ''));
     $('bossBar').classList.toggle('ph3', ph === 3);
@@ -3520,11 +3653,20 @@ function lockFailed() { if (mode !== 'play') return; if (!hadLock) enableFallbac
 document.addEventListener('pointerlockchange', () => {
   locked = document.pointerLockElement === canvas;
   if (locked) { hadLock = true; look.skip = 2; look.hist.fill(0); panelUnlock = false; }
-  if (!locked && mode === 'play' && !fallbackLook && !panelUnlock) pauseGame();
+  // 只有按 Esc 才暂停：切窗口 / 切标签页导致的鼠标释放不暂停，游戏继续在后台运行，点一下画面即可重新锁定鼠标
+  if (!locked && mode === 'play' && !fallbackLook && !panelUnlock) {
+    setTimeout(() => {
+      if (locked || mode !== 'play') return;
+      if (document.hidden || !document.hasFocus()) { awayUnlock = true; return; }
+      pauseGame();
+    }, 120);
+  }
 });
+let awayUnlock = false;
+addEventListener('focus', () => { if (awayUnlock && mode === 'play' && !locked) toast('点击画面继续操作'); awayUnlock = false; });
 /* ---------- 游戏内面板（军械库 / 科研终端 / 进阶 / 快捷消息）：打开时释放鼠标，方便点选和关闭 ---------- */
 let panelUnlock = false;
-function anyPanel() { return shopOpen || labOpen || evoTrap !== null || quickOpen || chatOpen; }
+function anyPanel() { return shopOpen || labOpen || evoTrap !== null || quickOpen || chatOpen || bookOpen; }
 function panelOpened(needMouse) {
   if (!needMouse || !locked) return;
   panelUnlock = true;
@@ -3536,6 +3678,7 @@ function panelClosed() {
   if (mode === 'play' && !locked && !fallbackLook) requestLock();
 }
 function closePanels() {
+  if (bookOpen) toggleBook(false);
   if (shopOpen) toggleShop(false);
   if (labOpen) toggleLab(false);
   if (evoTrap !== null) closeEvo();
@@ -3611,8 +3754,10 @@ function onKey(code, e) {
   if (d && labOpen) { doResearch(+d[1] - 1); return; }
   if (labOpen && code === 'Escape') { toggleLab(false); return; }
   if (d && shopOpen) { buyWeapon(+d[1] - 1); return; }
-  if (d) { const t = TRAPS[+d[1] - 1]; if (t) selectTool(t.id); return; }
-  { const hk = { Digit0: '0', Minus: '-', Equal: '=', BracketLeft: '[' }[code]; if (hk) { const t = TRAPS.find(x => x.key === hk); if (t) selectTool(t.id); return; } }
+  if (d && bookOpen) { trapKey(+d[1]); return; }
+  if (d) { trapKey(+d[1]); return; }
+  if (code === 'Tab') { e.preventDefault && e.preventDefault(); toggleBook(); return; }
+  if (bookOpen && code === 'Escape') { toggleBook(false); return; }
   if (shopOpen && code === 'Escape') { toggleShop(false); return; }
   switch (code) {
     case 'KeyQ': if (myMount()) break; if (tool !== 'gun') selectTool('gun'); else cycleWeapon(); break;
@@ -4243,9 +4388,9 @@ const K_ = id => TOUCH ? '' : keyName(keyOf(id));
 const TUT_STEPS = [
   { t: '移动', d: () => TOUCH ? '用左半屏的摇杆走动，推到底会冲刺' : `用 ${K_('KeyW')}${K_('KeyA')}${K_('KeyS')}${K_('KeyD')} 走动，按住 ${K_('ShiftLeft')} 冲刺`, ok: T0 => T0.moved > 4 },
   { t: '转动视角', d: () => TOUCH ? '在右半屏滑动手指转动视角' : '移动鼠标转动视角，四处看看', ok: T0 => T0.turned > 1.5 },
-  { t: '选择陷阱', d: () => TOUCH ? '点顶部陷阱栏里的「毒刺陷阱」' : '按 2 选择毒刺陷阱（数字键 1-9 选陷阱，0 / - / = 是重型陷阱）', ok: () => tool !== 'gun' },
+  { t: '选择陷阱', d: () => TOUCH ? '点顶部陷阱栏的「地面」分组，再点展开的「毒刺陷阱」' : '按 1 打开地面陷阱，再按 2 选择毒刺陷阱（1-5 打开分组，再按数字选组内第几个；Tab 查看全部陷阱说明）', ok: () => tool !== 'gun' },
   { t: '放置陷阱', d: () => TOUCH ? '对准红色箭头所在的通道地面，按「放置」' : '对准地上有红色箭头的怪物通道，按左键放置（右键收起）', ok: (T0, s) => s.traps.some(t => t.kind === 'floor') },
-  { t: '墙壁陷阱', d: () => TOUCH ? '在陷阱栏选「激光发射器」，对准通道两侧的墙壁放置' : '按 7 选激光发射器，对准通道两侧的墙壁放置：光束会横贯整个通道', ok: (T0, s) => s.traps.some(t => t.kind === 'wall') },
+  { t: '墙壁陷阱', d: () => TOUCH ? '在陷阱栏的「墙壁」分组选「激光发射器」，对准通道两侧的墙壁放置' : '按 2 再按 1 选激光发射器，对准通道两侧的墙壁放置：光束会横贯整个通道', ok: (T0, s) => s.traps.some(t => t.kind === 'wall') },
   { t: '升级陷阱', d: () => TOUCH ? '对准一个陷阱，点「升级」' : `对准一个陷阱按 ${K_('KeyE')} 升级（${K_('KeyX')} 拆除，布防阶段全额返还）`, ok: (T0, s) => s.traps.some(t => t.lv >= 2) },
   { t: '开战', d: () => TOUCH ? '准备好了就点「开战」，提前开战还有金币奖励' : `准备好了按 ${K_('KeyG')} 提前开战，剩余倒计时会换成金币奖励`, ok: (T0, s) => s.phase === 'wave' },
   { t: '射击', d: () => TOUCH ? '按「开火」射击，按「瞄准」开镜；打死 3 只怪' : '左键射击、右键瞄准，打头伤害更高；打死 3 只怪', ok: (T0, s, p) => p.kills >= 3 },
@@ -4306,13 +4451,13 @@ function beginPlay(S, gesture) {
   show('menu', false); show('end', false); show('pause', false); show('help', false); show('hud', true);
   const n = Object.keys(sim.s.players).length, lanes = sim.lanes.length;
   feed('布防阶段：沿红色路线在通道地面、墙壁、天花板布置陷阱', '');
-  feed(TOUCH ? '点顶部陷阱栏选择陷阱，对准位置按「放置」；对准陷阱可升级 / 拆除' : '按 1-9 选择陷阱，左键放置；对准陷阱按 E 升级、X 拆除', '');
+  feed(TOUCH ? '点顶部陷阱栏选择陷阱，对准位置按「放置」；对准陷阱可升级 / 拆除' : '按 1-5 打开陷阱分组、再按数字选择（Tab 查看全部），左键放置；对准陷阱按 E 升级、X 拆除', '');
   if (MP.role !== 'solo') feed(`联机房间 ${MP.code.toUpperCase()} · ${n} 名玩家 · 金币全队共享`, 'good');
   banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向核心水晶 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
   if (gesture) requestLock();
   if (gesture && TOUCH) goFullscreen();
   if (TOUCH) requestAnimationFrame(applyTouchLayout);
-  if (MP.role === 'host') ensureBgTicker();
+  if (MP.role !== 'client') ensureBgTicker();
 }
 function pauseGame() {
   if (mode !== 'play') return;
@@ -4397,7 +4542,7 @@ function fillCtrlHelp() {
   box.innerHTML = [
     `${K('KeyW')}${K('KeyA')}${K('KeyS')}${K('KeyD')}移动 · ${K('ShiftLeft')}冲刺`, `${K('Space')}跳跃 · ${K('KeyR')}换弹`,
     '<span class="kb">左键</span>射击 / 放置陷阱', '<span class="kb">右键</span>瞄准 / 收起陷阱',
-    `<span class="kb">1-9</span>选择陷阱 · ${K('KeyQ')}步枪 / 切枪`, `${K('KeyE')}升级 · ${K('KeyX')}拆除陷阱`,
+    `<span class="kb">1-5</span>打开陷阱分组，再按数字选择 · <span class="kb">Tab</span>陷阱一览 · ${K('KeyQ')}步枪 / 切枪`, `${K('KeyE')}升级 · ${K('KeyX')}拆除陷阱`,
     `${K('KeyB')}军械库 · ${K('KeyF')}互动`, `${K('KeyC')}手雷 · ${K('KeyZ')}轨道打击`,
     `${K('KeyT')}标记 · ${K('KeyV')}快捷消息 · <span class="kb">Enter</span>打字聊天`, `${K('KeyG')}提前开战 / 联机准备`,
     `${K('KeyM')}大地图 · ${K('KeyH')}图鉴`, `<span class="kb">Esc</span>${K('KeyP')}暂停 / 设置`,
@@ -4554,6 +4699,7 @@ function toMenu() {
   show('hud', false); show('pause', false); show('end', false); show('help', false); show('menu', true);
   if (document.pointerLockElement) document.exitPointerLock();
   makeDemo();
+  goScreen(MP.role !== 'solo' ? 'mp' : 'home');
 }
 function showEnd() {
   mode = 'end';
@@ -4575,6 +4721,17 @@ function showEnd() {
     ['建造陷阱', `${s.stats.built} 个`], ['总花费', `${s.stats.spent.toLocaleString()} 金币`],
   ];
   $('endStats').innerHTML = rows.map(r => `<div><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join('');
+  // 各类陷阱输出占比（按伤害从高到低）
+  {
+    const bt = s.stats.byTrap || {}, ent = Object.entries(bt).filter(([, v]) => v > 0.5).sort((a, b) => b[1] - a[1]);
+    const sum = ent.reduce((a, [, v]) => a + v, 0) || 1, top = ent.length ? ent[0][1] : 1;
+    const NAME = { device: '地图机关', other: '其他（自爆 / 连锁）' };
+    $('endTrapList').innerHTML = ent.map(([k, v]) => {
+      const t = TRAP[k], pct = v / sum * 100;
+      return `<li style="--cc: var(--c-${t ? t.cat : 'gun'})"><span class="ic">${svgIcon(t ? k : 'ult')}</span><b>${t ? t.name : NAME[k] || k}</b><span class="bar"><i style="width:${(v / top * 100).toFixed(1)}%"></i></span><em>${Math.round(v).toLocaleString()}<strong>${pct >= 9.95 ? pct.toFixed(0) : pct.toFixed(1)}%</strong></em></li>`;
+    }).join('');
+    $('endTraps').hidden = !ent.length;
+  }
   // 联机：每名玩家的击杀与枪械伤害
   const ps = Object.values(s.players).sort((a, b) => a.slot - b.slot);
   const team = $('endTeam');
@@ -4916,90 +5073,52 @@ function buildMapCards() {
     box.appendChild(btn);
   }
 }
-/* ---------- 手机主菜单：顶部标题栏 + 分页（关卡 / 配置 / 联机 / 说明） ---------- */
-let menuTab = 'map';
-function setupTouchMenu() {
-  const mi = document.querySelector('#menu .menuIn');
-  if (!mi || mi.dataset.touch) return;
-  mi.dataset.touch = '1';
-  const kids = [...mi.children];
-  const tabOf = el => {
-    if (el.querySelector && el.querySelector('#mapCards')) return 'map';
-    if (el.classList.contains('selRow') || (el.querySelector && (el.querySelector('#mutChips') || el.querySelector('#clsSeg') || el.querySelector('[data-diff]')))) return 'cfg';
-    if (el.id === 'mpBox') return 'mp';
-    if (el.classList.contains('pitch') || el.id === 'touchHelp' || el.classList.contains('row2')) return 'info';
-    if (el.classList.contains('keys') || el.querySelector && el.querySelector('h1')) return 'none';
-    if (el.id === 'menuErr' || el.id === 'touchNote') return '';
-    return 'info';
-  };
-  for (const el of kids) { const t = tabOf(el); if (t) el.dataset.tab = t; }
-  const head = document.createElement('div'); head.className = 'mHead';
-  head.innerHTML = '<b class="mBrand">晶核<em>守卫</em></b><nav class="mTabs" role="tablist"></nav><span class="mSum" id="mSum"></span>';
-  const nav = head.querySelector('nav');
-  for (const [id, label] of [['map', '关卡'], ['cfg', '配置'], ['mp', '联机'], ['info', '说明']]) {
-    const b = document.createElement('button'); b.type = 'button'; b.dataset.mtab = id; b.textContent = label; b.setAttribute('role', 'tab');
-    b.addEventListener('click', () => setMenuTab(id));
-    nav.appendChild(b);
-  }
-  head.appendChild($('startBtn'));
-  mi.prepend(head);
-  setMenuTab(menuTab);
+/* ---------- 主菜单导航：首页 → 单人游戏 / 多人游戏 → 开局设置（关卡 → 模式 → 难度 → 职业）---------- */
+let menuScr = 'home', setupStep = 0;
+const SETUP_STEPS = 4;
+function goScreen(scr) {
+  menuScr = scr;
+  const m = $('menu'); m.dataset.scr = scr;
+  for (const el of m.querySelectorAll(':scope > [data-scr]')) el.hidden = el.dataset.scr !== scr;
+  if (scr === 'setup') setStep(setupStep);
+  renderMP(); updateMenuSum();
+  const f = m.querySelector(`:scope > [data-scr="${scr}"] ${scr === 'home' ? '.hBtn.primary' : '.backBtn'}`);
+  if (f && !TOUCH) f.focus({ preventScroll: true });
 }
-// 电脑端主菜单：一屏显示，不滚动 —— 左侧标题与操作按钮，右侧分页面板（关卡 / 配置 / 联机），中间露出 3D 演示场景
-let deskTab = 'map';
-function setupDeskMenu() {
-  const mi = document.querySelector('#menu .menuIn');
-  if (!mi || mi.dataset.desk) return;
-  mi.dataset.desk = '1'; mi.classList.add('desk');
-  const kids = [...mi.children];
-  const L = document.createElement('div'); L.className = 'dLeft';
-  const R = document.createElement('div'); R.className = 'dRight';
-  const nav = document.createElement('nav'); nav.className = 'dTabs'; nav.setAttribute('role', 'tablist');
-  const panels = document.createElement('div'); panels.className = 'dPanels';
-  const P = {};
-  for (const [id, label] of [['map', '关卡'], ['cfg', '模式 · 难度 · 职业'], ['mp', '联机合作']]) {
-    const b = document.createElement('button'); b.type = 'button'; b.dataset.dtab = id; b.textContent = label; b.setAttribute('role', 'tab');
-    b.addEventListener('click', () => setDeskTab(id)); nav.appendChild(b);
-    P[id] = document.createElement('div'); P[id].className = 'dPanel'; P[id].dataset.dtab = id; panels.appendChild(P[id]);
+function setStep(i) {
+  setupStep = Math.max(0, Math.min(SETUP_STEPS - 1, i));
+  for (const el of document.querySelectorAll('#menu .step')) el.hidden = +el.dataset.step !== setupStep;
+  for (const li of document.querySelectorAll('#stepper li')) {
+    const k = +li.dataset.stepi;
+    li.className = k === setupStep ? 'cur' : k < setupStep ? 'done' : '';
+    li.querySelector('button').setAttribute('aria-current', k === setupStep ? 'step' : 'false');
   }
-  const acts = document.createElement('div'); acts.className = 'dActs';
-  const more = document.createElement('div'); more.className = 'dMore';
-  for (const el of kids) {
-    if (el.querySelector && el.querySelector('h1')) L.appendChild(el);
-    else if (el.classList.contains('pitch') || el.id === 'menuErr' || el.id === 'touchNote' || el.id === 'touchHelp') L.appendChild(el);
-    else if (el.querySelector && el.querySelector('#mapCards')) P.map.appendChild(el);
-    else if (el.id === 'mpBox') P.mp.appendChild(el);
-    else if (el.classList.contains('row2')) {
-      acts.appendChild($('startBtn'));
-      for (const b of [...el.children]) more.appendChild(b);
-      el.remove();
-    } else if (el.classList.contains('keys')) { el.classList.add('dKeys'); L.appendChild(el); }
-    else P.cfg.appendChild(el);
-  }
-  acts.appendChild(more);
-  L.insertBefore(acts, L.querySelector('.dKeys'));
-  const sum = document.createElement('div'); sum.className = 'dSum'; sum.innerHTML = '<span>当前选择</span><b id="dSum"></b>';
-  R.append(nav, panels, sum);
-  mi.append(L, R);
-  setDeskTab(deskTab);
+  const last = setupStep === SETUP_STEPS - 1;
+  $('stepNext').hidden = last; $('startBtn').hidden = !last;
+  $('stepPrev').hidden = setupStep === 0;
+  const st = document.querySelector('#menu .steps'); if (st) st.scrollTop = 0;
 }
-function setDeskTab(id) {
-  deskTab = id;
-  for (const el of document.querySelectorAll('#menu [data-dtab]')) {
-    if (el.tagName === 'BUTTON') el.setAttribute('aria-selected', el.dataset.dtab === id ? 'true' : 'false');
-    else el.hidden = el.dataset.dtab !== id;
-  }
-  updateMenuSum();
+function setupBack() {
+  if (setupStep > 0) { setStep(setupStep - 1); return; }
+  goScreen(MP.role !== 'solo' ? 'mp' : 'home');
 }
-function setMenuTab(id) {
-  menuTab = id;
-  const mi = document.querySelector('#menu .menuIn');
-  if (!mi) return;
-  mi.dataset.cur = id;
-  for (const b of mi.querySelectorAll('[data-mtab]')) b.setAttribute('aria-selected', b.dataset.mtab === id ? 'true' : 'false');
-  $('menu').scrollTop = 0;
-  updateMenuSum();
+function setupMenuNav() {
+  $('soloBtn').addEventListener('click', () => { if (MP.role !== 'solo') { goScreen('mp'); return; } setupStep = 0; goScreen('setup'); });
+  $('mpBtn').addEventListener('click', () => goScreen('mp'));
+  for (const b of document.querySelectorAll('#menu [data-back]')) b.addEventListener('click', () => goScreen(b.dataset.back));
+  $('setupBack').addEventListener('click', setupBack);
+  $('stepPrev').addEventListener('click', () => setStep(setupStep - 1));
+  $('stepNext').addEventListener('click', () => setStep(setupStep + 1));
+  for (const li of document.querySelectorAll('#stepper li')) li.querySelector('button').addEventListener('click', () => setStep(+li.dataset.stepi));
+  // 房间里的“下一步”：房主去选关卡，队友直接去选职业
+  $('roomNext').addEventListener('click', () => { setupStep = MP.role === 'client' ? SETUP_STEPS - 1 : 0; goScreen('setup'); });
+  addEventListener('keydown', e => {
+    if (mode !== 'menu' || e.key !== 'Escape' || anyFullPage()) return;
+    if (menuScr === 'setup') setupBack(); else if (menuScr === 'mp') goScreen('home');
+  });
+  goScreen('home');
 }
+function anyFullPage() { return ['settings', 'help', 'talents', 'lb'].some(id => $(id) && !$(id).hidden); }
 function updateMenuSum() {
   const room = MP.role !== 'solo' ? ` · 房间 ${MP.code.toUpperCase()}` : '';
   const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 标准'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
@@ -5008,7 +5127,7 @@ function updateMenuSum() {
   el.textContent = txt;
 }
 function refreshSel() {
-  if (TOUCH) setTimeout(updateMenuSum, 0);
+  setTimeout(updateMenuSum, 0);
   const hc = MP.role === 'client' && MP.hostPres && MP.hostPres.cfg;
   const prevMap = selMap;
   if (hc && MAPS[hc.m] && DIFFS[hc.d]) {
@@ -5037,7 +5156,7 @@ function refreshSel() {
   renderMP();
 }
 const MAPN = id => (MAPS[id] ? MAPS[id].name : id);
-function syncCls() { document.querySelectorAll('[data-cls]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cls === selCls ? 'true' : 'false')); }
+function syncCls() { document.querySelectorAll('[data-cls]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cls === selCls ? 'true' : 'false')); updateMenuSum(); }
 function renderMutChips(locked) {
   const box = $('mutChips');
   if (!box.firstChild) {
@@ -5160,7 +5279,14 @@ function renderMP() {
   const sb = $('startBtn');
   if (MP.role === 'host') { sb.textContent = `开始联机（${1 + MP.roster.length} 人）`; sb.disabled = false; }
   else if (MP.role === 'client') { sb.textContent = MP.hostPres && MP.hostPres.ph === 'play' ? '正在进入战局…' : '等待房主开始'; sb.disabled = true; }
-  else { sb.textContent = '进入战场'; sb.disabled = false; }
+  else { sb.textContent = '开始游戏'; sb.disabled = false; }
+  // 导航相关文字
+  const rn = $('roomNext'); if (rn) rn.textContent = MP.role === 'client' ? '下一步：选择职业' : '下一步：选择关卡';
+  const ms = $('mpSub'); if (ms) ms.textContent = inRoom ? `在房间 ${MP.code.toUpperCase()} 中 · ${MP.role === 'host' ? 1 + MP.roster.length : (MP.hostPres && Array.isArray(MP.hostPres.roster) ? MP.hostPres.roster.length : 1)} 人` : on && MP.connected ? `创建或加入房间 · 在线 ${Math.max(1, MP.lobbyPeers.length)} 人` : '创建或加入房间，最多 4 人合作';
+  const ss = $('soloSub'); if (ss) ss.textContent = inRoom ? '先离开联机房间' : '选择关卡、模式、难度和职业';
+  const tl = $('setupTitle'); if (tl) tl.textContent = inRoom ? `联机房间 ${MP.code.toUpperCase()}${MP.role === 'client' ? ' · 房主设置' : ''}` : '单人游戏';
+  if (!inRoom && menuScr === 'setup' && renderMP.wasRoom) goScreen('mp');
+  renderMP.wasRoom = inRoom;
 }
 function bindUI() {
   buildMapCards();
@@ -5211,7 +5337,7 @@ function bindUI() {
   $('touchEditBtn').addEventListener('click', openTouchEditor);
   $('touchResetBtn').addEventListener('click', () => { settings.tb = { pos: {}, scale: 1, alpha: 1 }; tbS.value = 1; tbA.value = 1; syncTB(); saveSettings(); applyTouchLayout(); toast('已恢复默认布局'); });
   initChat();
-  for (const b of document.querySelectorAll('.pClose')) b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const k = b.dataset.close; if (k === 'shop') toggleShop(false); else if (k === 'lab') toggleLab(false); else if (k === 'evo') closeEvo(); else if (k === 'qchat') toggleQuick(false); });
+  for (const b of document.querySelectorAll('.pClose')) b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const k = b.dataset.close; if (k === 'shop') toggleShop(false); else if (k === 'book') toggleBook(false); else if (k === 'lab') toggleLab(false); else if (k === 'evo') closeEvo(); else if (k === 'qchat') toggleQuick(false); });
   fillCtrlHelp();
   $('quitBtn').addEventListener('click', () => {
     // 无尽模式：单人 / 房主中途退出时结算当前成绩（上传排行榜），而不是直接丢掉
@@ -5251,6 +5377,10 @@ function bindUI() {
   const syncBloom = () => { E.setPost(settings.bloom); bloomBtn.setAttribute('aria-pressed', settings.bloom ? 'true' : 'false'); bloomBtn.textContent = settings.bloom && E.postAvailable() ? '开' : '关'; };
   if (!E.postAvailable()) { bloomBtn.disabled = true; bloomBtn.title = '当前显卡不支持'; }
   bloomBtn.addEventListener('click', () => { settings.bloom = !settings.bloom; syncBloom(); saveSettings(); });
+  const shakeBtn = $('shakeBtn');
+  const syncShake = () => { const on = settings.shake !== false; shakeBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); shakeBtn.textContent = on ? '开' : '关'; };
+  syncShake();
+  shakeBtn.addEventListener('click', () => { settings.shake = settings.shake === false; if (!settings.shake) cam.shake = 0; syncShake(); saveSettings(); });
   const fpsBtn = $('fpsBtn');
   const syncFps = () => { fpsBtn.setAttribute('aria-pressed', settings.showFps ? 'true' : 'false'); fpsBtn.textContent = settings.showFps ? '开' : '关'; $('fpsTag').hidden = !settings.showFps; };
   syncFps();
@@ -5279,7 +5409,7 @@ function bindUI() {
   document.querySelectorAll('#qchat li').forEach((li, i) => li.addEventListener('pointerdown', e => { e.preventDefault(); if (quickOpen) sendQuick(i); }));
   initTouch();
   if (TOUCH) initTouchEditor();
-  if (TOUCH) setupTouchMenu(); else setupDeskMenu();
+  setupMenuNav();
   document.querySelector('#menu').addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-cls], [data-diff], [data-mode], .mapCard, [data-mut], .mutChips button')) setTimeout(updateMenuSum, 0); });
   updateMenuSum();
   buildHelp();
@@ -5378,12 +5508,12 @@ function initTouch() {
   // 切到后台 / 暂停时松开所有触控
   const reset = () => { joy.id = lookT.id = fireT.id = null; joy.on = false; joy.x = joy.z = 0; mouse.l = mouse.r = false; jEl.classList.remove('on'); fire.classList.remove('on'); };
   addEventListener('blur', reset);
-  document.addEventListener('visibilitychange', () => { if (document.hidden) { reset(); if (mode === 'play' && MP.role === 'solo') pauseGame(); } });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) reset(); });
 }
 // 安卓返回键：逐层关闭面板 / 暂停；在主菜单时返回 false 让应用退出
 window.__back = () => {
   if (mode === 'play') {
-    if (chatOpen) closeChat(); else if (labOpen) toggleLab(false); else if (shopOpen) toggleShop(false); else if (evoTrap !== null) closeEvo(); else if (quickOpen) toggleQuick(false); else pauseGame();
+    if (bookOpen) toggleBook(false); else if (chatOpen) closeChat(); else if (labOpen) toggleLab(false); else if (shopOpen) toggleShop(false); else if (evoTrap !== null) closeEvo(); else if (quickOpen) toggleQuick(false); else pauseGame();
     return true;
   }
   if (!$('help').hidden) { show('help', false); return true; }

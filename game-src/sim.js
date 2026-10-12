@@ -590,7 +590,7 @@ class Sim {
       devices: (this.def.devices || []).map(() => ({ cd: 0, act: 0 })),
       tech: Object.fromEntries(TECH.map(t => [t.id, 0])),
       nextId: 1, rng: seed >>> 0, bossId: 0,
-      stats: { kills: 0, leaks: 0, dmgGun: 0, dmgTrap: 0, built: 0, spent: 0, startTime: 0 },
+      stats: { kills: 0, leaks: 0, dmgGun: 0, dmgTrap: 0, built: 0, spent: 0, startTime: 0, byTrap: {} },
     };
   }
   serialize() { return JSON.stringify(this.s); }
@@ -784,8 +784,8 @@ class Sim {
           m.slowAmt = Math.max(m.slowAmt, 0.7); m.slowT = Math.max(m.slowT, 0.5);
           if (!md.boss) { m.stunT = Math.max(m.stunT, 0.15); m.frozenT = 0.3; }
         } else if (dv.type === 'vent' && !md.fly && pulse) {
-          this.damage(m, 45, 'trap');
-          if (!md.burnImmune) { m.burnDps = Math.max(m.burnT > 0 ? m.burnDps : 0, 30); m.burnT = 3; }
+          this._src = 'device'; this.damage(m, 45, 'trap'); this._src = null;
+          if (!md.burnImmune) { m.burnDps = Math.max(m.burnT > 0 ? m.burnDps : 0, 30); m.burnT = 3; m.burnBy = 'device'; }
         } else if (dv.type === 'gravity') {
           if (md.fly) m.pullT = 0.3;
           m.slowAmt = Math.max(m.slowAmt, 0.5); m.slowT = Math.max(m.slowT, 0.4);
@@ -1240,7 +1240,7 @@ class Sim {
     }
     for (const id in s.players) this._updatePlayer(s.players[id], dt);
     this._buildBuckets();
-    this._updateTraps(dt);
+    this._updateTraps(dt); this._src = null;
     this._updateProj(dt);
     this._updateStrikes(dt);
     this._updateShells(dt);
@@ -1338,7 +1338,8 @@ class Sim {
       if (a <= 0) return 0;
     }
     m.hp -= a;
-    if (src === 'gun') this.s.stats.dmgGun += a; else this.s.stats.dmgTrap += a;
+    if (src === 'gun') this.s.stats.dmgGun += a;
+    else { this.s.stats.dmgTrap += a; const bt = this.s.stats.byTrap || (this.s.stats.byTrap = {}), k = this._src || 'other'; bt[k] = (bt[k] || 0) + a; }
     if (pid) { const p = this.s.players[pid]; if (p) { p.dmg += a; if (src === 'gun') p.energy = Math.min(100, p.energy + a * 0.012 * (1 + 0.2 * ((p.tal && p.tal.energy) || 0) + (p.cls === 'support' ? 0.4 : 0)) / (this.hasMut('glass') ? 2 : 1)); } }
     if (m.hp <= 0) { m.hp = 0; m.dead = true; m.killer = pid || null; }
     return a;
@@ -1421,9 +1422,11 @@ class Sim {
   }
 
   _updateTraps(dt) {
+    this._src = null;
     const s = this.s, list = [];
     for (const tr of s.traps) {
       const def = TRAP[tr.type], lv = tr.lv, br = lv >= MAX_LV ? tr.br : '';
+      this._src = tr.type;   // 输出统计：这段时间内的陷阱伤害记在这个陷阱类型上
       tr.activeT = Math.max(0, tr.activeT - dt);
       if (tr.hackT > 0) tr.hackT -= dt;
       if (def.block || tr.lane) {
@@ -1567,7 +1570,7 @@ class Sim {
             if (tr.type === 'laser' && br === 'b') { m.slowAmt = Math.max(m.slowAmt, 0.25); m.slowT = Math.max(m.slowT, 0.4); }
             if (def.burn && !md.burnImmune) {
               const bd = def.burn[lv - 1] * (br === 'a' ? 1.4 : 1);
-              m.burnDps = m.burnT > 0 ? Math.max(m.burnDps, bd) : bd; m.burnT = br === 'a' ? 5 : 2.5;
+              m.burnDps = m.burnT > 0 ? Math.max(m.burnDps, bd) : bd; m.burnT = br === 'a' ? 5 : 2.5; m.burnBy = 'flame';
               // 爆燃：点燃中毒的敌人
               if (m.poisonT > 0 && !(m.igniteCd > s.time)) {
                 m.igniteCd = s.time + 2; m.poisonT = 0;
@@ -1779,8 +1782,10 @@ class Sim {
         for (const m of s.monsters) {
           if (m.dead || (!MON[m.type].fly && !p.ground)) continue;
           const d = Math.hypot(m.x - p.x, m.y - p.y, m.z - p.z);
+          this._src = 'aa';
           if (m.id === p.tgt && d < 2.5) this.damage(m, p.dmg, 'trap');
           else if (d < p.splash) this.damage(m, p.dmg * 0.5, 'trap');
+          this._src = null;
         }
         this.ev('boom', { x: p.x, y: p.y, z: p.z, r: 1.6, small: true });
         continue;
@@ -1870,8 +1875,9 @@ class Sim {
       m.ox = m.x; m.oy = m.y; m.oz = m.z;
       m.hitT = Math.max(0, m.hitT - dt);
       if (m.frozenT > 0) m.frozenT -= dt;
-      if (m.poisonT > 0) { m.poisonT -= dt; this.damage(m, m.poisonDps * dt, 'trap', null, true); }
-      if (m.burnT > 0) { m.burnT -= dt; this.damage(m, m.burnDps * dt, 'trap', null, true); }
+      if (m.poisonT > 0) { m.poisonT -= dt; this._src = 'spike'; this.damage(m, m.poisonDps * dt, 'trap', null, true); }
+      if (m.burnT > 0) { m.burnT -= dt; this._src = m.burnBy || 'flame'; this.damage(m, m.burnDps * dt, 'trap', null, true); }
+      this._src = null;
       if (m.dead) continue;
       if (m.slowT > 0) { m.slowT -= dt; if (m.slowT <= 0) m.slowAmt = 0; }
       // 眩晕抗性：新施加的眩晕时间按比例缩短
@@ -2155,8 +2161,8 @@ class Sim {
             if (m.dead || m.burrow || (MON[m.type].fly && !(m.pullT > 0))) continue;
             const d = Math.hypot(m.x - x, m.z - z) - MON[m.type].r * 0.5;
             if (d > r) continue;
-            this.damage(m, dmg * (1 - 0.45 * Math.max(0, d) / r), 'trap');
-            if (sh.br === 'a' && !MON[m.type].burnImmune) { const bd = dmg * 0.09; m.burnDps = m.burnT > 0 ? Math.max(m.burnDps, bd) : bd; m.burnT = 4; }
+            this._src = 'mortar'; this.damage(m, dmg * (1 - 0.45 * Math.max(0, d) / r), 'trap'); this._src = null;
+            if (sh.br === 'a' && !MON[m.type].burnImmune) { const bd = dmg * 0.09; m.burnDps = m.burnT > 0 ? Math.max(m.burnDps, bd) : bd; m.burnT = 4; m.burnBy = 'mortar'; }
           }
         };
         hit(sh.tx, sh.tz, sh.dmg, sh.r);
