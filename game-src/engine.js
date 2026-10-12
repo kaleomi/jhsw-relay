@@ -136,13 +136,16 @@ float vn(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);
 }
+float DET = 1.0;
 float fbm(vec2 p) {
   float a = 0.5, s = 0.0;
-  for (int i = 0; i < 4; i++) { if (float(i) >= 1.0 + uDetail * 3.0) break; s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; }
-  return s / (1.0 - pow(0.5, 1.0 + uDetail * 3.0));
+  for (int i = 0; i < 4; i++) { if (float(i) >= 1.0 + DET * 3.0) break; s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s / (1.0 - pow(0.5, 1.0 + DET * 3.0));
 }
 float seamLine(float v, float w) { float g = abs(fract(v) - 0.5); return smoothstep(0.5 - w, 0.5, g); }
 void main(){
+  // 远处像素细节逐渐关掉：40 米外只剩 1 层噪声，省掉大部分纹理计算
+  DET = uDetail * clamp(1.35 - length(vW - uEye) / 40.0, 0.0, 1.0);
   vec3 N = normalize(vN);
   if (!gl_FrontFacing) N = -N;
   vec3 base = vCol.rgb;
@@ -171,11 +174,11 @@ void main(){
       float s1 = max(seamLine(uv.x / 1.2, 0.02), seamLine(uv.y / 1.2, 0.02));
       vec2 q = uv * 9.0; float tread = step(0.82, abs(sin(q.x + q.y) * sin(q.x - q.y)));
       float scr = smoothstep(0.93, 1.0, vn(vec2(uv.x * 0.6, uv.y * 22.0))) * 0.5 + smoothstep(0.95, 1.0, vn(vec2(uv.x * 25.0, uv.y * 0.5))) * 0.4;
-      base *= (0.78 + 0.32 * g1) * (1.0 - s1 * 0.55) * (1.0 + tread * 0.12) * (1.0 + scr * 0.35 * uDetail);
+      base *= (0.78 + 0.32 * g1) * (1.0 - s1 * 0.55) * (1.0 + tread * 0.12) * (1.0 + scr * 0.35 * DET);
       spec = 0.55 * (0.6 + 0.4 * g1); shin = 48.0;
     } else if (m < 11.5) {   // 11 混凝土 / 地砖：大块砖缝 + 斑点 + 裂纹
       float s1 = max(seamLine(uv.x / 2.4, 0.012), seamLine(uv.y / 2.4, 0.012));
-      float crack = smoothstep(0.007, 0.0, abs(fbm(uv * 0.7 + 3.0) - 0.5)) * uDetail * step(0.55, vn(uv * 0.21));
+      float crack = smoothstep(0.007, 0.0, abs(fbm(uv * 0.7 + 3.0) - 0.5)) * DET * step(0.55, vn(uv * 0.21));
       base *= (0.82 + 0.26 * g1) * (0.94 + 0.12 * n2) * (1.0 - s1 * 0.4) * (1.0 - crack * 0.16);
       spec = 0.08;
     } else if (m < 12.5) {   // 12 墙板：竖向板材 + 横缝 + 铆钉 + 底部积灰
@@ -184,7 +187,7 @@ void main(){
       vec2 rq = vec2(fract(uv.x / 1.2), fract(py / 1.6));
       float riv = smoothstep(0.045, 0.02, length(vec2(min(rq.x, 1.0 - rq.x) * 1.2, (min(rq.y, 1.0 - rq.y)) * 1.6) - vec2(0.09, 0.09)));
       float streak = vn(vec2(uv.x * 3.0, py * 0.25)) * smoothstep(3.0, 0.0, py);
-      base *= (0.84 + 0.22 * g1) * (1.0 - max(sx, sy) * 0.5) * (1.0 + riv * 0.5) * (1.0 - streak * 0.25 * uDetail);
+      base *= (0.84 + 0.22 * g1) * (1.0 - max(sx, sy) * 0.5) * (1.0 + riv * 0.5) * (1.0 - streak * 0.25 * DET);
       ao = mix(0.55, 1.0, smoothstep(0.0, 1.4, py));
       spec = 0.32; shin = 32.0;
     } else if (m < 13.5) {   // 13 岩石：沉积层 + 颜色斑驳 + 凹凸
@@ -193,12 +196,12 @@ void main(){
       base *= (0.78 + 0.3 * g1) * (0.9 + 0.12 * strata) * (0.95 + 0.1 * n2);
       float e = 0.15, f0 = fbm(uv * 1.3);
       vec2 grad = vec2(fbm(uv * 1.3 + vec2(e, 0.0)) - f0, fbm(uv * 1.3 + vec2(0.0, e)) - f0) / e;
-      bump = vec3(grad.x, 0.0, grad.y) * 0.6 * uDetail;
+      bump = vec3(grad.x, 0.0, grad.y) * 0.6 * DET;
       spec = 0.05;
     } else if (m < 14.5) {   // 14 沙土地面：颗粒 + 碎石
       vec2 c = floor(uv * 3.0); vec2 f = fract(uv * 3.0) - 0.5;
       float peb = smoothstep(0.18, 0.1, length(f - (vec2(h21(c), h21(c + 7.0)) - 0.5) * 0.6)) * step(0.6, h21(c + 3.0));
-      base *= (0.8 + 0.3 * g1) * (0.9 + 0.2 * vn(uv * 18.0)) * (1.0 - peb * 0.3 * uDetail);
+      base *= (0.8 + 0.3 * g1) * (0.9 + 0.2 * vn(uv * 18.0)) * (1.0 - peb * 0.3 * DET);
       spec = 0.04;
     } else if (m < 15.5) {   // 15 钢格栅：条形镂空
       float bar = seamLine(uv.x / 0.24, 0.2);
@@ -226,7 +229,7 @@ void main(){
     spec = 0.25;
   } else if (vPar.x < 0.5 && vCol.a > 0.99) {
     // 普通模型：按模型局部坐标加一点磨损 / 斑驳（跟着物体走，不会“游动”）
-    base *= 0.9 + 0.14 * vn(vL.xz * 7.0 + vL.y * 5.0) * (0.4 + 0.6 * uDetail);
+    base *= 0.9 + 0.14 * vn(vL.xz * 7.0 + vL.y * 5.0) * (0.4 + 0.6 * DET);
     spec = 0.2;
   }
   vec3 lit = mix(uGround, uSky, N.y * 0.5 + 0.5) * ao;
@@ -360,7 +363,7 @@ function create(canvas) {
     geoms[name] = { name, vao, ib, count: n, indexed: false, tex: dummyTex };
     GN.push(name);
   }
-  const defs = { box: geoBox(), cyl: geoCyl(18), cone: geoCyl(18, 0), sphere: geoSphere(10, 18), oct: geoOct(), ring: geoRing(48, 0.9), disc: geoDisc(24), frustum: geoCyl(10, 0.32) };
+  const defs = { box: geoBox(), cyl: geoCyl(18), cone: geoCyl(18, 0), sphere: geoSphere(10, 18), oct: geoOct(), ring: geoRing(48, 0.9), disc: geoDisc(24), frustum: geoCyl(10, 0.32), pipe: geoCyl(8), ball: geoSphere(4, 7) };   // ball：粒子专用的低面数球   // pipe：低面数圆柱，用于大量重复的静态管线
   for (const name in defs) addPrimitive(name, defs[name]);
 
   // 外部网格：{pos Float32Array, nrm Int8Array(4/顶点), col Uint8Array(4), jnt Uint8Array(4), wgt Uint8Array(4), idx, bones Uint16Array(half), nb, nf}
@@ -443,17 +446,66 @@ function create(canvas) {
     else pushBasis(g, mx, my, mz, xx * w, xy * w, xz * w, yx * h, yy * h, yz * h, dx * L, dy * L, dz * L, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8]);
   }
 
-  function beginStatic() { cur = mkBuckets(); setLayer(0); anim(); }
+  /* ----- 静态场景：按 16 米一块分区，每块带包围盒，绘制时做视锥裁剪 + 由近到远排序 ----- */
+  let stMain = null, stDetail = null;
+  function beginStatic() { stMain = mkBuckets(); stDetail = mkBuckets(); cur = stMain; setLayer(0); anim(); }
+  // 小装饰物（管线、箱子、碎石…）单独存放，远处不画
+  function setDetail(on) { if (stMain) cur = on ? stDetail : stMain; }
+  const CH = 16;
   function endStatic() {
-    const st = cur; cur = dyn;
     const batch = [];
-    for (let m = 0; m < 3; m++) for (const g of GN) {
-      const bk = st[0][m][g]; if (!bk || !bk.n) continue;
-      const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER, bk.arr.subarray(0, bk.n * FLOATS), gl.STATIC_DRAW);
-      batch.push({ mode: m, g, buf, n: bk.n });
-    }
+    const split = (st, detail) => {
+      for (let m = 0; m < 3; m++) for (const g of GN) {
+        const bk = st[0][m][g]; if (!bk || !bk.n) continue;
+        const A = bk.arr, cells = new Map();
+        const ringK = g === 'ring' || g === 'disc' ? 2.2 : 1.05;
+        for (let i = 0; i < bk.n; i++) {
+          const o = i * FLOATS;
+          const ex = 0.5 * ringK * (Math.hypot(A[o], A[o + 1], A[o + 2]) + Math.hypot(A[o + 4], A[o + 5], A[o + 6]) + Math.hypot(A[o + 8], A[o + 9], A[o + 10]));
+          const x = A[o + 12], y = A[o + 13], z = A[o + 14];
+          const key = ex > CH ? 'big' : Math.floor(x / CH) + ',' + Math.floor(z / CH);
+          let c = cells.get(key);
+          if (!c) { c = { idx: [], box: [1e9, 1e9, 1e9, -1e9, -1e9, -1e9], big: key === 'big' }; cells.set(key, c); }
+          c.idx.push(i);
+          const b = c.box;
+          if (x - ex < b[0]) b[0] = x - ex; if (y - ex < b[1]) b[1] = y - ex; if (z - ex < b[2]) b[2] = z - ex;
+          if (x + ex > b[3]) b[3] = x + ex; if (y + ex > b[4]) b[4] = y + ex; if (z + ex > b[5]) b[5] = z + ex;
+        }
+        for (const c of cells.values()) {
+          const data = new Float32Array(c.idx.length * FLOATS);
+          c.idx.forEach((i, k) => data.set(A.subarray(i * FLOATS, (i + 1) * FLOATS), k * FLOATS));
+          const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+          gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+          const b = c.box;
+          batch.push({ mode: m, g, buf, n: c.idx.length, box: c.big ? null : b, cx: (b[0] + b[3]) / 2, cz: (b[2] + b[5]) / 2, detail, d: 0 });
+        }
+      }
+    };
+    split(stMain, false); split(stDetail, true);
+    cur = dyn; stMain = stDetail = null;
     return batch;
+  }
+  /* ----- 视锥：从 VP 矩阵取 6 个平面，物体 / 分块不在视野内就不画 ----- */
+  const FR = new Float32Array(24);
+  function setFrustum(m) {
+    const rows = [[m[0], m[4], m[8], m[12]], [m[1], m[5], m[9], m[13]], [m[2], m[6], m[10], m[14]], [m[3], m[7], m[11], m[15]]];
+    const pl = [[3, 0, 1], [3, 0, -1], [3, 1, 1], [3, 1, -1], [3, 2, 1], [3, 2, -1]];
+    pl.forEach(([a, b, sg], i) => {
+      const x = rows[a][0] + sg * rows[b][0], y = rows[a][1] + sg * rows[b][1], z = rows[a][2] + sg * rows[b][2], w = rows[a][3] + sg * rows[b][3];
+      const L = Math.hypot(x, y, z) || 1;
+      FR[i * 4] = x / L; FR[i * 4 + 1] = y / L; FR[i * 4 + 2] = z / L; FR[i * 4 + 3] = w / L;
+    });
+  }
+  function inView(x, y, z, r) {
+    for (let i = 0; i < 24; i += 4) if (FR[i] * x + FR[i + 1] * y + FR[i + 2] * z + FR[i + 3] < -r) return false;
+    return true;
+  }
+  function boxInView(b) {
+    for (let i = 0; i < 24; i += 4) {
+      const px = FR[i] >= 0 ? b[3] : b[0], py = FR[i + 1] >= 0 ? b[4] : b[1], pz = FR[i + 2] >= 0 ? b[5] : b[2];
+      if (FR[i] * px + FR[i + 1] * py + FR[i + 2] * pz + FR[i + 3] < 0) return false;
+    }
+    return true;
   }
 
   const stream = {}; for (const g of GN) stream[g] = gl.createBuffer();
@@ -465,6 +517,7 @@ function create(canvas) {
     for (let k = 0; k < 6; k++) gl.vertexAttribPointer(2 + k, 4, gl.FLOAT, false, FLOATS * 4, k * 16);
     gl.vertexAttribPointer(11, 4, gl.FLOAT, false, FLOATS * 4, 24 * 4);
     gl.bindTexture(gl.TEXTURE_2D, G.tex);
+    stats.verts += G.count * n; if (stats.byG) stats.byG[g] = (stats.byG[g] || 0) + G.count * n;
     if (G.indexed) gl.drawElementsInstanced(gl.TRIANGLES, G.count, G.itype, 0, n);
     else gl.drawArraysInstanced(gl.TRIANGLES, 0, G.count, n);
   }
@@ -548,13 +601,29 @@ function create(canvas) {
     gl.uniform1i(U.uNL, nl); gl.uniform4fv(U.uLP, LP); gl.uniform3fv(U.uLC, LC);
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
-    stats.draws = 0; stats.inst = 0; stats.post = usePost;
+    stats.draws = 0; stats.inst = 0; stats.culled = 0; stats.verts = 0; stats.byG = window.__vstat ? {} : null; stats.post = usePost;
     for (let L = 0; L < 2; L++) {
       if (L === 1) gl.clear(gl.DEPTH_BUFFER_BIT);
       for (let m = 0; m < 3; m++) {
         if (m === 0) { gl.disable(gl.BLEND); gl.depthMask(true); }
         else { gl.enable(gl.BLEND); gl.depthMask(false); if (m === 1) gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); else gl.blendFunc(gl.SRC_ALPHA, gl.ONE); }
-        if (L === 0 && staticList) for (const batch of staticList) for (const it of batch) if (it.mode === m) { drawBucket(it.g, null, it.n, it.buf, true); stats.draws++; stats.inst += it.n; }
+        if (L === 0 && staticList) {
+          // 不透明分块由近到远画（早期深度测试能省掉大量被挡住的像素）；透明 / 叠加分块保持原顺序
+          const vis = [];
+          const ex = cam.eye[0], ez = cam.eye[2], dd = cam.detailDist || 60;
+          for (const batch of staticList) for (const it of batch) {
+            if (it.mode !== m) continue;
+            if (it.box) {
+              if (!boxInView(it.box)) { stats.culled++; continue; }
+              const dx = Math.max(it.box[0] - ex, 0, ex - it.box[3]), dz = Math.max(it.box[2] - ez, 0, ez - it.box[5]);
+              it.d = Math.hypot(dx, dz);
+              if (it.detail && it.d > dd) { stats.culled++; continue; }
+            } else it.d = 1e9;
+            vis.push(it);
+          }
+          if (m === 0) vis.sort((a, b) => a.d - b.d);
+          for (const it of vis) { drawBucket(it.g, null, it.n, it.buf, true); stats.draws++; stats.inst += it.n; }
+        }
         for (const g of GN) {
           const bk = dyn[L][m][g];
           if (bk.n) { drawBucket(g, bk.arr, bk.n, stream[g], false); stats.draws++; stats.inst += bk.n; bk.n = 0; }
@@ -588,7 +657,7 @@ function create(canvas) {
   }
 
   return {
-    gl, geoms, push, pushR, pushBeam, pushBasis, setLayer, beginStatic, endStatic, flush, addMesh, anim,
+    gl, geoms, push, pushR, pushBeam, pushBasis, setLayer, beginStatic, endStatic, setDetail, setFrustum, inView, boxInView, flush, addMesh, anim,
     stats: () => stats, postAvailable: () => !!post, setPost: v => { postOn = !!v && !!post; }, postOn: () => postOn,
   };
 }

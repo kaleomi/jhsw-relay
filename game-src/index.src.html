@@ -139,6 +139,8 @@ body.touch #tut { right: auto; left: 50%; margin-left: max(-190px, -26vw); top: 
 body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; margin-bottom: 6px; }
 #invTag { margin-bottom: 6px; padding: 3px 12px; font-size: 12.5px; font-weight: 700; color: #071018; background: linear-gradient(90deg, #5fe3ff, #a8f4ff); box-shadow: 0 0 14px rgba(95, 227, 255, .5); animation: tcBlink .7s infinite alternate; }
 #invTag[hidden] { display: none; }
+#fpsTag { position: fixed; left: 6px; top: 4px; z-index: 40; font: 600 11px/1.3 var(--f-num), monospace; color: #9fe; background: rgba(0,0,0,.45); padding: 2px 6px; border-radius: 3px; pointer-events: none; white-space: pre; }
+#fpsTag[hidden] { display: none; }
 /* 准星旁的陷阱信息卡（竖向） */
 #trapCard { position: absolute; left: calc(50% + 46px); top: 50%; transform: translateY(-38%); width: 184px; padding: 10px 12px 10px 14px; pointer-events: none;
   background: linear-gradient(160deg, rgba(14, 24, 36, .9), rgba(6, 11, 18, .86)); border: 1px solid rgba(120, 190, 225, .22); border-left: 3px solid var(--tcc, var(--crys));
@@ -634,6 +636,7 @@ body.touch .mpRow input { padding: 10px; }
     </div>
     <div id="center">
       <div id="invTag" hidden></div>
+      <div id="fpsTag" hidden></div>
       <div id="gold"><span>金币</span><b id="goldNum">0</b><span class="kl">击杀 <em id="killNum">0</em></span></div>
       <div id="hotbar"></div>
       <div id="techBar" hidden></div>
@@ -813,6 +816,7 @@ body.touch .mpRow input { padding: 10px; }
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>材质精细度</b><span class="fine">地面、墙面、岩石等纹理细节；手机发热或掉帧时选“低”</span></div><button type="button" class="ghostBtn small" id="detailBtn" aria-pressed="true">高</button></div>
+        <div class="setRow"><div><b>显示帧率</b><span class="fine">左上角显示每秒帧数和当前渲染分辨率，方便判断手机能否跑得动</span></div><button type="button" class="ghostBtn small" id="fpsBtn" aria-pressed="false">关</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
       </section>
       <section data-stab="keys" hidden>

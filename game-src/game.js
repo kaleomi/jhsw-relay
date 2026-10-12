@@ -927,8 +927,9 @@ function buildTerrainStatic(S) {
         E.push('box', fx, DB - 0.05, fz, 0, alongX ? T : 0.04, 0.05, alongX ? 0.04 : T, UPPER);
       }
     }
-    // 外场小道具：靠崖壁的空地摆物资箱 / 油桶 / 碎石，通道边缘撒些碎石（只是装饰，不挡路）
+    // 外场小道具：靠崖壁的空地摆物资箱 / 油桶 / 碎石，通道边缘撒些碎石（只是装饰，不挡路；远处不画）
     if (ri === undefined && !S.deck.has(i)) {
+      E.setDetail(true);
       const h0 = tH(x, z);
       if (t === TILE.FLOOR) {
         let wd = -1;
@@ -963,6 +964,7 @@ function buildTerrainStatic(S) {
           E.push('oct', cx + (u - 0.5) * T * 0.9, h0 + sz * 0.3, cz + (v - 0.5) * T * 0.9, u * 6, sz, sz * 0.6, sz * 0.8, CLIFF(0.7 + v * 0.2));
         }
       }
+      E.setDetail(false);
     }
     if (t === TILE.PAD && !S.plat.has(i)) {
       const py = tH(x, z);
@@ -1003,10 +1005,11 @@ function buildStatic(S) {
         E.push('box', fx, WALL_H - 0.35, fz, 0, alongX ? T : 0.3, 0.7, alongX ? 0.3 : T, CORN);
         // 墙面细节：踢脚板、贴墙管线、通风格栅、壁灯（贴墙薄片，不挡路）
         const nx = -DIRS[d][0], nz = -DIRS[d][1], r = hsh(x, z, d);
+        E.setDetail(true);
         E.push('box', fx + nx * 0.05, 0.12, fz + nz * 0.05, 0, alongX ? T : 0.1, 0.24, alongX ? 0.1 : T, CORN);
         for (const [py, pr, pc] of [[3.75, 0.18, PIPE], [4.05, 0.12, PIPE2]]) {
           const ox = fx + nx * (0.12 + pr * 0.5), oz = fz + nz * (0.12 + pr * 0.5);
-          E.pushR('cyl', ox, py, oz, 0, alongX ? 0 : Math.PI / 2, alongX ? Math.PI / 2 : 0, pr, T + 0.02, pr, pc);
+          E.pushR('pipe', ox, py, oz, 0, alongX ? 0 : Math.PI / 2, alongX ? Math.PI / 2 : 0, pr, T + 0.02, pr, pc);
         }
         if (r < 0.3) E.push('box', fx + nx * 0.04, 1.25, fz + nz * 0.04, 0, alongX ? 1.1 : 0.06, 0.6, alongX ? 0.06 : 1.1, GRATE);
         else if (r < 0.5) {
@@ -1017,6 +1020,7 @@ function buildStatic(S) {
           E.push('box', fx + nx * 0.3, 0.9, fz + nz * 0.3, 0, alongX ? 1.0 : 0.5, 1.8, alongX ? 0.5 : 1.0, col(0.24, 0.26, 0.3, 1, 0, 0, 2));
           E.push('box', fx + nx * 0.56, 1.45, fz + nz * 0.56, 0, alongX ? 0.5 : 0.02, 0.06, alongX ? 0.02 : 0.5, UPPER);
         }
+        E.setDetail(false);
       }
       // 通道与玩家区域交界处：警示条纹
       if (t === TILE.LANE) for (let d = 0; d < 4; d++) {
@@ -1045,12 +1049,12 @@ function buildStatic(S) {
  * 粒子 / 光源 / 浮动文字
  * ============================================================ */
 const parts = [];
-const MAXP = 1100;
+const MAXP = (window.__TOUCH || matchMedia('(pointer: coarse)').matches) ? 650 : 1100;
 function particle(o) {
   if (parts.length >= MAXP) parts.shift();
   o.t = 0; o.vx = o.vx || 0; o.vy = o.vy || 0; o.vz = o.vz || 0; o.grav = o.grav || 0; o.drag = o.drag || 0;
   o.s0 = o.s0 || 0.15; o.s1 = o.s1 === undefined ? o.s0 : o.s1; o.a0 = o.a0 === undefined ? 1 : o.a0;
-  o.g = o.g || 'sphere'; o.c = o.c || [1, 1, 1]; o.add = o.add !== false;
+  o.g = o.g === 'sphere' || !o.g ? 'ball' : o.g; o.c = o.c || [1, 1, 1]; o.add = o.add !== false;
   parts.push(o);
 }
 function burst(x, y, z, n, o) {
@@ -1089,6 +1093,7 @@ function setupCamera(ex, ey, ez, yaw, pitch, fov) {
   Engine.perspective(PROJ, fov * Math.PI / 180, W / H, 0.05, 260);
   Engine.viewFPS(VIEW, ex, ey, ez, yaw, pitch);
   Engine.mul(VP, PROJ, VIEW);
+  if (E) E.setFrustum(VP);
   const cp = Math.cos(pitch), sp = Math.sin(pitch), cy = Math.cos(yaw), sy = Math.sin(yaw);
   cam.x = ex; cam.y = ey; cam.z = ez;
   cam.fx = -sy * cp; cam.fy = sp; cam.fz = -cy * cp; cam.rx = cy; cam.rz = -sy;
@@ -1106,7 +1111,7 @@ function project(x, y, z) {
 // 自适应分辨率：帧时间过长时自动降低渲染分辨率
 const TOUCH = !!(window.__TOUCH || /[?&]touch=1/.test(location.search) || (matchMedia('(pointer: coarse)').matches && (navigator.maxTouchPoints || 0) > 0));
 const quality = { base: Math.min(window.devicePixelRatio || 1, TOUCH ? 1.5 : 1.25), scale: 0, acc: 0, n: 0, cool: 0 };
-quality.scale = quality.base;
+quality.scale = TOUCH ? Math.min(quality.base, 1.0) : quality.base;   // 手机先从 1 倍起步，跑得动再慢慢升
 function resize() {
   let sc = window.__RES || quality.scale;
   const maxPix = 2.4e6, pix = innerWidth * innerHeight * sc * sc;
@@ -1114,13 +1119,27 @@ function resize() {
   canvas.width = Math.max(1, Math.floor(innerWidth * sc));
   canvas.height = Math.max(1, Math.floor(innerHeight * sc));
 }
+const fpsM = { t: 0, n: 0, worst: 0 };
+function fpsMeter(dt) {
+  if (!settings.showFps) return;
+  fpsM.t += dt; fpsM.n++; fpsM.worst = Math.max(fpsM.worst, dt);
+  if (fpsM.t < 0.5) return;
+  const st = E.stats();
+  $('fpsTag').textContent = `${Math.round(fpsM.n / fpsM.t)} FPS  最慢 ${Math.round(fpsM.worst * 1000)}ms\n分辨率 ${canvas.width}×${canvas.height}（×${(quality.scale || 1).toFixed(2)}）${quality.autoLow ? ' 低精细' : ''}\n绘制 ${st.draws} 批 · ${st.inst} 个物体`;
+  fpsM.t = 0; fpsM.n = 0; fpsM.worst = 0;
+}
 function adaptQuality(dt) {
   if (document.hidden) return;
   quality.acc += dt; quality.n++; quality.cool -= dt;
   if (quality.acc < 1.5) return;
   const avg = quality.acc / quality.n; quality.acc = 0; quality.n = 0;
   if (quality.cool > 0) return;
-  if (avg > 0.028 && quality.scale > 0.5) { quality.scale = Math.max(0.5, quality.scale * 0.85); resize(); quality.cool = 2; }
+  if (avg > 0.028 && quality.scale > 0.5) { quality.scale = Math.max(0.5, quality.scale * 0.85); resize(); quality.cool = 2; quality.slow = 0; }
+  else if (avg > 0.03 && !quality.autoLow && settings.detail !== 'low' && ++quality.slow >= 2) {
+    // 分辨率已经降到底还是卡：本局自动改用低材质精细度（不改玩家的设置）
+    quality.autoLow = true; quality.cool = 4;
+    if (mode === 'play') toast('画面较卡，已自动降低材质精细度（可在设置中调整）');
+  }
   else if (avg < 0.0135 && quality.scale < quality.base) { quality.scale = Math.min(quality.base, quality.scale * 1.08); resize(); quality.cool = 3; }
 }
 addEventListener('resize', resize); resize();
@@ -4529,7 +4548,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   timeNow += dt;
-  adaptQuality(dt);
+  adaptQuality(dt); fpsMeter(dt);
   if (slowmoT > 0) { slowmoT -= dt; timeScale = slowmoT > 0.5 ? 0.3 : lerp(1, 0.3, slowmoT / 0.5); } else timeScale = 1;
   const sdt = dt * timeScale;
   const fxdt = mode === 'pause' ? 0 : sdt;
@@ -4608,7 +4627,7 @@ function frame(now) {
   if (!SK.crystal) drawCrystal(S);
   for (const tr of S.s.traps) {
     if (Math.abs(tr.wx - cam.x) > 70 || Math.abs(tr.wz - cam.z) > 70) continue;
-    drawTrap(S, tr);
+    if (E.inView(tr.wx, tr.wy + 1.4, tr.wz, TRAP[tr.type].big ? 4 : 2.6) || (tr.line && tr.activeT > 0)) drawTrap(S, tr);
     if (tr.type === 'tesla' && simNow - tr.fireT < 0.14 && tr.targets) {
       for (const id of tr.targets) {
         const m = S._mById.get(id); if (!m) continue;
@@ -4648,7 +4667,7 @@ function frame(now) {
   if (S.outdoor) E.push('sphere', cam.x, cam.y, cam.z, 0, 480, 480, 480, col(1, 1, 1, 1, 0, 0, 18, false, true));
   drawLava(S);
   drawShells(fxdt);
-  for (const m of S.s.monsters) drawMonster(m, frameAlpha);
+  for (const m of S.s.monsters) { const md = MON[m.type]; if (E.inView(m.x, m.y + md.body[0], m.z, md.head[0] + md.body[1] + 1.2)) drawMonster(m, frameAlpha); }
   // 调试：显示命中判定球（window.__hitboxes = true）
   if (window.__hitboxes) for (const m of S.s.monsters) {
     const def = MON[m.type], hf = def.head[2] || 0, k = frameAlpha;
@@ -4727,7 +4746,7 @@ function frame(now) {
   E.flush({
     vp: VP, eye: [cam.x, cam.y, cam.z], sky: dark ? sc3(TH.sky, 0.35) : TH.sky, ground: dark ? sc3(TH.ground, 0.35) : TH.ground, sunDir: [0.45, -0.74, 0.5], sunCol: dark ? sc3(TH.sun, 0.3) : TH.sun,
     fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : (TH.fogD || 0.0105), lights: LIGHTS.slice(0, 12),
-    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: settings.detail === 'low' ? 0.25 : 1,
+    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: settings.detail === 'low' || quality.autoLow ? 0.25 : 1, detailDist: settings.detail === 'low' || quality.autoLow ? 36 : 64,
     tint: mode !== 'menu' && cf < 0.3 ? [0.6, 0.02, 0.05, 0.22 * (0.5 + 0.5 * Math.sin(timeNow * 5))] : (timeScale < 1 ? [0.9, 0.6, 0.3, 0.15] : null),
   }, SK.static ? [] : statics);
 
@@ -5106,6 +5125,10 @@ function bindUI() {
   const syncBloom = () => { E.setPost(settings.bloom); bloomBtn.setAttribute('aria-pressed', settings.bloom ? 'true' : 'false'); bloomBtn.textContent = settings.bloom && E.postAvailable() ? '开' : '关'; };
   if (!E.postAvailable()) { bloomBtn.disabled = true; bloomBtn.title = '当前显卡不支持'; }
   bloomBtn.addEventListener('click', () => { settings.bloom = !settings.bloom; syncBloom(); saveSettings(); });
+  const fpsBtn = $('fpsBtn');
+  const syncFps = () => { fpsBtn.setAttribute('aria-pressed', settings.showFps ? 'true' : 'false'); fpsBtn.textContent = settings.showFps ? '开' : '关'; $('fpsTag').hidden = !settings.showFps; };
+  syncFps();
+  fpsBtn.addEventListener('click', () => { settings.showFps = !settings.showFps; syncFps(); saveSettings(); });
   const detBtn = $('detailBtn');
   if (!settings.detail) settings.detail = TOUCH ? 'low' : 'high';
   const syncDet = () => { const hi = settings.detail !== 'low'; detBtn.setAttribute('aria-pressed', hi ? 'true' : 'false'); detBtn.textContent = hi ? '高' : '低'; };

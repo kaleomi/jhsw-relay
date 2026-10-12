@@ -139,6 +139,8 @@ body.touch #tut { right: auto; left: 50%; margin-left: max(-190px, -26vw); top: 
 body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; margin-bottom: 6px; }
 #invTag { margin-bottom: 6px; padding: 3px 12px; font-size: 12.5px; font-weight: 700; color: #071018; background: linear-gradient(90deg, #5fe3ff, #a8f4ff); box-shadow: 0 0 14px rgba(95, 227, 255, .5); animation: tcBlink .7s infinite alternate; }
 #invTag[hidden] { display: none; }
+#fpsTag { position: fixed; left: 6px; top: 4px; z-index: 40; font: 600 11px/1.3 var(--f-num), monospace; color: #9fe; background: rgba(0,0,0,.45); padding: 2px 6px; border-radius: 3px; pointer-events: none; white-space: pre; }
+#fpsTag[hidden] { display: none; }
 /* 准星旁的陷阱信息卡（竖向） */
 #trapCard { position: absolute; left: calc(50% + 46px); top: 50%; transform: translateY(-38%); width: 184px; padding: 10px 12px 10px 14px; pointer-events: none;
   background: linear-gradient(160deg, rgba(14, 24, 36, .9), rgba(6, 11, 18, .86)); border: 1px solid rgba(120, 190, 225, .22); border-left: 3px solid var(--tcc, var(--crys));
@@ -634,6 +636,7 @@ body.touch .mpRow input { padding: 10px; }
     </div>
     <div id="center">
       <div id="invTag" hidden></div>
+      <div id="fpsTag" hidden></div>
       <div id="gold"><span>金币</span><b id="goldNum">0</b><span class="kl">击杀 <em id="killNum">0</em></span></div>
       <div id="hotbar"></div>
       <div id="techBar" hidden></div>
@@ -813,6 +816,7 @@ body.touch .mpRow input { padding: 10px; }
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>材质精细度</b><span class="fine">地面、墙面、岩石等纹理细节；手机发热或掉帧时选“低”</span></div><button type="button" class="ghostBtn small" id="detailBtn" aria-pressed="true">高</button></div>
+        <div class="setRow"><div><b>显示帧率</b><span class="fine">左上角显示每秒帧数和当前渲染分辨率，方便判断手机能否跑得动</span></div><button type="button" class="ghostBtn small" id="fpsBtn" aria-pressed="false">关</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
       </section>
       <section data-stab="keys" hidden>
@@ -1057,13 +1061,16 @@ float vn(vec2 p) {
   vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
   return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);
 }
+float DET = 1.0;
 float fbm(vec2 p) {
   float a = 0.5, s = 0.0;
-  for (int i = 0; i < 4; i++) { if (float(i) >= 1.0 + uDetail * 3.0) break; s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; }
-  return s / (1.0 - pow(0.5, 1.0 + uDetail * 3.0));
+  for (int i = 0; i < 4; i++) { if (float(i) >= 1.0 + DET * 3.0) break; s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s / (1.0 - pow(0.5, 1.0 + DET * 3.0));
 }
 float seamLine(float v, float w) { float g = abs(fract(v) - 0.5); return smoothstep(0.5 - w, 0.5, g); }
 void main(){
+  // 远处像素细节逐渐关掉：40 米外只剩 1 层噪声，省掉大部分纹理计算
+  DET = uDetail * clamp(1.35 - length(vW - uEye) / 40.0, 0.0, 1.0);
   vec3 N = normalize(vN);
   if (!gl_FrontFacing) N = -N;
   vec3 base = vCol.rgb;
@@ -1092,11 +1099,11 @@ void main(){
       float s1 = max(seamLine(uv.x / 1.2, 0.02), seamLine(uv.y / 1.2, 0.02));
       vec2 q = uv * 9.0; float tread = step(0.82, abs(sin(q.x + q.y) * sin(q.x - q.y)));
       float scr = smoothstep(0.93, 1.0, vn(vec2(uv.x * 0.6, uv.y * 22.0))) * 0.5 + smoothstep(0.95, 1.0, vn(vec2(uv.x * 25.0, uv.y * 0.5))) * 0.4;
-      base *= (0.78 + 0.32 * g1) * (1.0 - s1 * 0.55) * (1.0 + tread * 0.12) * (1.0 + scr * 0.35 * uDetail);
+      base *= (0.78 + 0.32 * g1) * (1.0 - s1 * 0.55) * (1.0 + tread * 0.12) * (1.0 + scr * 0.35 * DET);
       spec = 0.55 * (0.6 + 0.4 * g1); shin = 48.0;
     } else if (m < 11.5) {   // 11 混凝土 / 地砖：大块砖缝 + 斑点 + 裂纹
       float s1 = max(seamLine(uv.x / 2.4, 0.012), seamLine(uv.y / 2.4, 0.012));
-      float crack = smoothstep(0.007, 0.0, abs(fbm(uv * 0.7 + 3.0) - 0.5)) * uDetail * step(0.55, vn(uv * 0.21));
+      float crack = smoothstep(0.007, 0.0, abs(fbm(uv * 0.7 + 3.0) - 0.5)) * DET * step(0.55, vn(uv * 0.21));
       base *= (0.82 + 0.26 * g1) * (0.94 + 0.12 * n2) * (1.0 - s1 * 0.4) * (1.0 - crack * 0.16);
       spec = 0.08;
     } else if (m < 12.5) {   // 12 墙板：竖向板材 + 横缝 + 铆钉 + 底部积灰
@@ -1105,7 +1112,7 @@ void main(){
       vec2 rq = vec2(fract(uv.x / 1.2), fract(py / 1.6));
       float riv = smoothstep(0.045, 0.02, length(vec2(min(rq.x, 1.0 - rq.x) * 1.2, (min(rq.y, 1.0 - rq.y)) * 1.6) - vec2(0.09, 0.09)));
       float streak = vn(vec2(uv.x * 3.0, py * 0.25)) * smoothstep(3.0, 0.0, py);
-      base *= (0.84 + 0.22 * g1) * (1.0 - max(sx, sy) * 0.5) * (1.0 + riv * 0.5) * (1.0 - streak * 0.25 * uDetail);
+      base *= (0.84 + 0.22 * g1) * (1.0 - max(sx, sy) * 0.5) * (1.0 + riv * 0.5) * (1.0 - streak * 0.25 * DET);
       ao = mix(0.55, 1.0, smoothstep(0.0, 1.4, py));
       spec = 0.32; shin = 32.0;
     } else if (m < 13.5) {   // 13 岩石：沉积层 + 颜色斑驳 + 凹凸
@@ -1114,12 +1121,12 @@ void main(){
       base *= (0.78 + 0.3 * g1) * (0.9 + 0.12 * strata) * (0.95 + 0.1 * n2);
       float e = 0.15, f0 = fbm(uv * 1.3);
       vec2 grad = vec2(fbm(uv * 1.3 + vec2(e, 0.0)) - f0, fbm(uv * 1.3 + vec2(0.0, e)) - f0) / e;
-      bump = vec3(grad.x, 0.0, grad.y) * 0.6 * uDetail;
+      bump = vec3(grad.x, 0.0, grad.y) * 0.6 * DET;
       spec = 0.05;
     } else if (m < 14.5) {   // 14 沙土地面：颗粒 + 碎石
       vec2 c = floor(uv * 3.0); vec2 f = fract(uv * 3.0) - 0.5;
       float peb = smoothstep(0.18, 0.1, length(f - (vec2(h21(c), h21(c + 7.0)) - 0.5) * 0.6)) * step(0.6, h21(c + 3.0));
-      base *= (0.8 + 0.3 * g1) * (0.9 + 0.2 * vn(uv * 18.0)) * (1.0 - peb * 0.3 * uDetail);
+      base *= (0.8 + 0.3 * g1) * (0.9 + 0.2 * vn(uv * 18.0)) * (1.0 - peb * 0.3 * DET);
       spec = 0.04;
     } else if (m < 15.5) {   // 15 钢格栅：条形镂空
       float bar = seamLine(uv.x / 0.24, 0.2);
@@ -1147,7 +1154,7 @@ void main(){
     spec = 0.25;
   } else if (vPar.x < 0.5 && vCol.a > 0.99) {
     // 普通模型：按模型局部坐标加一点磨损 / 斑驳（跟着物体走，不会“游动”）
-    base *= 0.9 + 0.14 * vn(vL.xz * 7.0 + vL.y * 5.0) * (0.4 + 0.6 * uDetail);
+    base *= 0.9 + 0.14 * vn(vL.xz * 7.0 + vL.y * 5.0) * (0.4 + 0.6 * DET);
     spec = 0.2;
   }
   vec3 lit = mix(uGround, uSky, N.y * 0.5 + 0.5) * ao;
@@ -1281,7 +1288,7 @@ function create(canvas) {
     geoms[name] = { name, vao, ib, count: n, indexed: false, tex: dummyTex };
     GN.push(name);
   }
-  const defs = { box: geoBox(), cyl: geoCyl(18), cone: geoCyl(18, 0), sphere: geoSphere(10, 18), oct: geoOct(), ring: geoRing(48, 0.9), disc: geoDisc(24), frustum: geoCyl(10, 0.32) };
+  const defs = { box: geoBox(), cyl: geoCyl(18), cone: geoCyl(18, 0), sphere: geoSphere(10, 18), oct: geoOct(), ring: geoRing(48, 0.9), disc: geoDisc(24), frustum: geoCyl(10, 0.32), pipe: geoCyl(8), ball: geoSphere(4, 7) };   // ball：粒子专用的低面数球   // pipe：低面数圆柱，用于大量重复的静态管线
   for (const name in defs) addPrimitive(name, defs[name]);
 
   // 外部网格：{pos Float32Array, nrm Int8Array(4/顶点), col Uint8Array(4), jnt Uint8Array(4), wgt Uint8Array(4), idx, bones Uint16Array(half), nb, nf}
@@ -1364,17 +1371,66 @@ function create(canvas) {
     else pushBasis(g, mx, my, mz, xx * w, xy * w, xz * w, yx * h, yy * h, yz * h, dx * L, dy * L, dz * L, c[0], c[1], c[2], c[3], c[4], c[5], c[6], c[7], c[8]);
   }
 
-  function beginStatic() { cur = mkBuckets(); setLayer(0); anim(); }
+  /* ----- 静态场景：按 16 米一块分区，每块带包围盒，绘制时做视锥裁剪 + 由近到远排序 ----- */
+  let stMain = null, stDetail = null;
+  function beginStatic() { stMain = mkBuckets(); stDetail = mkBuckets(); cur = stMain; setLayer(0); anim(); }
+  // 小装饰物（管线、箱子、碎石…）单独存放，远处不画
+  function setDetail(on) { if (stMain) cur = on ? stDetail : stMain; }
+  const CH = 16;
   function endStatic() {
-    const st = cur; cur = dyn;
     const batch = [];
-    for (let m = 0; m < 3; m++) for (const g of GN) {
-      const bk = st[0][m][g]; if (!bk || !bk.n) continue;
-      const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.bufferData(gl.ARRAY_BUFFER, bk.arr.subarray(0, bk.n * FLOATS), gl.STATIC_DRAW);
-      batch.push({ mode: m, g, buf, n: bk.n });
-    }
+    const split = (st, detail) => {
+      for (let m = 0; m < 3; m++) for (const g of GN) {
+        const bk = st[0][m][g]; if (!bk || !bk.n) continue;
+        const A = bk.arr, cells = new Map();
+        const ringK = g === 'ring' || g === 'disc' ? 2.2 : 1.05;
+        for (let i = 0; i < bk.n; i++) {
+          const o = i * FLOATS;
+          const ex = 0.5 * ringK * (Math.hypot(A[o], A[o + 1], A[o + 2]) + Math.hypot(A[o + 4], A[o + 5], A[o + 6]) + Math.hypot(A[o + 8], A[o + 9], A[o + 10]));
+          const x = A[o + 12], y = A[o + 13], z = A[o + 14];
+          const key = ex > CH ? 'big' : Math.floor(x / CH) + ',' + Math.floor(z / CH);
+          let c = cells.get(key);
+          if (!c) { c = { idx: [], box: [1e9, 1e9, 1e9, -1e9, -1e9, -1e9], big: key === 'big' }; cells.set(key, c); }
+          c.idx.push(i);
+          const b = c.box;
+          if (x - ex < b[0]) b[0] = x - ex; if (y - ex < b[1]) b[1] = y - ex; if (z - ex < b[2]) b[2] = z - ex;
+          if (x + ex > b[3]) b[3] = x + ex; if (y + ex > b[4]) b[4] = y + ex; if (z + ex > b[5]) b[5] = z + ex;
+        }
+        for (const c of cells.values()) {
+          const data = new Float32Array(c.idx.length * FLOATS);
+          c.idx.forEach((i, k) => data.set(A.subarray(i * FLOATS, (i + 1) * FLOATS), k * FLOATS));
+          const buf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+          gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+          const b = c.box;
+          batch.push({ mode: m, g, buf, n: c.idx.length, box: c.big ? null : b, cx: (b[0] + b[3]) / 2, cz: (b[2] + b[5]) / 2, detail, d: 0 });
+        }
+      }
+    };
+    split(stMain, false); split(stDetail, true);
+    cur = dyn; stMain = stDetail = null;
     return batch;
+  }
+  /* ----- 视锥：从 VP 矩阵取 6 个平面，物体 / 分块不在视野内就不画 ----- */
+  const FR = new Float32Array(24);
+  function setFrustum(m) {
+    const rows = [[m[0], m[4], m[8], m[12]], [m[1], m[5], m[9], m[13]], [m[2], m[6], m[10], m[14]], [m[3], m[7], m[11], m[15]]];
+    const pl = [[3, 0, 1], [3, 0, -1], [3, 1, 1], [3, 1, -1], [3, 2, 1], [3, 2, -1]];
+    pl.forEach(([a, b, sg], i) => {
+      const x = rows[a][0] + sg * rows[b][0], y = rows[a][1] + sg * rows[b][1], z = rows[a][2] + sg * rows[b][2], w = rows[a][3] + sg * rows[b][3];
+      const L = Math.hypot(x, y, z) || 1;
+      FR[i * 4] = x / L; FR[i * 4 + 1] = y / L; FR[i * 4 + 2] = z / L; FR[i * 4 + 3] = w / L;
+    });
+  }
+  function inView(x, y, z, r) {
+    for (let i = 0; i < 24; i += 4) if (FR[i] * x + FR[i + 1] * y + FR[i + 2] * z + FR[i + 3] < -r) return false;
+    return true;
+  }
+  function boxInView(b) {
+    for (let i = 0; i < 24; i += 4) {
+      const px = FR[i] >= 0 ? b[3] : b[0], py = FR[i + 1] >= 0 ? b[4] : b[1], pz = FR[i + 2] >= 0 ? b[5] : b[2];
+      if (FR[i] * px + FR[i + 1] * py + FR[i + 2] * pz + FR[i + 3] < 0) return false;
+    }
+    return true;
   }
 
   const stream = {}; for (const g of GN) stream[g] = gl.createBuffer();
@@ -1386,6 +1442,7 @@ function create(canvas) {
     for (let k = 0; k < 6; k++) gl.vertexAttribPointer(2 + k, 4, gl.FLOAT, false, FLOATS * 4, k * 16);
     gl.vertexAttribPointer(11, 4, gl.FLOAT, false, FLOATS * 4, 24 * 4);
     gl.bindTexture(gl.TEXTURE_2D, G.tex);
+    stats.verts += G.count * n; if (stats.byG) stats.byG[g] = (stats.byG[g] || 0) + G.count * n;
     if (G.indexed) gl.drawElementsInstanced(gl.TRIANGLES, G.count, G.itype, 0, n);
     else gl.drawArraysInstanced(gl.TRIANGLES, 0, G.count, n);
   }
@@ -1469,13 +1526,29 @@ function create(canvas) {
     gl.uniform1i(U.uNL, nl); gl.uniform4fv(U.uLP, LP); gl.uniform3fv(U.uLC, LC);
     gl.disable(gl.CULL_FACE);
     gl.enable(gl.DEPTH_TEST); gl.depthFunc(gl.LEQUAL);
-    stats.draws = 0; stats.inst = 0; stats.post = usePost;
+    stats.draws = 0; stats.inst = 0; stats.culled = 0; stats.verts = 0; stats.byG = window.__vstat ? {} : null; stats.post = usePost;
     for (let L = 0; L < 2; L++) {
       if (L === 1) gl.clear(gl.DEPTH_BUFFER_BIT);
       for (let m = 0; m < 3; m++) {
         if (m === 0) { gl.disable(gl.BLEND); gl.depthMask(true); }
         else { gl.enable(gl.BLEND); gl.depthMask(false); if (m === 1) gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); else gl.blendFunc(gl.SRC_ALPHA, gl.ONE); }
-        if (L === 0 && staticList) for (const batch of staticList) for (const it of batch) if (it.mode === m) { drawBucket(it.g, null, it.n, it.buf, true); stats.draws++; stats.inst += it.n; }
+        if (L === 0 && staticList) {
+          // 不透明分块由近到远画（早期深度测试能省掉大量被挡住的像素）；透明 / 叠加分块保持原顺序
+          const vis = [];
+          const ex = cam.eye[0], ez = cam.eye[2], dd = cam.detailDist || 60;
+          for (const batch of staticList) for (const it of batch) {
+            if (it.mode !== m) continue;
+            if (it.box) {
+              if (!boxInView(it.box)) { stats.culled++; continue; }
+              const dx = Math.max(it.box[0] - ex, 0, ex - it.box[3]), dz = Math.max(it.box[2] - ez, 0, ez - it.box[5]);
+              it.d = Math.hypot(dx, dz);
+              if (it.detail && it.d > dd) { stats.culled++; continue; }
+            } else it.d = 1e9;
+            vis.push(it);
+          }
+          if (m === 0) vis.sort((a, b) => a.d - b.d);
+          for (const it of vis) { drawBucket(it.g, null, it.n, it.buf, true); stats.draws++; stats.inst += it.n; }
+        }
         for (const g of GN) {
           const bk = dyn[L][m][g];
           if (bk.n) { drawBucket(g, bk.arr, bk.n, stream[g], false); stats.draws++; stats.inst += bk.n; bk.n = 0; }
@@ -1509,7 +1582,7 @@ function create(canvas) {
   }
 
   return {
-    gl, geoms, push, pushR, pushBeam, pushBasis, setLayer, beginStatic, endStatic, flush, addMesh, anim,
+    gl, geoms, push, pushR, pushBeam, pushBasis, setLayer, beginStatic, endStatic, setDetail, setFrustum, inView, boxInView, flush, addMesh, anim,
     stats: () => stats, postAvailable: () => !!post, setPost: v => { postOn = !!v && !!post; }, postOn: () => postOn,
   };
 }
@@ -5432,8 +5505,9 @@ function buildTerrainStatic(S) {
         E.push('box', fx, DB - 0.05, fz, 0, alongX ? T : 0.04, 0.05, alongX ? 0.04 : T, UPPER);
       }
     }
-    // 外场小道具：靠崖壁的空地摆物资箱 / 油桶 / 碎石，通道边缘撒些碎石（只是装饰，不挡路）
+    // 外场小道具：靠崖壁的空地摆物资箱 / 油桶 / 碎石，通道边缘撒些碎石（只是装饰，不挡路；远处不画）
     if (ri === undefined && !S.deck.has(i)) {
+      E.setDetail(true);
       const h0 = tH(x, z);
       if (t === TILE.FLOOR) {
         let wd = -1;
@@ -5468,6 +5542,7 @@ function buildTerrainStatic(S) {
           E.push('oct', cx + (u - 0.5) * T * 0.9, h0 + sz * 0.3, cz + (v - 0.5) * T * 0.9, u * 6, sz, sz * 0.6, sz * 0.8, CLIFF(0.7 + v * 0.2));
         }
       }
+      E.setDetail(false);
     }
     if (t === TILE.PAD && !S.plat.has(i)) {
       const py = tH(x, z);
@@ -5508,10 +5583,11 @@ function buildStatic(S) {
         E.push('box', fx, WALL_H - 0.35, fz, 0, alongX ? T : 0.3, 0.7, alongX ? 0.3 : T, CORN);
         // 墙面细节：踢脚板、贴墙管线、通风格栅、壁灯（贴墙薄片，不挡路）
         const nx = -DIRS[d][0], nz = -DIRS[d][1], r = hsh(x, z, d);
+        E.setDetail(true);
         E.push('box', fx + nx * 0.05, 0.12, fz + nz * 0.05, 0, alongX ? T : 0.1, 0.24, alongX ? 0.1 : T, CORN);
         for (const [py, pr, pc] of [[3.75, 0.18, PIPE], [4.05, 0.12, PIPE2]]) {
           const ox = fx + nx * (0.12 + pr * 0.5), oz = fz + nz * (0.12 + pr * 0.5);
-          E.pushR('cyl', ox, py, oz, 0, alongX ? 0 : Math.PI / 2, alongX ? Math.PI / 2 : 0, pr, T + 0.02, pr, pc);
+          E.pushR('pipe', ox, py, oz, 0, alongX ? 0 : Math.PI / 2, alongX ? Math.PI / 2 : 0, pr, T + 0.02, pr, pc);
         }
         if (r < 0.3) E.push('box', fx + nx * 0.04, 1.25, fz + nz * 0.04, 0, alongX ? 1.1 : 0.06, 0.6, alongX ? 0.06 : 1.1, GRATE);
         else if (r < 0.5) {
@@ -5522,6 +5598,7 @@ function buildStatic(S) {
           E.push('box', fx + nx * 0.3, 0.9, fz + nz * 0.3, 0, alongX ? 1.0 : 0.5, 1.8, alongX ? 0.5 : 1.0, col(0.24, 0.26, 0.3, 1, 0, 0, 2));
           E.push('box', fx + nx * 0.56, 1.45, fz + nz * 0.56, 0, alongX ? 0.5 : 0.02, 0.06, alongX ? 0.02 : 0.5, UPPER);
         }
+        E.setDetail(false);
       }
       // 通道与玩家区域交界处：警示条纹
       if (t === TILE.LANE) for (let d = 0; d < 4; d++) {
@@ -5550,12 +5627,12 @@ function buildStatic(S) {
  * 粒子 / 光源 / 浮动文字
  * ============================================================ */
 const parts = [];
-const MAXP = 1100;
+const MAXP = (window.__TOUCH || matchMedia('(pointer: coarse)').matches) ? 650 : 1100;
 function particle(o) {
   if (parts.length >= MAXP) parts.shift();
   o.t = 0; o.vx = o.vx || 0; o.vy = o.vy || 0; o.vz = o.vz || 0; o.grav = o.grav || 0; o.drag = o.drag || 0;
   o.s0 = o.s0 || 0.15; o.s1 = o.s1 === undefined ? o.s0 : o.s1; o.a0 = o.a0 === undefined ? 1 : o.a0;
-  o.g = o.g || 'sphere'; o.c = o.c || [1, 1, 1]; o.add = o.add !== false;
+  o.g = o.g === 'sphere' || !o.g ? 'ball' : o.g; o.c = o.c || [1, 1, 1]; o.add = o.add !== false;
   parts.push(o);
 }
 function burst(x, y, z, n, o) {
@@ -5594,6 +5671,7 @@ function setupCamera(ex, ey, ez, yaw, pitch, fov) {
   Engine.perspective(PROJ, fov * Math.PI / 180, W / H, 0.05, 260);
   Engine.viewFPS(VIEW, ex, ey, ez, yaw, pitch);
   Engine.mul(VP, PROJ, VIEW);
+  if (E) E.setFrustum(VP);
   const cp = Math.cos(pitch), sp = Math.sin(pitch), cy = Math.cos(yaw), sy = Math.sin(yaw);
   cam.x = ex; cam.y = ey; cam.z = ez;
   cam.fx = -sy * cp; cam.fy = sp; cam.fz = -cy * cp; cam.rx = cy; cam.rz = -sy;
@@ -5611,7 +5689,7 @@ function project(x, y, z) {
 // 自适应分辨率：帧时间过长时自动降低渲染分辨率
 const TOUCH = !!(window.__TOUCH || /[?&]touch=1/.test(location.search) || (matchMedia('(pointer: coarse)').matches && (navigator.maxTouchPoints || 0) > 0));
 const quality = { base: Math.min(window.devicePixelRatio || 1, TOUCH ? 1.5 : 1.25), scale: 0, acc: 0, n: 0, cool: 0 };
-quality.scale = quality.base;
+quality.scale = TOUCH ? Math.min(quality.base, 1.0) : quality.base;   // 手机先从 1 倍起步，跑得动再慢慢升
 function resize() {
   let sc = window.__RES || quality.scale;
   const maxPix = 2.4e6, pix = innerWidth * innerHeight * sc * sc;
@@ -5619,13 +5697,27 @@ function resize() {
   canvas.width = Math.max(1, Math.floor(innerWidth * sc));
   canvas.height = Math.max(1, Math.floor(innerHeight * sc));
 }
+const fpsM = { t: 0, n: 0, worst: 0 };
+function fpsMeter(dt) {
+  if (!settings.showFps) return;
+  fpsM.t += dt; fpsM.n++; fpsM.worst = Math.max(fpsM.worst, dt);
+  if (fpsM.t < 0.5) return;
+  const st = E.stats();
+  $('fpsTag').textContent = `${Math.round(fpsM.n / fpsM.t)} FPS  最慢 ${Math.round(fpsM.worst * 1000)}ms\n分辨率 ${canvas.width}×${canvas.height}（×${(quality.scale || 1).toFixed(2)}）${quality.autoLow ? ' 低精细' : ''}\n绘制 ${st.draws} 批 · ${st.inst} 个物体`;
+  fpsM.t = 0; fpsM.n = 0; fpsM.worst = 0;
+}
 function adaptQuality(dt) {
   if (document.hidden) return;
   quality.acc += dt; quality.n++; quality.cool -= dt;
   if (quality.acc < 1.5) return;
   const avg = quality.acc / quality.n; quality.acc = 0; quality.n = 0;
   if (quality.cool > 0) return;
-  if (avg > 0.028 && quality.scale > 0.5) { quality.scale = Math.max(0.5, quality.scale * 0.85); resize(); quality.cool = 2; }
+  if (avg > 0.028 && quality.scale > 0.5) { quality.scale = Math.max(0.5, quality.scale * 0.85); resize(); quality.cool = 2; quality.slow = 0; }
+  else if (avg > 0.03 && !quality.autoLow && settings.detail !== 'low' && ++quality.slow >= 2) {
+    // 分辨率已经降到底还是卡：本局自动改用低材质精细度（不改玩家的设置）
+    quality.autoLow = true; quality.cool = 4;
+    if (mode === 'play') toast('画面较卡，已自动降低材质精细度（可在设置中调整）');
+  }
   else if (avg < 0.0135 && quality.scale < quality.base) { quality.scale = Math.min(quality.base, quality.scale * 1.08); resize(); quality.cool = 3; }
 }
 addEventListener('resize', resize); resize();
@@ -9034,7 +9126,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   timeNow += dt;
-  adaptQuality(dt);
+  adaptQuality(dt); fpsMeter(dt);
   if (slowmoT > 0) { slowmoT -= dt; timeScale = slowmoT > 0.5 ? 0.3 : lerp(1, 0.3, slowmoT / 0.5); } else timeScale = 1;
   const sdt = dt * timeScale;
   const fxdt = mode === 'pause' ? 0 : sdt;
@@ -9113,7 +9205,7 @@ function frame(now) {
   if (!SK.crystal) drawCrystal(S);
   for (const tr of S.s.traps) {
     if (Math.abs(tr.wx - cam.x) > 70 || Math.abs(tr.wz - cam.z) > 70) continue;
-    drawTrap(S, tr);
+    if (E.inView(tr.wx, tr.wy + 1.4, tr.wz, TRAP[tr.type].big ? 4 : 2.6) || (tr.line && tr.activeT > 0)) drawTrap(S, tr);
     if (tr.type === 'tesla' && simNow - tr.fireT < 0.14 && tr.targets) {
       for (const id of tr.targets) {
         const m = S._mById.get(id); if (!m) continue;
@@ -9153,7 +9245,7 @@ function frame(now) {
   if (S.outdoor) E.push('sphere', cam.x, cam.y, cam.z, 0, 480, 480, 480, col(1, 1, 1, 1, 0, 0, 18, false, true));
   drawLava(S);
   drawShells(fxdt);
-  for (const m of S.s.monsters) drawMonster(m, frameAlpha);
+  for (const m of S.s.monsters) { const md = MON[m.type]; if (E.inView(m.x, m.y + md.body[0], m.z, md.head[0] + md.body[1] + 1.2)) drawMonster(m, frameAlpha); }
   // 调试：显示命中判定球（window.__hitboxes = true）
   if (window.__hitboxes) for (const m of S.s.monsters) {
     const def = MON[m.type], hf = def.head[2] || 0, k = frameAlpha;
@@ -9232,7 +9324,7 @@ function frame(now) {
   E.flush({
     vp: VP, eye: [cam.x, cam.y, cam.z], sky: dark ? sc3(TH.sky, 0.35) : TH.sky, ground: dark ? sc3(TH.ground, 0.35) : TH.ground, sunDir: [0.45, -0.74, 0.5], sunCol: dark ? sc3(TH.sun, 0.3) : TH.sun,
     fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : (TH.fogD || 0.0105), lights: LIGHTS.slice(0, 12),
-    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: settings.detail === 'low' ? 0.25 : 1,
+    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: settings.detail === 'low' || quality.autoLow ? 0.25 : 1, detailDist: settings.detail === 'low' || quality.autoLow ? 36 : 64,
     tint: mode !== 'menu' && cf < 0.3 ? [0.6, 0.02, 0.05, 0.22 * (0.5 + 0.5 * Math.sin(timeNow * 5))] : (timeScale < 1 ? [0.9, 0.6, 0.3, 0.15] : null),
   }, SK.static ? [] : statics);
 
@@ -9611,6 +9703,10 @@ function bindUI() {
   const syncBloom = () => { E.setPost(settings.bloom); bloomBtn.setAttribute('aria-pressed', settings.bloom ? 'true' : 'false'); bloomBtn.textContent = settings.bloom && E.postAvailable() ? '开' : '关'; };
   if (!E.postAvailable()) { bloomBtn.disabled = true; bloomBtn.title = '当前显卡不支持'; }
   bloomBtn.addEventListener('click', () => { settings.bloom = !settings.bloom; syncBloom(); saveSettings(); });
+  const fpsBtn = $('fpsBtn');
+  const syncFps = () => { fpsBtn.setAttribute('aria-pressed', settings.showFps ? 'true' : 'false'); fpsBtn.textContent = settings.showFps ? '开' : '关'; $('fpsTag').hidden = !settings.showFps; };
+  syncFps();
+  fpsBtn.addEventListener('click', () => { settings.showFps = !settings.showFps; syncFps(); saveSettings(); });
   const detBtn = $('detailBtn');
   if (!settings.detail) settings.detail = TOUCH ? 'low' : 'high';
   const syncDet = () => { const hi = settings.detail !== 'low'; detBtn.setAttribute('aria-pressed', hi ? 'true' : 'false'); detBtn.textContent = hi ? '高' : '低'; };
