@@ -2382,13 +2382,20 @@ class Sim {
     if (!this.deck.size || p.y < this.DECK_H - 0.5) return false;
     const i0 = this.idxOf(ox, oz);
     if (!this.deck.has(i0)) return false;
-    // 人体半径 0.36：碰到栏杆就停
-    for (const [ex, ez] of [[0.36, 0], [-0.36, 0], [0, 0.36], [0, -0.36]]) {
-      const tx = Math.floor((p.x + ex) / T), tz = Math.floor((p.z + ez) / T), i = tz * this.W + tx;
-      if (i === i0 || this.deck.has(i) || this.solid(tx, tz)) continue;
-      if (Math.abs(this.tileH(tx, tz) - this.DECK_H) >= 0.3) return true;
-    }
-    return false;
+    // 身体伸出桥边、进入有护栏那一侧的深度；只拦住“越伸越出去”的移动。
+    // 已经卡在护栏线上（比如从斜坡 / 跳跃落在桥边）时，往桥内或沿着护栏走都允许，不会卡死。
+    const pen = (x, z) => {
+      let m = 0;
+      for (const [ex, ez] of [[0.36, 0], [-0.36, 0], [0, 0.36], [0, -0.36]]) {
+        const px = x + ex, pz = z + ez, tx = Math.floor(px / T), tz = Math.floor(pz / T), i = tz * this.W + tx;
+        if (i === i0 || this.deck.has(i) || this.solid(tx, tz)) continue;
+        if (Math.abs(this.tileH(tx, tz) - this.DECK_H) < 0.3) continue;
+        const d = ex > 0 ? px - tx * T : ex < 0 ? (tx + 1) * T - px : ez > 0 ? pz - tz * T : (tz + 1) * T - pz;
+        if (d > m) m = d;
+      }
+      return m;
+    };
+    return pen(p.x, p.z) > pen(ox, oz) + 1e-4;
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {

@@ -212,6 +212,10 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 .slot .c { font-family: var(--f-num); font-size: 11px; color: var(--gold); }
 .slot .c.inf { color: var(--dim); }
 .slot.poor { opacity: .55; }
+.slot.locked { opacity: .45; filter: grayscale(.85); }
+.slot.locked .c { color: var(--faint); }
+.bkCard.locked { opacity: .62; filter: grayscale(.6); cursor: default; }
+.bkLock { font-size: 12px; color: var(--gold); padding: 6px 8px; background: rgba(255, 181, 71, .08); border-left: 2px solid var(--gold); }
 .slot.poor .c { color: var(--danger); }
 .slot.sel { background: color-mix(in srgb, var(--cc) 26%, rgba(8, 14, 21, .85)); transform: translateY(-5px); box-shadow: inset 0 -3px 0 var(--cc); }
 .cat-floor { --cc: var(--c-floor); } .cat-pad { --cc: var(--c-pad); } .cat-wall { --cc: var(--c-wall); } .cat-ceil { --cc: var(--c-ceil); } .cat-gun { --cc: var(--c-gun); } .cat-heavy { --cc: var(--c-heavy); } .cat-hfloor { --cc: var(--c-hfloor); }
@@ -1006,7 +1010,7 @@ body.tEditOnly #hud { background: #05080c; }
       <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在地上琥珀色框出的 2×2 炮台位（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
     <p class="fine"><b>加特林炮塔（按 4 再按 3 选择）</b>放在炮台位或空地上，没人时会自动扫射（火力较弱）；走到旁边按 F 坐上去亲手操控：按住左键先转管预热，转速起来后每秒 20 发，对地对空随意扫射，伤害随炮塔等级提升。连续开火约 5 秒会过热，要松手等枪管冷却（进阶「液冷枪管」不会过热）。再按 F 或空格离开。</p>
-    <p class="fine"><b>重型陷阱（按 5 打开分组）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine"><b>重型陷阱（按 5 打开分组，需要先解锁）</b>轨道电磁炮：通关「空间站·中枢」；碎骨绞盘：通关「三岔要塞」；等离子迫击炮：累计击杀 800 只怪物（任意难度、单人联机都算）。占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
     <p class="fine"><b>BOSS 分阶段</b>：BOSS 血量降到 60% 时进入第二阶段，会怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫；降到 25% 时进入狂暴，移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>
     </section>
       <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
@@ -4131,13 +4135,20 @@ class Sim {
     if (!this.deck.size || p.y < this.DECK_H - 0.5) return false;
     const i0 = this.idxOf(ox, oz);
     if (!this.deck.has(i0)) return false;
-    // 人体半径 0.36：碰到栏杆就停
-    for (const [ex, ez] of [[0.36, 0], [-0.36, 0], [0, 0.36], [0, -0.36]]) {
-      const tx = Math.floor((p.x + ex) / T), tz = Math.floor((p.z + ez) / T), i = tz * this.W + tx;
-      if (i === i0 || this.deck.has(i) || this.solid(tx, tz)) continue;
-      if (Math.abs(this.tileH(tx, tz) - this.DECK_H) >= 0.3) return true;
-    }
-    return false;
+    // 身体伸出桥边、进入有护栏那一侧的深度；只拦住“越伸越出去”的移动。
+    // 已经卡在护栏线上（比如从斜坡 / 跳跃落在桥边）时，往桥内或沿着护栏走都允许，不会卡死。
+    const pen = (x, z) => {
+      let m = 0;
+      for (const [ex, ez] of [[0.36, 0], [-0.36, 0], [0, 0.36], [0, -0.36]]) {
+        const px = x + ex, pz = z + ez, tx = Math.floor(px / T), tz = Math.floor(pz / T), i = tz * this.W + tx;
+        if (i === i0 || this.deck.has(i) || this.solid(tx, tz)) continue;
+        if (Math.abs(this.tileH(tx, tz) - this.DECK_H) < 0.3) continue;
+        const d = ex > 0 ? px - tx * T : ex < 0 ? (tx + 1) * T - px : ez > 0 ? pz - tz * T : (tz + 1) * T - pz;
+        if (d > m) m = d;
+      }
+      return m;
+    };
+    return pen(p.x, p.z) > pen(ox, oz) + 1e-4;
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {
@@ -5365,11 +5376,22 @@ const PROG = {
     }
     return n + this.dailyWins().length;
   },
+  kills() { try { return +localStorage.getItem('jhsw-kills') || 0; } catch (e) { return 0; } },
+  addKills(n) { try { localStorage.setItem('jhsw-kills', String(this.kills() + Math.max(0, n | 0))); } catch (e) { /* 无存储 */ } },
   spent() { return TALENTS.reduce((a, t) => a + Math.min(t.max, this.tal[t.id] | 0), 0); },
   team() { const o = {}; for (const t of TALENTS) if (t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
   personal() { const o = {}; for (const t of TALENTS) if (!t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
 };
 PROG.load();
+/* ---------- 重型陷阱（2×2）阶段性解锁：通关指定关卡 / 完成成就（记录在本机） ---------- */
+const mapWon = id => { const all = loadBest(); return ['normal', 'hard', 'hell'].some(d => { const r = all[bestKey(id, d, 'std')]; return r && r.win; }); };
+const UNLOCKS = {
+  rail: { how: '通关「空间站·中枢」（任意难度）', ok: () => mapWon('station') },
+  grinder: { how: '通关「三岔要塞」（任意难度）', ok: () => mapWon('fortress') },
+  mortar: { how: '成就「歼灭者」：累计击杀 800 只怪物', prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => PROG.kills() >= 800 },
+};
+const isUnlocked = id => !UNLOCKS[id] || !!window.__unlockAll || UNLOCKS[id].ok();
+const lockText = id => { const u = UNLOCKS[id]; return u ? `未解锁 · ${u.how}${u.prog ? `（${u.prog()}）` : ''}` : ''; };
 let selCls = 'assault';
 try { const c = localStorage.getItem('jhsw-cls'); if (CLS[c]) selCls = c; } catch (e) { /* 无存储 */ }
 let mode = 'menu';           // menu | play | pause | end
@@ -8079,8 +8101,8 @@ function slotHTML(id, key, name, cost) {
 }
 function setChip(g) {
   const el = document.querySelector(`#hotbar .grp[data-grp="${g.id}"]`); if (!el) return;
-  const t = TRAP[grpPick[g.id] || g.traps[0]];
-  el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '');
+  const t = TRAP[grpPick[g.id] || g.traps.find(isUnlocked) || g.traps[0]];
+  el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '') + (isUnlocked(t.id) ? '' : ' locked');
   el.innerHTML = slotHTML(t.id, String(TRAP_GROUPS.indexOf(g) + 1), t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (g.traps.length > 1 ? `<span class="more">${g.traps.length}</span>` : '');
 }
 function openPop(gid, byKey) {
@@ -8091,9 +8113,9 @@ function openPop(gid, byKey) {
   pop.innerHTML = `<b class="pt">${g.name}</b>`;
   for (const id of g.traps) {
     const t = TRAP[id], d = document.createElement('div');
-    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : ''); d.dataset.id = id;
+    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : '') + (isUnlocked(id) ? '' : ' locked'); d.dataset.id = id; if (!isUnlocked(id)) d.title = lockText(id);
     d.innerHTML = slotHTML(id, String(g.traps.indexOf(id) + 1), t.name, sim ? sim.trapCost(id, PID) : t.cost);
-    d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); selectTool(id); closePop(); });
+    d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); if (!isUnlocked(id)) { selectTool(id); return; } selectTool(id); closePop(); });
     pop.appendChild(d);
   }
   pop.hidden = false;
@@ -8140,13 +8162,15 @@ function renderBook() {
     for (const id of g.traps) {
       const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost, ev = EVO[id];
       const card = document.createElement('button'); card.type = 'button';
-      card.className = 'bkCard cat-' + t.cat + (tool === id ? ' sel' : '') + (gold < cost ? ' poor' : '');
+      const lk = !isUnlocked(id);
+      card.className = 'bkCard cat-' + t.cat + (tool === id ? ' sel' : '') + (gold < cost ? ' poor' : '') + (lk ? ' locked' : '');
       const desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
       card.innerHTML = `<div class="bkTop"><span class="ic">${svgIcon(id)}</span><b>${t.name}</b><span class="kb">${keyCombo(id)}</span><em>${cost}</em></div>
         <p>${desc}</p>
         <dl>${trapStats(t).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        ${lk ? `<div class="bkLock">${lockText(id)}</div>` : ''}
         ${ev ? `<div class="bkEvo"><span>满级进阶</span><b>${ev.a.name}</b>：${ev.a.desc}<br><b>${ev.b.name}</b>：${ev.b.desc}</div>` : ''}`;
-      card.addEventListener('click', () => { selectTool(id); toggleBook(false); });
+      card.addEventListener('click', () => { if (lk) { toast(`${t.name} ${lockText(id)}`, true); return; } selectTool(id); toggleBook(false); });
       row.appendChild(card);
     }
     sec.appendChild(row); box.appendChild(sec);
@@ -8165,9 +8189,9 @@ function buildHotbar() {
     d.className = 'slot grp'; d.dataset.grp = g.id;
     d.addEventListener('pointerdown', ev => {
       ev.stopPropagation(); ev.preventDefault();
-      const id = grpPick[g.id] || g.traps[0];
+      const id = grpPick[g.id] || g.traps.find(isUnlocked) || g.traps[0];
       if (popGrp === g.id) { closePop(); return; }
-      selectTool(id);
+      if (isUnlocked(id)) selectTool(id);
       openPop(g.id);
     });
     hb.appendChild(d);
@@ -8180,6 +8204,7 @@ function buildHotbar() {
 }
 function selectTool(id) {
   if (tool === id) return;
+  if (id !== 'gun' && !isUnlocked(id)) { toast(`${TRAP[id].name} ${lockText(id)}`, true); Snd.play('deny'); return; }
   if (id !== 'gun' && myMount()) dismount();
   tool = id; vm.switchT = 0.25;
   { const g = id !== 'gun' && grpOf(id); if (g) grpPick[g.id] = id; if (popGrp && (!g || g.id !== popGrp)) closePop(); for (const gg of TRAP_GROUPS) setChip(gg); }
@@ -8390,6 +8415,7 @@ function updateHUD(dt) {
   }
   for (const el of document.querySelectorAll('#hotbar [data-id]')) {
     const id = el.dataset.id;
+    if (el.classList.contains('locked')) { const ce = el.querySelector('.c'); if (ce && ce.textContent !== '未解锁') ce.textContent = '未解锁'; continue; }
     if (id !== 'gun') {
       const cst = sim.trapCost(id, PID); el.classList.toggle('poor', s.gold < cst);
       const ce = el.querySelector('.c'); if (ce && ce.textContent !== String(cst)) ce.textContent = cst;
@@ -8588,7 +8614,7 @@ addEventListener('mouseup', e => { if (e.button === 0) mouse.l = false; if (e.bu
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('wheel', e => {
   if (mode !== 'play') return;
-  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps)];
+  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps).filter(isUnlocked)];
   let i = ids.indexOf(tool);
   i = (i + (e.deltaY > 0 ? 1 : -1) + ids.length) % ids.length;
   selectTool(ids[i]);
@@ -9624,6 +9650,8 @@ function showEnd() {
   const md = s.daily ? 'daily:' + s.daily : s.endless ? 'endless' : 'std';
   const key = bestKey(s.map, s.diff, md), label = s.daily ? `每日挑战 ${s.daily}` : `${sim.def.name} · ${DIFFS[s.diff].name}${s.endless ? ' · 无尽' : ''}`;
   const stars0 = PROG.stars();
+  const locked0 = Object.keys(UNLOCKS).filter(id => !UNLOCKS[id].ok());
+  { const me0 = s.players[PID]; if (me0 && !s._killsCounted) { s._killsCounted = true; PROG.addKills(me0.kills); } }
   const all = loadBest(), best = all[key] || null;
   const score = (win ? 1000 : 0) + s.wave * 50 + Math.ceil(s.crystal.hp);
   const isNew = !best || score > best.score;
@@ -9632,6 +9660,8 @@ function showEnd() {
   const gained = PROG.stars() - stars0;
   $('endStar').hidden = gained <= 0;
   if (gained > 0) $('endStar').textContent = `获得 ★ ×${gained} · 可用星星 ${PROG.stars() - PROG.spent()}，到主菜单「天赋」里加点`;
+  const newly = locked0.filter(id => UNLOCKS[id].ok());
+  if (newly.length) { $('endStar').hidden = false; $('endStar').textContent = (gained > 0 ? $('endStar').textContent + ' · ' : '') + `解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`; buildHotbar(); }
   $('endGrade').textContent = grade;
   $('endGrade').className = 'grade g' + grade;
   $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 水晶 ${best.hp} · 评级 ${best.grade}`;

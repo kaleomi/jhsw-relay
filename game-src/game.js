@@ -517,11 +517,22 @@ const PROG = {
     }
     return n + this.dailyWins().length;
   },
+  kills() { try { return +localStorage.getItem('jhsw-kills') || 0; } catch (e) { return 0; } },
+  addKills(n) { try { localStorage.setItem('jhsw-kills', String(this.kills() + Math.max(0, n | 0))); } catch (e) { /* 无存储 */ } },
   spent() { return TALENTS.reduce((a, t) => a + Math.min(t.max, this.tal[t.id] | 0), 0); },
   team() { const o = {}; for (const t of TALENTS) if (t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
   personal() { const o = {}; for (const t of TALENTS) if (!t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
 };
 PROG.load();
+/* ---------- 重型陷阱（2×2）阶段性解锁：通关指定关卡 / 完成成就（记录在本机） ---------- */
+const mapWon = id => { const all = loadBest(); return ['normal', 'hard', 'hell'].some(d => { const r = all[bestKey(id, d, 'std')]; return r && r.win; }); };
+const UNLOCKS = {
+  rail: { how: '通关「空间站·中枢」（任意难度）', ok: () => mapWon('station') },
+  grinder: { how: '通关「三岔要塞」（任意难度）', ok: () => mapWon('fortress') },
+  mortar: { how: '成就「歼灭者」：累计击杀 800 只怪物', prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => PROG.kills() >= 800 },
+};
+const isUnlocked = id => !UNLOCKS[id] || !!window.__unlockAll || UNLOCKS[id].ok();
+const lockText = id => { const u = UNLOCKS[id]; return u ? `未解锁 · ${u.how}${u.prog ? `（${u.prog()}）` : ''}` : ''; };
 let selCls = 'assault';
 try { const c = localStorage.getItem('jhsw-cls'); if (CLS[c]) selCls = c; } catch (e) { /* 无存储 */ }
 let mode = 'menu';           // menu | play | pause | end
@@ -3231,8 +3242,8 @@ function slotHTML(id, key, name, cost) {
 }
 function setChip(g) {
   const el = document.querySelector(`#hotbar .grp[data-grp="${g.id}"]`); if (!el) return;
-  const t = TRAP[grpPick[g.id] || g.traps[0]];
-  el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '');
+  const t = TRAP[grpPick[g.id] || g.traps.find(isUnlocked) || g.traps[0]];
+  el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '') + (isUnlocked(t.id) ? '' : ' locked');
   el.innerHTML = slotHTML(t.id, String(TRAP_GROUPS.indexOf(g) + 1), t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (g.traps.length > 1 ? `<span class="more">${g.traps.length}</span>` : '');
 }
 function openPop(gid, byKey) {
@@ -3243,9 +3254,9 @@ function openPop(gid, byKey) {
   pop.innerHTML = `<b class="pt">${g.name}</b>`;
   for (const id of g.traps) {
     const t = TRAP[id], d = document.createElement('div');
-    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : ''); d.dataset.id = id;
+    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : '') + (isUnlocked(id) ? '' : ' locked'); d.dataset.id = id; if (!isUnlocked(id)) d.title = lockText(id);
     d.innerHTML = slotHTML(id, String(g.traps.indexOf(id) + 1), t.name, sim ? sim.trapCost(id, PID) : t.cost);
-    d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); selectTool(id); closePop(); });
+    d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); if (!isUnlocked(id)) { selectTool(id); return; } selectTool(id); closePop(); });
     pop.appendChild(d);
   }
   pop.hidden = false;
@@ -3292,13 +3303,15 @@ function renderBook() {
     for (const id of g.traps) {
       const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost, ev = EVO[id];
       const card = document.createElement('button'); card.type = 'button';
-      card.className = 'bkCard cat-' + t.cat + (tool === id ? ' sel' : '') + (gold < cost ? ' poor' : '');
+      const lk = !isUnlocked(id);
+      card.className = 'bkCard cat-' + t.cat + (tool === id ? ' sel' : '') + (gold < cost ? ' poor' : '') + (lk ? ' locked' : '');
       const desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
       card.innerHTML = `<div class="bkTop"><span class="ic">${svgIcon(id)}</span><b>${t.name}</b><span class="kb">${keyCombo(id)}</span><em>${cost}</em></div>
         <p>${desc}</p>
         <dl>${trapStats(t).map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+        ${lk ? `<div class="bkLock">${lockText(id)}</div>` : ''}
         ${ev ? `<div class="bkEvo"><span>满级进阶</span><b>${ev.a.name}</b>：${ev.a.desc}<br><b>${ev.b.name}</b>：${ev.b.desc}</div>` : ''}`;
-      card.addEventListener('click', () => { selectTool(id); toggleBook(false); });
+      card.addEventListener('click', () => { if (lk) { toast(`${t.name} ${lockText(id)}`, true); return; } selectTool(id); toggleBook(false); });
       row.appendChild(card);
     }
     sec.appendChild(row); box.appendChild(sec);
@@ -3317,9 +3330,9 @@ function buildHotbar() {
     d.className = 'slot grp'; d.dataset.grp = g.id;
     d.addEventListener('pointerdown', ev => {
       ev.stopPropagation(); ev.preventDefault();
-      const id = grpPick[g.id] || g.traps[0];
+      const id = grpPick[g.id] || g.traps.find(isUnlocked) || g.traps[0];
       if (popGrp === g.id) { closePop(); return; }
-      selectTool(id);
+      if (isUnlocked(id)) selectTool(id);
       openPop(g.id);
     });
     hb.appendChild(d);
@@ -3332,6 +3345,7 @@ function buildHotbar() {
 }
 function selectTool(id) {
   if (tool === id) return;
+  if (id !== 'gun' && !isUnlocked(id)) { toast(`${TRAP[id].name} ${lockText(id)}`, true); Snd.play('deny'); return; }
   if (id !== 'gun' && myMount()) dismount();
   tool = id; vm.switchT = 0.25;
   { const g = id !== 'gun' && grpOf(id); if (g) grpPick[g.id] = id; if (popGrp && (!g || g.id !== popGrp)) closePop(); for (const gg of TRAP_GROUPS) setChip(gg); }
@@ -3542,6 +3556,7 @@ function updateHUD(dt) {
   }
   for (const el of document.querySelectorAll('#hotbar [data-id]')) {
     const id = el.dataset.id;
+    if (el.classList.contains('locked')) { const ce = el.querySelector('.c'); if (ce && ce.textContent !== '未解锁') ce.textContent = '未解锁'; continue; }
     if (id !== 'gun') {
       const cst = sim.trapCost(id, PID); el.classList.toggle('poor', s.gold < cst);
       const ce = el.querySelector('.c'); if (ce && ce.textContent !== String(cst)) ce.textContent = cst;
@@ -3740,7 +3755,7 @@ addEventListener('mouseup', e => { if (e.button === 0) mouse.l = false; if (e.bu
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('wheel', e => {
   if (mode !== 'play') return;
-  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps)];
+  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps).filter(isUnlocked)];
   let i = ids.indexOf(tool);
   i = (i + (e.deltaY > 0 ? 1 : -1) + ids.length) % ids.length;
   selectTool(ids[i]);
@@ -4776,6 +4791,8 @@ function showEnd() {
   const md = s.daily ? 'daily:' + s.daily : s.endless ? 'endless' : 'std';
   const key = bestKey(s.map, s.diff, md), label = s.daily ? `每日挑战 ${s.daily}` : `${sim.def.name} · ${DIFFS[s.diff].name}${s.endless ? ' · 无尽' : ''}`;
   const stars0 = PROG.stars();
+  const locked0 = Object.keys(UNLOCKS).filter(id => !UNLOCKS[id].ok());
+  { const me0 = s.players[PID]; if (me0 && !s._killsCounted) { s._killsCounted = true; PROG.addKills(me0.kills); } }
   const all = loadBest(), best = all[key] || null;
   const score = (win ? 1000 : 0) + s.wave * 50 + Math.ceil(s.crystal.hp);
   const isNew = !best || score > best.score;
@@ -4784,6 +4801,8 @@ function showEnd() {
   const gained = PROG.stars() - stars0;
   $('endStar').hidden = gained <= 0;
   if (gained > 0) $('endStar').textContent = `获得 ★ ×${gained} · 可用星星 ${PROG.stars() - PROG.spent()}，到主菜单「天赋」里加点`;
+  const newly = locked0.filter(id => UNLOCKS[id].ok());
+  if (newly.length) { $('endStar').hidden = false; $('endStar').textContent = (gained > 0 ? $('endStar').textContent + ' · ' : '') + `解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`; buildHotbar(); }
   $('endGrade').textContent = grade;
   $('endGrade').className = 'grade g' + grade;
   $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 水晶 ${best.hp} · 评级 ${best.grade}`;
