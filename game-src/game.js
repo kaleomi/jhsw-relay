@@ -1032,6 +1032,20 @@ function buildTerrainStatic(S) {
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
   }
+  // 梯子：两根侧杆 + 横档，顶部伸出扶手，底部亮一条绿色引导灯
+  for (const [x, z, dir] of S.def.ladders || []) {
+    const d = DIRS[dir], h0 = S.tileH(x, z), h1 = S.tileH(x + d[0], z + d[1]), H = h1 - h0;
+    const fx = (x + 0.5 + d[0] * 0.5) * T - d[0] * 0.12, fz = (z + 0.5 + d[1] * 0.5) * T - d[1] * 0.12;
+    const ox = d[1] ? 1 : 0, oz = d[0] ? 1 : 0, yaw = Math.atan2(d[0], d[1]);
+    const RAIL = col(0.62, 0.6, 0.55, 1, 0, 0, 0), RUNG = col(0.75, 0.72, 0.66);
+    for (const sd of [-0.42, 0.42]) {
+      E.push('box', fx + ox * sd, h0 + (H + 1.0) / 2, fz + oz * sd, yaw, 0.09, H + 1.0, 0.09, RAIL);
+      E.push('box', fx + ox * sd + d[0] * 0.22, h1 + 0.95, fz + oz * sd + d[1] * 0.22, yaw, 0.08, 0.08, 0.5, RAIL);
+      E.push('box', fx + ox * sd, h1 + 1.02, fz + oz * sd, yaw, 0.12, 0.06, 0.12, col(1, 0.65, 0.2, 1, 1));
+    }
+    for (let y = h0 + 0.3; y < h1 + 0.05; y += 0.36) E.push('box', fx, y, fz, yaw, 0.84, 0.05, 0.06, RUNG);
+    E.push('box', fx - d[0] * 0.25, h0 + 0.02, fz - d[1] * 0.25, yaw, 0.9, 0.02, 0.4, col(0.42, 0.94, 0.64, 1, 0.9));
+  }
   buildPlatforms(S);
   buildCommonStatic(S, TH);
   return E.endStatic();
@@ -3382,6 +3396,12 @@ function paintTiles(g, S, k, C) {
     const X = r[0] * k, Y = r[1] * k, Wd = (r[2] - r[0] + 1) * k, Hd = (r[3] - r[1] + 1) * k;
     g.fillStyle = 'rgba(255,181,71,.38)'; g.fillRect(X, Y, Wd, Hd);
     g.strokeStyle = 'rgba(255,200,110,.95)'; g.strokeRect(X + 0.5, Y + 0.5, Wd - 1, Hd - 1);
+  }
+  // 梯子：贴在崖壁那一边的绿色短横
+  g.fillStyle = '#6cf0a4';
+  for (const [x, z, dir] of S.def.ladders || []) {
+    const d = DIRS[dir], cx = (x + 0.5 + d[0] * 0.38) * k, cz = (z + 0.5 + d[1] * 0.38) * k, w = d[0] ? 2 : k * 0.8, h = d[0] ? k * 0.8 : 2;
+    g.fillRect(cx - w / 2, cz - h / 2, w, h);
   }
 }
 function buildMinimap(S) {
