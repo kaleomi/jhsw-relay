@@ -198,7 +198,13 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 #gold { display: flex; align-items: baseline; gap: 8px; padding: 3px 14px; background: var(--panel); clip-path: var(--cut); }
 #gold span { font-size: 12px; color: var(--dim); letter-spacing: .14em; }
 #gold b { font-family: var(--f-num); font-size: 22px; color: var(--gold); font-weight: 700; text-shadow: 0 0 12px rgba(255, 181, 71, .35); }
-#hotbar { display: flex; gap: 4px; pointer-events: auto; }
+#hotbar { display: flex; gap: 4px; pointer-events: auto; position: relative; }
+/* 分组格子：右上角数字 = 同组陷阱数；展开时下方有小三角 */
+.slot.grp .more { position: absolute; right: 4px; top: 3px; font: 600 9px/1 var(--f-num); color: var(--cc); opacity: .85; padding: 1px 3px; border: 1px solid color-mix(in srgb, var(--cc) 60%, transparent); border-radius: 3px; }
+.slot.grp.open { background: color-mix(in srgb, var(--cc) 30%, rgba(8, 14, 21, .9)); }
+#trapPop { position: absolute; bottom: calc(100% + 46px); left: 0; display: flex; gap: 4px; padding: 6px; background: rgba(6, 11, 17, .92); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 30px rgba(0, 0, 0, .5); align-items: center; z-index: 5; }
+#trapPop[hidden] { display: none; }
+#trapPop .pt { writing-mode: vertical-rl; font-size: 11px; color: var(--dim); letter-spacing: .2em; padding: 0 2px; }
 .slot { --cc: var(--c-gun); position: relative; width: clamp(40px, 5.4vw, 64px); height: clamp(52px, 6.6vw, 74px); background: var(--panel); clip-path: var(--cut); display: grid; justify-items: center; align-content: center; gap: 1px; color: var(--cc); cursor: pointer; transition: background .15s, transform .15s; }
 .slot svg { width: 46%; height: auto; }
 .slot .k { position: absolute; left: 6px; top: 3px; font-family: var(--f-num); font-size: 11px; color: var(--dim); }
@@ -454,7 +460,9 @@ body.touch #gold b { font-size: 16px; }
 body.touch #gold span { font-size: 10px; white-space: nowrap; }
 body.touch #gold .kl { display: none; }
 body.touch #hotbar { gap: 1px; }
-body.touch .slot { width: 33px; height: 42px; }
+body.touch .slot { width: 40px; height: 44px; }
+body.touch #trapPop { bottom: auto; top: calc(100% + 6px); gap: 3px; padding: 4px; }
+body.touch .slot.grp .more { right: 2px; top: 2px; font-size: 8px; }
 body.touch .slot .k { display: none; }
 body.touch .slot .n { font-size: 8px; }
 body.touch .slot .c { font-size: 9px; }

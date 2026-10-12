@@ -198,7 +198,13 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 #gold { display: flex; align-items: baseline; gap: 8px; padding: 3px 14px; background: var(--panel); clip-path: var(--cut); }
 #gold span { font-size: 12px; color: var(--dim); letter-spacing: .14em; }
 #gold b { font-family: var(--f-num); font-size: 22px; color: var(--gold); font-weight: 700; text-shadow: 0 0 12px rgba(255, 181, 71, .35); }
-#hotbar { display: flex; gap: 4px; pointer-events: auto; }
+#hotbar { display: flex; gap: 4px; pointer-events: auto; position: relative; }
+/* 分组格子：右上角数字 = 同组陷阱数；展开时下方有小三角 */
+.slot.grp .more { position: absolute; right: 4px; top: 3px; font: 600 9px/1 var(--f-num); color: var(--cc); opacity: .85; padding: 1px 3px; border: 1px solid color-mix(in srgb, var(--cc) 60%, transparent); border-radius: 3px; }
+.slot.grp.open { background: color-mix(in srgb, var(--cc) 30%, rgba(8, 14, 21, .9)); }
+#trapPop { position: absolute; bottom: calc(100% + 46px); left: 0; display: flex; gap: 4px; padding: 6px; background: rgba(6, 11, 17, .92); border: 1px solid rgba(255, 255, 255, .12); box-shadow: 0 8px 30px rgba(0, 0, 0, .5); align-items: center; z-index: 5; }
+#trapPop[hidden] { display: none; }
+#trapPop .pt { writing-mode: vertical-rl; font-size: 11px; color: var(--dim); letter-spacing: .2em; padding: 0 2px; }
 .slot { --cc: var(--c-gun); position: relative; width: clamp(40px, 5.4vw, 64px); height: clamp(52px, 6.6vw, 74px); background: var(--panel); clip-path: var(--cut); display: grid; justify-items: center; align-content: center; gap: 1px; color: var(--cc); cursor: pointer; transition: background .15s, transform .15s; }
 .slot svg { width: 46%; height: auto; }
 .slot .k { position: absolute; left: 6px; top: 3px; font-family: var(--f-num); font-size: 11px; color: var(--dim); }
@@ -454,7 +460,9 @@ body.touch #gold b { font-size: 16px; }
 body.touch #gold span { font-size: 10px; white-space: nowrap; }
 body.touch #gold .kl { display: none; }
 body.touch #hotbar { gap: 1px; }
-body.touch .slot { width: 33px; height: 42px; }
+body.touch .slot { width: 40px; height: 44px; }
+body.touch #trapPop { bottom: auto; top: calc(100% + 6px); gap: 3px; padding: 4px; }
+body.touch .slot.grp .more { right: 2px; top: 2px; font-size: 8px; }
 body.touch .slot .k { display: none; }
 body.touch .slot .n { font-size: 8px; }
 body.touch .slot .c { font-size: 9px; }
@@ -7787,24 +7795,83 @@ const ICONS = {
   ult: '<path d="M12 2v8M8 6l4 4 4-4M5 21h14M7 21l5-9 5 9M3 14h3M18 14h3"/>',
 };
 function svgIcon(id) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg>`; }
+/* ---------- 快捷栏：枪 + 5 个陷阱分组（可收起）----------
+ * 每组只显示一个格子（上次选过的陷阱）；点一下选中它并展开同组的其他陷阱，再点一次收起。
+ * 数字键照旧直接选陷阱。 */
+const TRAP_GROUPS = [
+  { id: 'floor', name: '地面', cat: 'floor', traps: ['slow', 'spike', 'push', 'tesla'] },
+  { id: 'wall', name: '墙壁', cat: 'wall', traps: ['laser', 'flame'] },
+  { id: 'ceil', name: '天花板', cat: 'ceil', traps: ['crusher'] },
+  { id: 'pad', name: '炮台', cat: 'pad', traps: ['sentry', 'aa', 'gatling'] },
+  { id: 'heavy', name: '重型', cat: 'heavy', traps: ['rail', 'mortar', 'grinder'] },
+];
+for (const t of TRAPS) if (!TRAP_GROUPS.some(g => g.traps.includes(t.id))) TRAP_GROUPS[3].traps.push(t.id);
+const grpOf = id => TRAP_GROUPS.find(g => g.traps.includes(id));
+const grpPick = {};
+let popGrp = null;
+function slotHTML(id, key, name, cost) {
+  return `<span class="k">${key}</span>${svgIcon(id)}<span class="n">${name}</span>${cost ? `<span class="c">${cost}</span>` : '<span class="c inf">∞</span>'}`;
+}
+function setChip(g) {
+  const el = document.querySelector(`#hotbar .grp[data-grp="${g.id}"]`); if (!el) return;
+  const t = TRAP[grpPick[g.id] || g.traps[0]];
+  el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '');
+  el.innerHTML = slotHTML(t.id, t.key, t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (g.traps.length > 1 ? `<span class="more">${g.traps.length}</span>` : '');
+}
+function openPop(gid) {
+  popGrp = gid;
+  const pop = $('trapPop'), g = TRAP_GROUPS.find(x => x.id === gid);
+  for (const gg of TRAP_GROUPS) setChip(gg);
+  if (!g || g.traps.length < 2) { pop.hidden = true; popGrp = null; return; }
+  pop.innerHTML = `<b class="pt">${g.name}陷阱</b>`;
+  for (const id of g.traps) {
+    const t = TRAP[id], d = document.createElement('div');
+    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : ''); d.dataset.id = id;
+    d.innerHTML = slotHTML(id, t.key, t.name, sim ? sim.trapCost(id, PID) : t.cost);
+    d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); selectTool(id); closePop(); });
+    pop.appendChild(d);
+  }
+  pop.hidden = false;
+  // 对齐到分组格子正上方，不超出屏幕
+  const chip = document.querySelector(`#hotbar .grp[data-grp="${gid}"]`), hb = $('hotbar');
+  pop.style.left = '0px';
+  const cr = chip.getBoundingClientRect(), hr = hb.getBoundingClientRect(), pw = pop.offsetWidth;
+  let left = cr.left + cr.width / 2 - pw / 2 - hr.left;
+  left = Math.max(-hr.left + 6, Math.min(left, innerWidth - hr.left - pw - 6));
+  pop.style.left = left + 'px';
+}
+function closePop() { if (popGrp === null) return; popGrp = null; $('trapPop').hidden = true; for (const g of TRAP_GROUPS) setChip(g); }
 function buildHotbar() {
   const hb = $('hotbar'); hb.innerHTML = '';
-  const mk = (id, key, name, cost, cat) => {
+  const gun = document.createElement('div');
+  gun.className = 'slot cat-gun'; gun.dataset.id = 'gun';
+  gun.innerHTML = slotHTML('rifle', 'Q', '脉冲步枪', 0);
+  gun.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); closePop(); selectTool('gun'); });
+  hb.appendChild(gun);
+  for (const g of TRAP_GROUPS) {
     const d = document.createElement('div');
-    d.className = 'slot cat-' + (cat || 'gun'); d.dataset.id = id;
-    d.innerHTML = `<span class="k">${key}</span>${svgIcon(id)}<span class="n">${name}</span>${cost ? `<span class="c">${cost}</span>` : '<span class="c inf">∞</span>'}`;
-    d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); selectTool(id); });
+    d.className = 'slot grp'; d.dataset.grp = g.id;
+    d.addEventListener('pointerdown', ev => {
+      ev.stopPropagation(); ev.preventDefault();
+      const id = grpPick[g.id] || g.traps[0];
+      if (popGrp === g.id) { closePop(); return; }
+      selectTool(id);
+      openPop(g.id);
+    });
     hb.appendChild(d);
-  };
-  mk('gun', 'Q', '脉冲步枪', 0, 'gun');
-  hb.firstChild.querySelector('svg').outerHTML = svgIcon('rifle');
-  for (const t of TRAPS) mk(t.id, t.key, t.name, t.cost, t.cat);
+    setChip(g);
+  }
+  const pop = document.createElement('div'); pop.id = 'trapPop'; pop.hidden = true;
+  pop.addEventListener('pointerdown', ev => ev.stopPropagation());
+  hb.appendChild(pop);
+  popGrp = null;
 }
 function selectTool(id) {
   if (tool === id) return;
   if (id !== 'gun' && myMount()) dismount();
   tool = id; vm.switchT = 0.25;
-  for (const el of $('hotbar').children) el.classList.toggle('sel', el.dataset.id === id);
+  { const g = id !== 'gun' && grpOf(id); if (g) grpPick[g.id] = id; if (popGrp && (!g || g.id !== popGrp)) closePop(); for (const gg of TRAP_GROUPS) setChip(gg); }
+  for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === id);
   if (id !== 'gun') { const d = TRAP[id]; toast(`${d.name} · ${CAT_NAME[d.cat]} · ${sim ? sim.trapCost(id, PID) : d.cost} 金币`); }
   if (evoTrap !== null) closeEvo();
 }
@@ -8001,7 +8068,7 @@ function updateHUD(dt) {
     $('deadMsg').hidden = !p.dead;
     if (p.dead) setText('respawnT', String(Math.ceil(p.respawnT)));
   }
-  for (const el of $('hotbar').children) {
+  for (const el of document.querySelectorAll('#hotbar [data-id]')) {
     const id = el.dataset.id;
     if (id !== 'gun') {
       const cst = sim.trapCost(id, PID); el.classList.toggle('poor', s.gold < cst);
@@ -8169,6 +8236,7 @@ addEventListener('mousemove', e => {
 canvas.addEventListener('mousedown', e => {
   if (mode !== 'play') return;
   Snd.init();
+  closePop();
   // 打开面板时鼠标已释放：点画面空白处 = 关闭面板并回到游戏
   if (anyPanel()) { closePanels(); if (!locked && !fallbackLook) requestLock(); return; }
   if (!locked && !fallbackLook) { requestLock(); return; }
@@ -8190,7 +8258,7 @@ addEventListener('mouseup', e => { if (e.button === 0) mouse.l = false; if (e.bu
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('wheel', e => {
   if (mode !== 'play') return;
-  const ids = ['gun', ...TRAPS.map(t => t.id)];
+  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps)];
   let i = ids.indexOf(tool);
   i = (i + (e.deltaY > 0 ? 1 : -1) + ids.length) % ids.length;
   selectTool(ids[i]);
@@ -8842,7 +8910,7 @@ function newGame(state, prebuilt) {
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;
   parts.length = 0; tracers.length = 0; rings.length = 0; lights.length = 0;
   const p = sim.s.players[PID]; cam.yaw = p ? p.yaw : 0; cam.pitch = 0;
-  tool = 'gun'; buildHotbar(); selectTool('gun'); for (const el of $('hotbar').children) el.classList.toggle('sel', el.dataset.id === 'gun');
+  tool = 'gun'; buildHotbar(); selectTool('gun'); for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === 'gun');
   buildMinimap(sim);
   $('feed').innerHTML = '';
   for (const k in cache) delete cache[k];
