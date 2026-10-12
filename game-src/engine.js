@@ -153,6 +153,7 @@ void main(){
   float m = vPar.z;
   /* 天空穹顶：不受光照，按视线方向做渐变 + 太阳光晕 */
   if (m > 17.5) {
+    DET = uDetail;   // 天空不按距离降细节
     vec3 d = -V;
     float up = clamp(d.y, -0.2, 1.0);
     vec3 col = mix(uFogCol, uSky * vec3(0.55, 0.68, 0.95), smoothstep(0.0, 0.55, up));

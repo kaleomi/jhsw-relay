@@ -1,7 +1,7 @@
 /* 晶核守卫 · 无尽模式排行榜（Cloudflare 与 Node 两个版本共用）
  * 分数由服务器按上报的波次 / 击杀 / 水晶血量 / 难度 / 突变重新计算，客户端无法直接改分。
  */
-export const MAPS = ['station', 'fortress', 'furnace', 'abyss', 'outpost'];
+export const MAPS = ['station', 'fortress', 'furnace', 'abyss', 'outpost', 'canyon'];
 const DIFF_MUL = { normal: 1, hard: 1.4, hell: 1.9 };
 const MUT_W = { swift: 0.25, armored: 0.25, horde: 0.3, austerity: 0.15, regen: 0.2, skies: 0.2, champions: 0.25, glass: 0.1, blackout: 0.15 };
 export const KEEP = 50;

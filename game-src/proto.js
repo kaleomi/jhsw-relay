@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 13;
+const VERSION = 14;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
@@ -108,6 +108,7 @@ const SCHEMA = {
   boss: ['id', 'mtype', 'lane', 'laneName'],
   burrow: ['id', 'x', 'z'], surface: ['id', 'x', 'z'], hacked: ['id', 'trap', 'x', 'y', 'z'], hackStart: ['id', 'tr'],
   mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], boltHit: ['x', 'y', 'z'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
+  bossPhase: ['id', 'phase', 'x', 'z'],
   laneOpen: ['lanes', 'names'],
   victory: [], defeat: [],
   pjoin: ['name'], pleave: ['name'], pready: ['pid', 'on'],

@@ -71,6 +71,10 @@ button { font: inherit; color: inherit; }
 #bossBar .lbl span { color: #ff6ad9; font-family: var(--f-disp); font-size: 18px; letter-spacing: .1em; }
 #bossBar .bar { height: 12px; }
 #bossBar .bar i { background: linear-gradient(90deg, #a01c6f, #ff3df0); box-shadow: 0 0 14px #ff3df0; }
+#bossBar .bar { position: relative; }
+#bossBar .bar::before, #bossBar .bar::after { content: ''; position: absolute; top: -2px; bottom: -2px; width: 2px; background: rgba(255,255,255,.75); z-index: 2; }
+#bossBar .bar::before { left: 60%; } #bossBar .bar::after { left: 25%; }
+#bossBar.ph3 .bar i { background: linear-gradient(90deg, #a0161c, #ff5a3d); box-shadow: 0 0 16px #ff4a2d; animation: tcBlink .5s infinite alternate; }
 
 #feed { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; width: min(330px, 34vw); display: grid; gap: 4px; }
 #feed .f { font-size: 12.5px; line-height: 1.45; padding: 4px 9px; background: var(--panel); border-left: 2px solid var(--line); transition: opacity .6s, transform .6s; }
@@ -878,7 +882,8 @@ body.touch .mpRow input { padding: 10px; }
       <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在地上琥珀色框出的 2×2 炮台位（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
     <p class="fine"><b>加特林炮塔（按 [ 选择）</b>放在炮台位或空地上，没人时会自动扫射（火力较弱）；走到旁边按 F 坐上去亲手操控：按住左键先转管预热，转速起来后每秒 20 发，对地对空随意扫射，伤害随炮塔等级提升。连续开火约 5 秒会过热，要松手等枪管冷却（进阶「液冷枪管」不会过热）。再按 F 或空格离开。</p>
-    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine"><b>BOSS 分阶段</b>：BOSS 血量降到 60% 时进入第二阶段，会怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫；降到 25% 时进入狂暴，移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>
     </section>
       <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
     <ul id="comboList" class="comboList"></ul>
@@ -1078,6 +1083,7 @@ void main(){
   float m = vPar.z;
   /* 天空穹顶：不受光照，按视线方向做渐变 + 太阳光晕 */
   if (m > 17.5) {
+    DET = uDetail;   // 天空不按距离降细节
     vec3 d = -V;
     float up = clamp(d.y, -0.2, 1.0);
     vec3 col = mix(uFogCol, uSky * vec3(0.55, 0.68, 0.95), smoothstep(0.0, 0.55, up));
@@ -1699,7 +1705,7 @@ const TRAPS = [
   { id: 'rail', key: '0', name: '轨道电磁炮', cat: 'heavy', big: true, cost: 720, cd: [3.4, 3.1, 2.8, 2.5], range: 34, dmg: [760, 1150, 1700, 2450],
     desc: '重型炮台 2×2 · 蓄能贯穿一条直线上的所有敌人（对地对空、无视护甲），优先锁定 BOSS、精英与重甲' },
   { id: 'mortar', key: '-', name: '等离子迫击炮', cat: 'heavy', big: true, cost: 620, cd: [3.0, 2.8, 2.6, 2.4], range: 30, minRange: 6, dmg: [380, 580, 860, 1250], splash: 3.8,
-    desc: '重型炮台 2×2 · 远程曲射，自动轰击怪物最密集的位置，大范围溅射（只打地面）' },
+    desc: '重型炮台 2×2 · 远程曲射，自动轰击怪物最密集的位置，大范围溅射（只打地面）；走到旁边按 F 可以亲手指定落点开炮（冷却更短、伤害更高）' },
   { id: 'grinder', key: '=', name: '碎骨绞盘', cat: 'hfloor', big: true, cost: 540, dps: [150, 235, 350, 500], slow: [0.3, 0.35, 0.4, 0.45],
     desc: '地面 2×2 · 铺在通道上的巨型绞盘，持续撕碎经过的地面敌人并减速（无视护甲）' },
   // —— 可操控炮台：走到旁边按 F 坐上去，亲手扫射 ——
@@ -1707,6 +1713,9 @@ const TRAPS = [
     desc: '炮台位 · 无人时自动扫射（火力较弱）；走到旁边按 F 亲自操控：枪管转起来后每秒 20 发，对地对空随意扫射，连续开火约 5 秒会过热' },
 ];
 const BIG_CATS = { heavy: 1, hfloor: 1 };
+// 可以坐上去亲手操控的炮塔：F 上下
+const MOUNTABLE = { gatling: { reach: 3.2 }, mortar: { reach: 4.2 } };
+const MORTAR_MAN = { dmg: 1.15, cd: 0.55 };   // 亲手操控迫击炮：伤害 ×1.15，冷却 ×0.55
 const kindOfCat = cat => (cat === 'pad' || cat === 'heavy' || cat === 'hfloor') ? 'floor' : cat;
 const TRAP = {}; TRAPS.forEach(t => { TRAP[t.id] = t; });
 // 满级进阶：Lv3 → Lv4 时二选一
@@ -2017,6 +2026,45 @@ const MAPS = {
       { name: '双王', groups: [g('runner', 24, '*', 0.5, 0), g('elite', 2, 'AB', 12, 14), g('tank', 3, '*', 6, 6), g('blinker', 8, '*', 1.6, 4), g('healer', 3, '*', 3, 10)] },
       { name: '决战前夜', groups: [g('grunt', 24, '*', 0.7, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 3, '*', 6, 14), g('bomber', 10, '*', 1.2, 10)] },
       { name: '高地之王', boss: true, tip: '攻城机甲「破城者」从西北高地压下来，会炮击远处的炮台；东北有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'A', 0, 12), g('tank', 3, '*', 8, 20), g('shield', 4, '*', 5, 14), g('gunship', 3, '*', 8, 26), g('elite', 1, 'B', 0, 40)] },
+    ],
+  },
+  canyon: {
+    id: 'canyon', order: 6, name: '赤岩峡谷', sub: '峡谷 · 崖顶狙击', w: 46, h: 36, gold: 1600, goldMul: 1.15, bossMul: 0.75, theme: 'canyon', outdoor: true,
+    desc: '怪物沿着深谷谷底蜿蜒前进，玩家站在两侧 4 米高的崖顶居高临下；四座二层桥横跨峡谷，把各个崖顶连起来，桥底下可以挂天花板陷阱。东侧裂谷中途开启。',
+    lanes: {
+      A: [[3, 2], [3, 9], [14, 9], [14, 17], [23, 17], [23, 25], [16, 25], [16, 31], [21, 31]],
+      B: [[42, 2], [42, 9], [32, 9], [32, 17], [23, 17], [23, 25], [16, 25], [16, 31], [21, 31]],
+      C: [[44, 21], [37, 21], [37, 25], [16, 25], [16, 31], [21, 31]],
+    },
+    laneFrom: { C: 6 },
+    laneNames: { A: '西北谷口', B: '东北谷口', C: '东侧裂谷' },
+    rooms: [[16, 2, 30, 15, TILE.FLOOR], [2, 12, 12, 25, TILE.FLOOR], [2, 26, 8, 34, TILE.FLOOR], [34, 12, 44, 18, TILE.FLOOR],
+      [25, 19, 34, 23, TILE.FLOOR], [33, 27, 44, 34, TILE.FLOOR], [28, 30, 32, 32, TILE.FLOOR], [9, 33, 18, 34, TILE.FLOOR], [18, 27, 21, 29, TILE.FLOOR]],
+    // 崖顶 4 米：中央台地、西崖、西南崖、东崖、内崖、东南崖；谷底与基地为 0
+    heights: [[16, 2, 30, 15, 4], [2, 12, 12, 25, 4], [2, 26, 8, 34, 4], [34, 12, 44, 18, 4], [25, 19, 34, 23, 4], [33, 27, 44, 34, 4]],
+    // 玩家上崖顶的两段楼梯（基地东侧、西南侧）
+    ramps: [[28, 30, 32, 32, 0, 0, 4], [9, 33, 13, 34, 2, 0, 4]],
+    deckH: 4, decks: [[13, 12, 15, 13], [31, 12, 33, 13], [27, 16, 28, 18], [33, 24, 34, 26]],
+    base: [19, 28, 27, 34], doors: [],
+    // 炮台位：谷底两侧的凹口（与谷底同高）
+    pads: [[9, 7], [36, 7], [7, 11], [39, 11], [18, 19], [39, 19], [21, 21], [35, 21], [14, 26], [14, 30], [24, 27], [30, 27]],
+    labs: [{ holo: [23.5, 4.3], term: [23, 2, 3], sup: [16, 4, 2], racks: [[30, 2, 0], [30, 3, 0], [30, 4, 0], [30, 5, 0], [30, 6, 0]] }],
+    spawns: [[22, 33], [24, 33], [21, 34], [25, 34]], focus: [23, 21], foci: [[23, 21]],
+    devices: [],
+    platforms: [[19, 5], [26, 5], [22, 11], [30, 20], [38, 30], [6, 17]],
+    waves: [
+      { name: '谷口斥候', groups: [g('grunt', 8, 'A', 1.4, 0), g('grunt', 8, 'B', 1.4, 3)] },
+      { name: '猎犬奔袭', tip: '谷底只有一条路——在崖顶两侧架炮台，交叉火力最有效', groups: [g('grunt', 10, 'AB', 1.1, 0), g('runner', 12, 'AB', 0.6, 8)] },
+      { name: '重甲压境', groups: [g('grunt', 12, 'AB', 1, 0), g('brute', 4, 'AB', 4, 6), g('flyer', 8, 'AB', 1.2, 12)] },
+      { name: '暗影潜行', tip: '幽影刺客会隐身，炮台锁不住它——站在崖顶亲手打', groups: [g('stalker', 8, 'AB', 1.8, 0), g('grunt', 12, 'AB', 1, 4), g('shield', 2, 'AB', 6, 10)] },
+      { name: '空中支援', groups: [g('flyer', 14, 'AB', 0.9, 0), g('healer', 3, 'AB', 3, 6), g('gunship', 2, 'AB', 8, 10), g('brute', 4, 'AB', 3, 4)] },
+      { name: '裂谷开启', tip: '东侧裂谷开启，第三路怪物从东边直接冲进谷底', groups: [g('runner', 20, '*', 0.5, 0), g('blinker', 6, '*', 2, 6), g('elite', 1, 'A', 0, 16), g('grunt', 12, '*', 1, 4)] },
+      { name: '铁蹄过谷', tip: '铁蹄坦克会炮击炮台——用电磁炮或亲手操控迫击炮对付它', groups: [g('grunt', 16, '*', 0.9, 0), g('tank', 2, 'AB', 8, 8), g('bomber', 8, '*', 1.4, 12), g('healer', 3, '*', 3, 14)] },
+      { name: '护盾长城', groups: [g('shield', 5, '*', 3, 0), g('brute', 8, '*', 2.6, 4), g('gunner', 6, '*', 2.4, 8), g('sapper', 3, '*', 4, 12)] },
+      { name: '天穹', tip: '大批天穹炮艇——加特林炮塔亲手扫射对空效果最好', groups: [g('flyer', 18, '*', 0.8, 0), g('gunship', 5, '*', 5, 6), g('stalker', 6, '*', 2, 10), g('mite', 20, '*', 0.3, 14)] },
+      { name: '狂潮', groups: [g('runner', 30, '*', 0.4, 0), g('elite', 1, 'B', 0, 12), g('tank', 2, '*', 6, 8), g('burrower', 5, '*', 2.5, 6), g('blinker', 8, '*', 1.5, 4)] },
+      { name: '决战前夜', groups: [g('grunt', 26, '*', 0.6, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 4, '*', 6, 12), g('bomber', 10, '*', 1.2, 10), g('healer', 4, '*', 3, 14)] },
+      { name: '峡谷之王', boss: true, tip: '泰坦从西北谷口压进峡谷，熔炉巨像从东侧裂谷策应——两只 BOSS 都会分阶段变强', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('boss', 1, 'A', 0, 10), g('colossus', 1, 'C', 0, 45), g('gunship', 2, '*', 8, 26), g('shield', 3, '*', 5, 14)] },
     ],
   },
 };
@@ -2544,7 +2592,7 @@ class Sim {
   mountOf(p) {
     if (!p.mount) return null;
     const tr = this.s.traps.find(t => t.id === p.mount);
-    if (!tr || tr.type !== 'gatling' || p.dead) { p.mount = 0; return null; }
+    if (!tr || !MOUNTABLE[tr.type] || p.dead) { p.mount = 0; return null; }
     return tr;
   }
   gunnerOf(tr) {
@@ -2553,8 +2601,8 @@ class Sim {
   }
   // 能否坐上某座炮塔（距离 / 有没有人）
   canMount(p, tr) {
-    if (!p || p.dead || !tr || tr.type !== 'gatling') return { ok: false };
-    if (Math.hypot(p.x - tr.wx, p.z - tr.wz) > 3.2) return { ok: false, reason: '离炮塔太远' };
+    if (!p || p.dead || !tr || !MOUNTABLE[tr.type]) return { ok: false };
+    if (Math.hypot(p.x - tr.wx, p.z - tr.wz) > MOUNTABLE[tr.type].reach + 0.3) return { ok: false, reason: '离炮塔太远' };
     const g = this.gunnerOf(tr);
     if (g && g !== p) return { ok: false, reason: `${g.name} 正在操控这座炮塔` };
     return { ok: true };
@@ -2569,7 +2617,7 @@ class Sim {
   }
   wpnOf(p) {
     const tr = p.mount ? this.mountOf(p) : null;
-    return tr ? gatlingW(tr.lv, tr.br) : (WPN[p.wpn] || WPN.rifle);
+    return tr && tr.type === 'gatling' ? gatlingW(tr.lv, tr.br) : (WPN[p.wpn] || WPN.rifle);
   }
   gunMul(p) { return (1 + 0.08 * ((p.tal && p.tal.gunDmg) || 0)) * (1 + 0.12 * this.techLv('ammo')) *(this.hasMut('glass') ? 2 : 1) * (p.cls === 'assault' ? 1.2 : 1) * (p.cls === 'scout' && p.wpn === 'sniper' ? 1.25 : 1); }
   setClass(p, cls) { if (!CLS[cls] || p.cls === cls) return; p.cls = cls; this.setTalents(p, p.tal); }
@@ -2609,7 +2657,7 @@ class Sim {
         p.input.fire = !!cmd.fire; p.input.yaw = cmd.yaw; p.input.pitch = cmd.pitch;
         if (cmd.wpn && p.guns.includes(cmd.wpn)) p.wpn = cmd.wpn;
         if ((cmd.mount | 0) !== (p.mount | 0)) { if (cmd.mount) { const tr = s.traps.find(t => t.id === cmd.mount); if (this.canMount(p, tr).ok) p.mount = cmd.mount; } else p.mount = 0; }
-        if (p.mount) { const tr = this.mountOf(p); if (tr) tr.aimYaw = p.yaw; }
+        if (p.mount) { const tr = this.mountOf(p); if (tr && tr.type === 'gatling') tr.aimYaw = p.yaw; }
         return { ok: true };
       }
       case 'use': {
@@ -2678,6 +2726,24 @@ class Sim {
         p.rocketT = s.time;
         this._launchRocket(p, cmd.o, cmd.d);
         return { ok: true };
+      }
+      // 亲手操控迫击炮：玩家指定落点开炮（冷却更短、伤害更高）
+      case 'mfire': {
+        const tr = p && this.mountOf(p);
+        if (!tr || tr.type !== 'mortar') return { ok: false };
+        if (tr.disT > 0) return { ok: false, reason: '迫击炮被瘫痪了' };
+        if (tr.cd > 0.08) return { ok: false, cd: tr.cd };
+        const def = TRAP.mortar, lv = tr.lv, br = lv >= MAX_LV ? tr.br : '';
+        const tx = +cmd.x, tz = +cmd.z;
+        if (!Number.isFinite(tx) || !Number.isFinite(tz)) return { ok: false };
+        const d = Math.hypot(tx - tr.wx, tz - tr.wz);
+        if (d < def.minRange - 0.5 || d > def.range + 0.5) return { ok: false, reason: `超出射程（${def.minRange}~${def.range} 米）` };
+        const fl = 0.8 + d / 45;
+        s.shells.push({ x: tr.wx, z: tr.wz, tx, tz, t: fl, k: 'm', dmg: def.dmg[lv - 1] * MORTAR_MAN.dmg, r: def.splash, br });
+        tr.aimYaw = Math.atan2(-(tx - tr.wx), -(tz - tr.wz));
+        tr.cd = def.cd[lv - 1] * MORTAR_MAN.cd; tr.fireT = s.time;
+        this.ev('shellFire', { x: tr.wx, z: tr.wz, tx, tz, t: fl, k: 'm', y: tr.wy + 2.2 });
+        return { ok: true, cd: tr.cd, t: fl };
       }
       case 'nade': {
         if (!p || p.dead || p.nades < 1) return { ok: false, reason: '手雷充能中' };
@@ -3197,6 +3263,7 @@ class Sim {
           break;
         }
         case 'mortar': {
+          if (this.gunnerOf(tr)) break;   // 有人操控时由玩家开炮
           if (tr.cd > 0) break;
           const R = def.range, rr = def.splash, g = [];
           for (const m of s.monsters) {
@@ -3435,7 +3502,7 @@ class Sim {
       // 眩晕抗性：新施加的眩晕时间按比例缩短
       if (def.stunRes && m.stunT > (m._st || 0)) m.stunT = (m._st || 0) + (m.stunT - (m._st || 0)) * (1 - def.stunRes);
       if (def.elite && !m.enraged && m.hp < m.maxHp * 0.5) { m.enraged = true; this.ev('enrage', { id: m.id, x: m.x, z: m.z }); }
-      let spd = def.spd * (m.enraged ? 1.6 : 1) * (1 - m.slowAmt * (1 - (def.slowRes || 0))) * (this.hasMut('swift') ? 1.25 : 1) * (m.champ ? 0.9 : 1);
+      let spd = def.spd * (m.enraged ? 1.6 : 1) * (m.bossSpd || 1) * (1 - m.slowAmt * (1 - (def.slowRes || 0))) * (this.hasMut('swift') ? 1.25 : 1) * (m.champ ? 0.9 : 1);
       if (this.hasMut('regen') && s.time - (m.lastHitT || 0) > 2 && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.015 * dt);
       if (m.stunT > 0) { m.stunT -= dt; spd = 0; }
       if (m.launchT > 0) m.launchT -= dt;
@@ -3637,10 +3704,13 @@ class Sim {
         }
       }
       if (def.boss) {
-        if (m.type === 'siege') this._siegeAI(m, dt);
-        else if (m.type === 'colossus') this._colossusAI(m, dt);
-        else if (m.type === 'brood') this._broodAI(m, dt);
-        else this._bossAI(m, dt);
+        this._bossPhase(m, def);
+        // 阶段越高，技能冷却越快
+        const adt = dt * (m.phase === 3 ? 1.8 : m.phase === 2 ? 1.35 : 1);
+        if (m.type === 'siege') this._siegeAI(m, adt);
+        else if (m.type === 'colossus') this._colossusAI(m, adt);
+        else if (m.type === 'brood') this._broodAI(m, adt);
+        else this._bossAI(m, adt);
       }
       if (def.heal) {
         m.healT -= dt;
@@ -3659,6 +3729,23 @@ class Sim {
     }
   }
 
+  /* BOSS 分阶段：
+   *  第二阶段（血量 ≤ 60%）：怒吼 1.2 秒，套上相当于 12% 最大生命的能量护盾，召唤一队护卫，技能冷却加快
+   *  第三阶段（血量 ≤ 25%）：狂暴，移动加快 25%，技能冷却大幅加快，再召唤一队护卫 */
+  _bossPhase(m, def) {
+    if (!m.phase) m.phase = 1;
+    const r = m.hp / m.maxHp, want = r <= 0.25 ? 3 : r <= 0.6 ? 2 : 1;
+    if (want <= m.phase) return;
+    m.phase = want;
+    m.stunT = Math.max(m.stunT, 1.2);
+    m.slowAmt = 0; m.slowT = 0;
+    if (want === 2) { m.shield = m.maxHp * 0.12; m.shieldCd = 0; }
+    else m.bossSpd = 1.25;
+    const esc = want === 2 ? [['grunt', 4], ['brute', 2]] : [['runner', 6], ['elite', 1]];
+    let k = 0;
+    for (const [t, n] of esc) for (let i = 0; i < n; i++) this._spawn(t, m.lane, Math.max(0, m.d - 2 - (k++) * 0.9));
+    this.ev('bossPhase', { id: m.id, phase: want, x: m.x, z: m.z });
+  }
   _stomp(m, dt, every, r, dmg) {
     m.stompT -= dt;
     if (m.stompT > 0) return;
@@ -3836,8 +3923,15 @@ class Sim {
     const mt = p.mount ? this.mountOf(p) : null;
     if (mt) {
       // 坐在炮塔上：站在枪身后面的踏板上（抬高 0.5 米），跟着视角绕炮塔转动，不能走动
+      p.vx = p.vy = p.vz = 0; p.ground = true;
+      if (mt.type === 'mortar') {
+        // 迫击炮：站上炮台中央的观测位（抬高 1.3 米），往下看选落点
+        p.x = mt.wx; p.z = mt.wz; p.y = mt.wy + 1.3;
+        p.pitch = Math.max(-1.25, Math.min(0.35, p.pitch));
+        return;
+      }
       mt.aimYaw = p.yaw;
-      p.x = mt.wx + Math.sin(p.yaw) * 0.55; p.z = mt.wz + Math.cos(p.yaw) * 0.55; p.y = mt.wy + 0.5; p.vx = p.vy = p.vz = 0; p.ground = true;
+      p.x = mt.wx + Math.sin(p.yaw) * 0.55; p.z = mt.wz + Math.cos(p.yaw) * 0.55; p.y = mt.wy + 0.5;
       p.pitch = Math.max(-0.75, Math.min(0.9, p.pitch));
       return;
     }
@@ -3876,7 +3970,7 @@ class Sim {
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {
     const mt = p.mount ? this.mountOf(p) : null;
-    if (mt) return this._gatlingFire(p, mt, dt);
+    if (mt) { if (mt.type === 'gatling') return this._gatlingFire(p, mt, dt); p.fireCd = Math.max(0, p.fireCd - dt); return false; }
     const inp = p.input, W = WPN[p.wpn] || WPN.rifle;
     let fired = false;
     p.fireCd -= dt; p.bloom = Math.max(0, p.bloom - dt * 2.5);
@@ -4000,7 +4094,7 @@ class Sim {
 
 }
 
-const api = { TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
+const api = { MOUNTABLE, MORTAR_MAN, TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.TD = api;
 })(typeof window !== 'undefined' ? window : globalThis);
@@ -4024,7 +4118,7 @@ else root.TD = api;
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 13;
+const VERSION = 14;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
@@ -4117,6 +4211,7 @@ const SCHEMA = {
   boss: ['id', 'mtype', 'lane', 'laneName'],
   burrow: ['id', 'x', 'z'], surface: ['id', 'x', 'z'], hacked: ['id', 'trap', 'x', 'y', 'z'], hackStart: ['id', 'tr'],
   mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], boltHit: ['x', 'y', 'z'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
+  bossPhase: ['id', 'phase', 'x', 'z'],
   laneOpen: ['lanes', 'names'],
   victory: [], defeat: [],
   pjoin: ['name'], pleave: ['name'], pready: ['pid', 'on'],
@@ -5355,6 +5450,8 @@ const THEMES = {
 };
 // 室外：沙岩山体 + 傍晚天光
 THEMES.outdoor = { lane: [0.33, 0.29, 0.24], floor: [0.4, 0.37, 0.33], pad: [0.42, 0.34, 0.22], base: [0.25, 0.31, 0.34], spawn: [0.38, 0.18, 0.14], wall: [0.5, 0.4, 0.31], cornice: [0.36, 0.28, 0.21], ceil: [0.2, 0.2, 0.22], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.62, 0.66, 0.74], fogD: 0.0058, sky: [0.92, 0.9, 0.95], ground: [0.45, 0.37, 0.29], sun: [1.05, 0.88, 0.68] };
+// 赤岩峡谷：红褐色岩壁、暖色的黄昏雾气
+THEMES.canyon = { lane: [0.42, 0.28, 0.21], floor: [0.5, 0.37, 0.29], pad: [0.48, 0.33, 0.2], base: [0.25, 0.3, 0.34], spawn: [0.45, 0.17, 0.12], wall: [0.68, 0.36, 0.23], cornice: [0.45, 0.25, 0.17], ceil: [0.2, 0.18, 0.18], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.8, 0.62, 0.52], fogD: 0.0062, sky: [1.0, 0.86, 0.78], ground: [0.56, 0.35, 0.24], sun: [1.12, 0.8, 0.58] };
 const themeOf = S => THEMES[S.def.theme] || THEMES.station;
 function tileOf(S, x, z) { if (x < 0 || z < 0 || x >= S.W || z >= S.H) return TILE.WALL; return S.grid[z * S.W + x]; }
 function laneFrame(S, lane) {
@@ -6486,6 +6583,13 @@ function drawTrap(S, tr, ghost) {
       Q('box', 0, 0.3, 0, 3.8, 0.6, 3.8, tc(0.21, 0.22, 0.24));
       Q('box', 0, 0.62, 0, 3.4, 0.06, 3.4, tc(0.28, 0.27, 0.25));
       for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { Q('box', ox * 1.7, 0.66, oz * 1.7, 0.4, 0.1, 0.4, tc(1, 0.5, 0.2, 1)); Q('cyl', ox * 1.45, 0.95, oz * 1.45, 0.42, 0.6, 0.42, tc(0.3, 0.3, 0.32)); }
+      if (!GHOST && S.s.players[PID] && S.s.players[PID].mount === tr.id) {
+        // 自己在操控：只画观测台（炮管在脚下，挡视线）
+        Q('cyl', 0, 0.95, 0, 1.3, 0.6, 1.3, tc(0.26, 0.27, 0.3));
+        Q('ring', 0, 1.27, 0, 0.75, 1, 0.75, tc(1, 0.55, 0.2, 1));
+        lvPips(lv, 0, 0.65, 1.95, true);
+        break;
+      }
       const yaw = GHOST ? 0 : (tr.cAim || 0);
       TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
       Q('cyl', 0, 0.85, 0, 2.2, 0.45, 2.2, tc(0.25, 0.26, 0.29));
@@ -6964,7 +7068,7 @@ function drawViewmodel(dt) {
   const sw = vm.switchT > 0 ? vm.switchT / 0.25 : 0;
   const W = WPN[p.wpn] || WPN.rifle;
   const reload = p.reloadT > 0 ? Math.sin(Math.min(1, (W.reload - p.reloadT) / W.reload) * Math.PI) : 0;
-  { const mt = myMount(); if (mt) { drawGatlingVM(p, mt, dt); E.setLayer(0); return; } }
+  { const mt = myMount(); if (mt) { if (mt.type === 'gatling') drawGatlingVM(p, mt, dt); E.setLayer(0); return; } }
   if (tool === 'gun' && W.id === 'sniper' && cam.ads > 0.85) { E.setLayer(0); vm.mz = [0, -0.05, -0.3]; return; }
   const bob = Math.sin(cam.bob * 2) * 0.006 * (1 - ads);
   const bx = lerp(0.2, 0.0, ads) + vm.swayX, by = lerp(-0.24, -0.135, ads) - sw * 0.3 - reload * 0.08 + vm.swayY + bob;
@@ -7535,6 +7639,14 @@ function handleEvents(S) {
         Snd.play('stomp', e.x, e.z, { range: 70 });
         break;
       }
+      case 'bossPhase': {
+        const m = S._mById.get(e.id), nm = m ? MON[m.type].name : 'BOSS';
+        if (e.phase === 2) { banner(`${nm} · 第二阶段`, '套上能量护盾并召唤护卫——电系陷阱、电磁炮破盾最快', true); feed(`${nm} 进入第二阶段：能量护盾 + 护卫`, 'bad'); }
+        else { banner(`${nm} · 狂暴`, '移动加快、技能冷却大幅缩短，再召唤一批护卫——全力输出！', true); feed(`${nm} 进入狂暴阶段！`, 'bad'); }
+        Snd.play('roar', e.x, e.z, { range: 120 }); Snd.play('boss'); shake(0.5);
+        rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: 12, t: 0, life: 0.7, c: e.phase === 2 ? [0.45, 0.88, 1] : [1, 0.3, 0.2] });
+        break;
+      }
       case 'enrage': feed('狂猩赛博格 进入狂暴！', 'bad'); Snd.play('roar', e.x, e.z, { range: 80 }); break;
       case 'phurt': if (e.pid === PID) { hurtFx = Math.min(1, hurtFx + e.dmg / 40); Snd.play('hurt'); dmgDir(e.sx, e.sz); shake(0.12); } break;
       case 'spawn': {
@@ -7839,7 +7951,12 @@ function updateHUD(dt) {
   }
   const boss = s.bossId ? s.monsters.find(m => m.id === s.bossId) : null;
   $('bossBar').hidden = !boss;
-  if (boss) { setStyle($('bossFill'), 'width', (boss.hp / boss.maxHp * 100).toFixed(1) + '%'); setText('bossNum', `${Math.ceil(boss.hp)}`); setText('bossName', MON[boss.type].name); }
+  if (boss) {
+    const r = boss.hp / boss.maxHp, ph = r <= 0.25 ? 3 : r <= 0.6 ? 2 : 1;
+    setStyle($('bossFill'), 'width', (r * 100).toFixed(1) + '%'); setText('bossNum', `${Math.ceil(boss.hp)}`);
+    setText('bossName', MON[boss.type].name + (ph === 3 ? ' · 狂暴' : ph === 2 ? ' · 第二阶段' : '') + (boss.shield > 0 ? ' · 护盾' : ''));
+    $('bossBar').classList.toggle('ph3', ph === 3);
+  }
   setText('goldNum', String(s.gold));
   setText('killNum', String(p ? p.kills : 0) + ' / ' + s.stats.kills);
   const nw = s.phase === 'build' && s.wave < sim.totalWaves() ? nextWaveHTML(s.wave + 1) : '';
@@ -7852,7 +7969,12 @@ function updateHUD(dt) {
     setText('hpNum', String(Math.ceil(p.hp)));
     setText('ammoNum', p.reloadT > 0 ? '装填' : String(p.ammo));
     const W = WPN[p.wpn] || WPN.rifle, mt = myMount();
-    if (mt) {
+    if (mt && mt.type === 'mortar') {
+      const left = mortarReady - timeNow;
+      setText('ammoNum', left > 0 ? left.toFixed(1) + 's' : '就绪');
+      setText('wpn', `等离子迫击炮 Lv${mt.lv} · F 离开`);
+      setText('magNum', '装填');
+    } else if (mt) {
       setText('ammoNum', p.overheat ? '过热' : Math.round((p.heat || 0) * 100) + '%');
       setText('wpn', `加特林炮塔 Lv${mt.lv} · F 离开`);
       setText('magNum', '热量');
@@ -7919,10 +8041,15 @@ function updateHUD(dt) {
   if (labOpen) { if (!lo || lo.kind !== 'term') toggleLab(false); else renderLab(); }
   // 加特林炮塔提示
   if (mode === 'play' && p && !p.dead) {
-    if (myMount()) { pr = p.overheat ? '枪管过热，正在冷却…' : '按住左键扫射（枪管转起来后射速更快）· F / 空格 离开炮塔'; prCls = p.overheat ? 'bad' : 'ok'; }
+    const mt = myMount();
+    if (mt && mt.type === 'mortar') {
+      const a = mortarAim;
+      pr = !a ? '准星对准地面选择落点' : !a.ok ? `落点 ${Math.round(a.d)} 米：超出射程（${TRAP.mortar.minRange}~${TRAP.mortar.range} 米）` : `落点 ${Math.round(a.d)} 米 · 左键开炮 · F / 空格 离开`;
+      prCls = a && a.ok ? 'ok' : 'bad';
+    } else if (mt) { pr = p.overheat ? '枪管过热，正在冷却…' : '按住左键扫射（枪管转起来后射速更快）· F / 空格 离开炮塔'; prCls = p.overheat ? 'bad' : 'ok'; }
     else if (tool === 'gun') {
       const g = nearGatling();
-      if (g) { const gp = sim.gunnerOf(g); pr = gp && gp.id !== PID ? `${gp.name} 正在操控这座加特林炮塔` : 'F 操控加特林炮塔：亲手扫射，对地对空都能打'; prCls = gp ? '' : 'ok'; }
+      if (g) { const gp = sim.gunnerOf(g), nm = TRAP[g.type].name; pr = gp && gp.id !== PID ? `${gp.name} 正在操控这座${nm}` : g.type === 'mortar' ? 'F 操控等离子迫击炮：亲手指定落点，冷却更短、伤害更高' : 'F 操控加特林炮塔：亲手扫射，对地对空都能打'; prCls = gp ? '' : 'ok'; }
     }
   }
   const tk = TD.TECH.map(t => sim.techLv(t.id)).join();
@@ -8295,22 +8422,55 @@ function nearDevice() {
 }
 /* ---------- 加特林炮塔：坐上去亲手扫射 ---------- */
 function myMount() { const p = sim && sim.s.players[PID]; return p && p.mount ? sim.mountOf(p) : null; }
-// 附近可以操控的加特林：优先准星对着的那座，其次最近的
+// 附近可以操控的炮塔（加特林 / 迫击炮）：优先准星对着的那座，其次最近的
 function nearGatling() {
   const p = sim && sim.s.players[PID]; if (!p || p.dead) return null;
-  if (aim && aim.trap && aim.trap.type === 'gatling' && Math.hypot(aim.trap.wx - p.x, aim.trap.wz - p.z) <= 3.2) return aim.trap;
-  let best = null, bd = 3.2;
-  for (const tr of sim.s.traps) if (tr.type === 'gatling') { const d = Math.hypot(tr.wx - p.x, tr.wz - p.z); if (d < bd) { bd = d; best = tr; } }
+  const MT = TD.MOUNTABLE, reach = tr => MT[tr.type] ? MT[tr.type].reach : -1;
+  if (aim && aim.trap && Math.hypot(aim.trap.wx - p.x, aim.trap.wz - p.z) <= reach(aim.trap)) return aim.trap;
+  let best = null, bd = 1e9;
+  for (const tr of sim.s.traps) { const d = Math.hypot(tr.wx - p.x, tr.wz - p.z); if (d <= reach(tr) && d - reach(tr) < bd) { bd = d - reach(tr); best = tr; } }
   return best;
+}
+// 迫击炮落点：准星射线打到的地面
+let mortarAim = null, mortarReady = 0;
+function updateMortarAim(mt) {
+  const def = TRAP.mortar, hit = sim.raycast(cam.x, cam.y, cam.z, cam.fx, cam.fy, cam.fz, def.range + 20);
+  if (!hit) { mortarAim = null; return; }
+  const x = cam.x + cam.fx * hit.t, z = cam.z + cam.fz * hit.t, d = Math.hypot(x - mt.wx, z - mt.wz);
+  mortarAim = { x, z, y: sim.floorH(x, z), d, ok: d >= def.minRange && d <= def.range };
+}
+function tryMortarFire(mt) {
+  if (!mortarAim || timeNow < mortarReady) return;
+  if (!mortarAim.ok) { if (timeNow > (mortarAim.warnT || 0)) { toast(`超出射程：落点要在 ${TRAP.mortar.minRange}~${TRAP.mortar.range} 米之间`, true); mortarAim.warnT = timeNow + 1.5; } return; }
+  mortarReady = timeNow + TRAP.mortar.cd[mt.lv - 1] * TD.MORTAR_MAN.cd;
+  netCmd({ t: 'mfire', x: Math.round(mortarAim.x * 100) / 100, z: Math.round(mortarAim.z * 100) / 100 }, r => {
+    if (r.ok) { mortarReady = timeNow + (r.cd || 0); shake(0.2); }
+    else { mortarReady = timeNow + (r.cd || 0.3); if (r.reason) toast(r.reason, true); }
+  });
+}
+function drawMortarAim(mt) {
+  if (!mortarAim) return;
+  const a = mortarAim, gc = a.ok ? (timeNow >= mortarReady ? [0.4, 1, 0.55] : [1, 0.8, 0.3]) : [1, 0.3, 0.3], R = TRAP.mortar.splash;
+  E.push('ring', a.x, a.y + 0.06, a.z, timeNow, R, 1, R, c(gc[0], gc[1], gc[2], 0.75, 1, 0, true));
+  E.push('ring', a.x, a.y + 0.06, a.z, -timeNow * 2, 0.6, 1, 0.6, c(gc[0], gc[1], gc[2], 0.9, 1, 0, true));
+  E.push('cyl', a.x, a.y + 1.5, a.z, 0, 0.05, 3, 0.05, c(gc[0], gc[1], gc[2], 0.5, 1, 0, true));
+  // 弹道预览
+  const x0 = mt.wx, y0 = mt.wy + 2.4, z0 = mt.wz, hgt = 4 + a.d * 0.35;
+  for (let i = 1; i < 14; i++) {
+    const f = i / 14, x = lerp(x0, a.x, f), z = lerp(z0, a.z, f), y = lerp(y0, a.y, f) + Math.sin(f * Math.PI) * hgt;
+    E.push('sphere', x, y, z, 0, 0.12, 0.12, 0.12, c(gc[0], gc[1], gc[2], 0.6, 1, 0, true));
+  }
+  // 射程圈
+  for (const r of [TRAP.mortar.minRange, TRAP.mortar.range]) E.push('ring', mt.wx, mt.wy + 0.08, mt.wz, 0, r, 1, r, c(1, 0.55, 0.2, 0.18, 1, 0, true));
 }
 function mountGatling(tr) {
   const p = sim.s.players[PID];
   const r = sim.setMount(p, tr.id);
   if (!r.ok) { toast(r.reason || '无法操控', true); Snd.play('deny'); return; }
   selectTool('gun'); mountMiss = 0;
-  cam.yaw = tr.aimYaw || cam.yaw; cam.pitch = 0;
+  cam.yaw = tr.aimYaw || cam.yaw; cam.pitch = tr.type === 'mortar' ? -0.45 : 0;
   Snd.play('build');
-  toast('已操控加特林炮塔 · 按住左键扫射 · F / 空格 离开');
+  toast(tr.type === 'mortar' ? '已操控等离子迫击炮 · 准星对准地面，左键开炮 · F / 空格 离开' : '已操控加特林炮塔 · 按住左键扫射 · F / 空格 离开');
 }
 function dismount() { const p = sim && sim.s.players[PID]; if (p && p.mount) { sim.setMount(p, 0); Snd.play('jump'); } }
 let mountMiss = 0;
@@ -8653,7 +8813,7 @@ function sendInput() {
   let turn = 0, look = 0;
   if (k.ArrowLeft) turn += 1; if (k.ArrowRight) turn -= 1; if (k.ArrowUp) look += 1; if (k.ArrowDown) look -= 1;
   cam.yaw += turn * 2.2 * STEP * settings.sens; cam.pitch = clamp(cam.pitch + look * 1.6 * STEP * settings.sens, -1.5, 1.5);
-  if (myMount()) cam.pitch = clamp(cam.pitch, -0.75, 0.9);
+  { const mt = myMount(); if (mt) cam.pitch = mt.type === 'mortar' ? clamp(cam.pitch, -1.25, 0.35) : clamp(cam.pitch, -0.75, 0.9); }
   let mx = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0), mz = (k.KeyW ? 1 : 0) - (k.KeyS ? 1 : 0);
   if (joy.on && (joy.x || joy.z)) { mx = joy.x; mz = joy.z; }
   const inp = {
@@ -9263,6 +9423,7 @@ function frame(now) {
   drawLabs(S, fxdt);
   if (mode !== 'menu') drawPings(dt);
   if (mode !== 'menu') { drawOtherPlayers(S, frameAlpha, dt); drawBuildOverlay(); }
+  { const mt = mode === 'play' && sim && myMount(); if (mt && mt.type === 'mortar') { updateMortarAim(mt); drawMortarAim(mt); if (mouse.l) tryMortarFire(mt); } else mortarAim = null; }
   if (mode === 'play' && aim && aim.trap && !(aim.slot && aim.can && aim.can.ok)) {
     const tr = aim.trap, yy = tr.kind === 'ceil' ? tr.wy - 0.05 : tr.wy + 0.05;
     if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, tr.wy - 1.45, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));

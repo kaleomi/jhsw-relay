@@ -777,6 +777,8 @@ const THEMES = {
 };
 // 室外：沙岩山体 + 傍晚天光
 THEMES.outdoor = { lane: [0.33, 0.29, 0.24], floor: [0.4, 0.37, 0.33], pad: [0.42, 0.34, 0.22], base: [0.25, 0.31, 0.34], spawn: [0.38, 0.18, 0.14], wall: [0.5, 0.4, 0.31], cornice: [0.36, 0.28, 0.21], ceil: [0.2, 0.2, 0.22], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.62, 0.66, 0.74], fogD: 0.0058, sky: [0.92, 0.9, 0.95], ground: [0.45, 0.37, 0.29], sun: [1.05, 0.88, 0.68] };
+// 赤岩峡谷：红褐色岩壁、暖色的黄昏雾气
+THEMES.canyon = { lane: [0.42, 0.28, 0.21], floor: [0.5, 0.37, 0.29], pad: [0.48, 0.33, 0.2], base: [0.25, 0.3, 0.34], spawn: [0.45, 0.17, 0.12], wall: [0.68, 0.36, 0.23], cornice: [0.45, 0.25, 0.17], ceil: [0.2, 0.18, 0.18], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.8, 0.62, 0.52], fogD: 0.0062, sky: [1.0, 0.86, 0.78], ground: [0.56, 0.35, 0.24], sun: [1.12, 0.8, 0.58] };
 const themeOf = S => THEMES[S.def.theme] || THEMES.station;
 function tileOf(S, x, z) { if (x < 0 || z < 0 || x >= S.W || z >= S.H) return TILE.WALL; return S.grid[z * S.W + x]; }
 function laneFrame(S, lane) {
@@ -1908,6 +1910,13 @@ function drawTrap(S, tr, ghost) {
       Q('box', 0, 0.3, 0, 3.8, 0.6, 3.8, tc(0.21, 0.22, 0.24));
       Q('box', 0, 0.62, 0, 3.4, 0.06, 3.4, tc(0.28, 0.27, 0.25));
       for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { Q('box', ox * 1.7, 0.66, oz * 1.7, 0.4, 0.1, 0.4, tc(1, 0.5, 0.2, 1)); Q('cyl', ox * 1.45, 0.95, oz * 1.45, 0.42, 0.6, 0.42, tc(0.3, 0.3, 0.32)); }
+      if (!GHOST && S.s.players[PID] && S.s.players[PID].mount === tr.id) {
+        // 自己在操控：只画观测台（炮管在脚下，挡视线）
+        Q('cyl', 0, 0.95, 0, 1.3, 0.6, 1.3, tc(0.26, 0.27, 0.3));
+        Q('ring', 0, 1.27, 0, 0.75, 1, 0.75, tc(1, 0.55, 0.2, 1));
+        lvPips(lv, 0, 0.65, 1.95, true);
+        break;
+      }
       const yaw = GHOST ? 0 : (tr.cAim || 0);
       TX.yaw = yaw; TX.cy = Math.cos(yaw); TX.sy = Math.sin(yaw);
       Q('cyl', 0, 0.85, 0, 2.2, 0.45, 2.2, tc(0.25, 0.26, 0.29));
@@ -2386,7 +2395,7 @@ function drawViewmodel(dt) {
   const sw = vm.switchT > 0 ? vm.switchT / 0.25 : 0;
   const W = WPN[p.wpn] || WPN.rifle;
   const reload = p.reloadT > 0 ? Math.sin(Math.min(1, (W.reload - p.reloadT) / W.reload) * Math.PI) : 0;
-  { const mt = myMount(); if (mt) { drawGatlingVM(p, mt, dt); E.setLayer(0); return; } }
+  { const mt = myMount(); if (mt) { if (mt.type === 'gatling') drawGatlingVM(p, mt, dt); E.setLayer(0); return; } }
   if (tool === 'gun' && W.id === 'sniper' && cam.ads > 0.85) { E.setLayer(0); vm.mz = [0, -0.05, -0.3]; return; }
   const bob = Math.sin(cam.bob * 2) * 0.006 * (1 - ads);
   const bx = lerp(0.2, 0.0, ads) + vm.swayX, by = lerp(-0.24, -0.135, ads) - sw * 0.3 - reload * 0.08 + vm.swayY + bob;
@@ -2957,6 +2966,14 @@ function handleEvents(S) {
         Snd.play('stomp', e.x, e.z, { range: 70 });
         break;
       }
+      case 'bossPhase': {
+        const m = S._mById.get(e.id), nm = m ? MON[m.type].name : 'BOSS';
+        if (e.phase === 2) { banner(`${nm} · 第二阶段`, '套上能量护盾并召唤护卫——电系陷阱、电磁炮破盾最快', true); feed(`${nm} 进入第二阶段：能量护盾 + 护卫`, 'bad'); }
+        else { banner(`${nm} · 狂暴`, '移动加快、技能冷却大幅缩短，再召唤一批护卫——全力输出！', true); feed(`${nm} 进入狂暴阶段！`, 'bad'); }
+        Snd.play('roar', e.x, e.z, { range: 120 }); Snd.play('boss'); shake(0.5);
+        rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: 12, t: 0, life: 0.7, c: e.phase === 2 ? [0.45, 0.88, 1] : [1, 0.3, 0.2] });
+        break;
+      }
       case 'enrage': feed('狂猩赛博格 进入狂暴！', 'bad'); Snd.play('roar', e.x, e.z, { range: 80 }); break;
       case 'phurt': if (e.pid === PID) { hurtFx = Math.min(1, hurtFx + e.dmg / 40); Snd.play('hurt'); dmgDir(e.sx, e.sz); shake(0.12); } break;
       case 'spawn': {
@@ -3261,7 +3278,12 @@ function updateHUD(dt) {
   }
   const boss = s.bossId ? s.monsters.find(m => m.id === s.bossId) : null;
   $('bossBar').hidden = !boss;
-  if (boss) { setStyle($('bossFill'), 'width', (boss.hp / boss.maxHp * 100).toFixed(1) + '%'); setText('bossNum', `${Math.ceil(boss.hp)}`); setText('bossName', MON[boss.type].name); }
+  if (boss) {
+    const r = boss.hp / boss.maxHp, ph = r <= 0.25 ? 3 : r <= 0.6 ? 2 : 1;
+    setStyle($('bossFill'), 'width', (r * 100).toFixed(1) + '%'); setText('bossNum', `${Math.ceil(boss.hp)}`);
+    setText('bossName', MON[boss.type].name + (ph === 3 ? ' · 狂暴' : ph === 2 ? ' · 第二阶段' : '') + (boss.shield > 0 ? ' · 护盾' : ''));
+    $('bossBar').classList.toggle('ph3', ph === 3);
+  }
   setText('goldNum', String(s.gold));
   setText('killNum', String(p ? p.kills : 0) + ' / ' + s.stats.kills);
   const nw = s.phase === 'build' && s.wave < sim.totalWaves() ? nextWaveHTML(s.wave + 1) : '';
@@ -3274,7 +3296,12 @@ function updateHUD(dt) {
     setText('hpNum', String(Math.ceil(p.hp)));
     setText('ammoNum', p.reloadT > 0 ? '装填' : String(p.ammo));
     const W = WPN[p.wpn] || WPN.rifle, mt = myMount();
-    if (mt) {
+    if (mt && mt.type === 'mortar') {
+      const left = mortarReady - timeNow;
+      setText('ammoNum', left > 0 ? left.toFixed(1) + 's' : '就绪');
+      setText('wpn', `等离子迫击炮 Lv${mt.lv} · F 离开`);
+      setText('magNum', '装填');
+    } else if (mt) {
       setText('ammoNum', p.overheat ? '过热' : Math.round((p.heat || 0) * 100) + '%');
       setText('wpn', `加特林炮塔 Lv${mt.lv} · F 离开`);
       setText('magNum', '热量');
@@ -3341,10 +3368,15 @@ function updateHUD(dt) {
   if (labOpen) { if (!lo || lo.kind !== 'term') toggleLab(false); else renderLab(); }
   // 加特林炮塔提示
   if (mode === 'play' && p && !p.dead) {
-    if (myMount()) { pr = p.overheat ? '枪管过热，正在冷却…' : '按住左键扫射（枪管转起来后射速更快）· F / 空格 离开炮塔'; prCls = p.overheat ? 'bad' : 'ok'; }
+    const mt = myMount();
+    if (mt && mt.type === 'mortar') {
+      const a = mortarAim;
+      pr = !a ? '准星对准地面选择落点' : !a.ok ? `落点 ${Math.round(a.d)} 米：超出射程（${TRAP.mortar.minRange}~${TRAP.mortar.range} 米）` : `落点 ${Math.round(a.d)} 米 · 左键开炮 · F / 空格 离开`;
+      prCls = a && a.ok ? 'ok' : 'bad';
+    } else if (mt) { pr = p.overheat ? '枪管过热，正在冷却…' : '按住左键扫射（枪管转起来后射速更快）· F / 空格 离开炮塔'; prCls = p.overheat ? 'bad' : 'ok'; }
     else if (tool === 'gun') {
       const g = nearGatling();
-      if (g) { const gp = sim.gunnerOf(g); pr = gp && gp.id !== PID ? `${gp.name} 正在操控这座加特林炮塔` : 'F 操控加特林炮塔：亲手扫射，对地对空都能打'; prCls = gp ? '' : 'ok'; }
+      if (g) { const gp = sim.gunnerOf(g), nm = TRAP[g.type].name; pr = gp && gp.id !== PID ? `${gp.name} 正在操控这座${nm}` : g.type === 'mortar' ? 'F 操控等离子迫击炮：亲手指定落点，冷却更短、伤害更高' : 'F 操控加特林炮塔：亲手扫射，对地对空都能打'; prCls = gp ? '' : 'ok'; }
     }
   }
   const tk = TD.TECH.map(t => sim.techLv(t.id)).join();
@@ -3717,22 +3749,55 @@ function nearDevice() {
 }
 /* ---------- 加特林炮塔：坐上去亲手扫射 ---------- */
 function myMount() { const p = sim && sim.s.players[PID]; return p && p.mount ? sim.mountOf(p) : null; }
-// 附近可以操控的加特林：优先准星对着的那座，其次最近的
+// 附近可以操控的炮塔（加特林 / 迫击炮）：优先准星对着的那座，其次最近的
 function nearGatling() {
   const p = sim && sim.s.players[PID]; if (!p || p.dead) return null;
-  if (aim && aim.trap && aim.trap.type === 'gatling' && Math.hypot(aim.trap.wx - p.x, aim.trap.wz - p.z) <= 3.2) return aim.trap;
-  let best = null, bd = 3.2;
-  for (const tr of sim.s.traps) if (tr.type === 'gatling') { const d = Math.hypot(tr.wx - p.x, tr.wz - p.z); if (d < bd) { bd = d; best = tr; } }
+  const MT = TD.MOUNTABLE, reach = tr => MT[tr.type] ? MT[tr.type].reach : -1;
+  if (aim && aim.trap && Math.hypot(aim.trap.wx - p.x, aim.trap.wz - p.z) <= reach(aim.trap)) return aim.trap;
+  let best = null, bd = 1e9;
+  for (const tr of sim.s.traps) { const d = Math.hypot(tr.wx - p.x, tr.wz - p.z); if (d <= reach(tr) && d - reach(tr) < bd) { bd = d - reach(tr); best = tr; } }
   return best;
+}
+// 迫击炮落点：准星射线打到的地面
+let mortarAim = null, mortarReady = 0;
+function updateMortarAim(mt) {
+  const def = TRAP.mortar, hit = sim.raycast(cam.x, cam.y, cam.z, cam.fx, cam.fy, cam.fz, def.range + 20);
+  if (!hit) { mortarAim = null; return; }
+  const x = cam.x + cam.fx * hit.t, z = cam.z + cam.fz * hit.t, d = Math.hypot(x - mt.wx, z - mt.wz);
+  mortarAim = { x, z, y: sim.floorH(x, z), d, ok: d >= def.minRange && d <= def.range };
+}
+function tryMortarFire(mt) {
+  if (!mortarAim || timeNow < mortarReady) return;
+  if (!mortarAim.ok) { if (timeNow > (mortarAim.warnT || 0)) { toast(`超出射程：落点要在 ${TRAP.mortar.minRange}~${TRAP.mortar.range} 米之间`, true); mortarAim.warnT = timeNow + 1.5; } return; }
+  mortarReady = timeNow + TRAP.mortar.cd[mt.lv - 1] * TD.MORTAR_MAN.cd;
+  netCmd({ t: 'mfire', x: Math.round(mortarAim.x * 100) / 100, z: Math.round(mortarAim.z * 100) / 100 }, r => {
+    if (r.ok) { mortarReady = timeNow + (r.cd || 0); shake(0.2); }
+    else { mortarReady = timeNow + (r.cd || 0.3); if (r.reason) toast(r.reason, true); }
+  });
+}
+function drawMortarAim(mt) {
+  if (!mortarAim) return;
+  const a = mortarAim, gc = a.ok ? (timeNow >= mortarReady ? [0.4, 1, 0.55] : [1, 0.8, 0.3]) : [1, 0.3, 0.3], R = TRAP.mortar.splash;
+  E.push('ring', a.x, a.y + 0.06, a.z, timeNow, R, 1, R, c(gc[0], gc[1], gc[2], 0.75, 1, 0, true));
+  E.push('ring', a.x, a.y + 0.06, a.z, -timeNow * 2, 0.6, 1, 0.6, c(gc[0], gc[1], gc[2], 0.9, 1, 0, true));
+  E.push('cyl', a.x, a.y + 1.5, a.z, 0, 0.05, 3, 0.05, c(gc[0], gc[1], gc[2], 0.5, 1, 0, true));
+  // 弹道预览
+  const x0 = mt.wx, y0 = mt.wy + 2.4, z0 = mt.wz, hgt = 4 + a.d * 0.35;
+  for (let i = 1; i < 14; i++) {
+    const f = i / 14, x = lerp(x0, a.x, f), z = lerp(z0, a.z, f), y = lerp(y0, a.y, f) + Math.sin(f * Math.PI) * hgt;
+    E.push('sphere', x, y, z, 0, 0.12, 0.12, 0.12, c(gc[0], gc[1], gc[2], 0.6, 1, 0, true));
+  }
+  // 射程圈
+  for (const r of [TRAP.mortar.minRange, TRAP.mortar.range]) E.push('ring', mt.wx, mt.wy + 0.08, mt.wz, 0, r, 1, r, c(1, 0.55, 0.2, 0.18, 1, 0, true));
 }
 function mountGatling(tr) {
   const p = sim.s.players[PID];
   const r = sim.setMount(p, tr.id);
   if (!r.ok) { toast(r.reason || '无法操控', true); Snd.play('deny'); return; }
   selectTool('gun'); mountMiss = 0;
-  cam.yaw = tr.aimYaw || cam.yaw; cam.pitch = 0;
+  cam.yaw = tr.aimYaw || cam.yaw; cam.pitch = tr.type === 'mortar' ? -0.45 : 0;
   Snd.play('build');
-  toast('已操控加特林炮塔 · 按住左键扫射 · F / 空格 离开');
+  toast(tr.type === 'mortar' ? '已操控等离子迫击炮 · 准星对准地面，左键开炮 · F / 空格 离开' : '已操控加特林炮塔 · 按住左键扫射 · F / 空格 离开');
 }
 function dismount() { const p = sim && sim.s.players[PID]; if (p && p.mount) { sim.setMount(p, 0); Snd.play('jump'); } }
 let mountMiss = 0;
@@ -4075,7 +4140,7 @@ function sendInput() {
   let turn = 0, look = 0;
   if (k.ArrowLeft) turn += 1; if (k.ArrowRight) turn -= 1; if (k.ArrowUp) look += 1; if (k.ArrowDown) look -= 1;
   cam.yaw += turn * 2.2 * STEP * settings.sens; cam.pitch = clamp(cam.pitch + look * 1.6 * STEP * settings.sens, -1.5, 1.5);
-  if (myMount()) cam.pitch = clamp(cam.pitch, -0.75, 0.9);
+  { const mt = myMount(); if (mt) cam.pitch = mt.type === 'mortar' ? clamp(cam.pitch, -1.25, 0.35) : clamp(cam.pitch, -0.75, 0.9); }
   let mx = (k.KeyD ? 1 : 0) - (k.KeyA ? 1 : 0), mz = (k.KeyW ? 1 : 0) - (k.KeyS ? 1 : 0);
   if (joy.on && (joy.x || joy.z)) { mx = joy.x; mz = joy.z; }
   const inp = {
@@ -4685,6 +4750,7 @@ function frame(now) {
   drawLabs(S, fxdt);
   if (mode !== 'menu') drawPings(dt);
   if (mode !== 'menu') { drawOtherPlayers(S, frameAlpha, dt); drawBuildOverlay(); }
+  { const mt = mode === 'play' && sim && myMount(); if (mt && mt.type === 'mortar') { updateMortarAim(mt); drawMortarAim(mt); if (mouse.l) tryMortarFire(mt); } else mortarAim = null; }
   if (mode === 'play' && aim && aim.trap && !(aim.slot && aim.can && aim.can.ok)) {
     const tr = aim.trap, yy = tr.kind === 'ceil' ? tr.wy - 0.05 : tr.wy + 0.05;
     if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, tr.wy - 1.45, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));

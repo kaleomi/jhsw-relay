@@ -71,6 +71,10 @@ button { font: inherit; color: inherit; }
 #bossBar .lbl span { color: #ff6ad9; font-family: var(--f-disp); font-size: 18px; letter-spacing: .1em; }
 #bossBar .bar { height: 12px; }
 #bossBar .bar i { background: linear-gradient(90deg, #a01c6f, #ff3df0); box-shadow: 0 0 14px #ff3df0; }
+#bossBar .bar { position: relative; }
+#bossBar .bar::before, #bossBar .bar::after { content: ''; position: absolute; top: -2px; bottom: -2px; width: 2px; background: rgba(255,255,255,.75); z-index: 2; }
+#bossBar .bar::before { left: 60%; } #bossBar .bar::after { left: 25%; }
+#bossBar.ph3 .bar i { background: linear-gradient(90deg, #a0161c, #ff5a3d); box-shadow: 0 0 16px #ff4a2d; animation: tcBlink .5s infinite alternate; }
 
 #feed { position: absolute; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; width: min(330px, 34vw); display: grid; gap: 4px; }
 #feed .f { font-size: 12.5px; line-height: 1.45; padding: 4px 9px; background: var(--panel); border-left: 2px solid var(--line); transition: opacity .6s, transform .6s; }
@@ -878,7 +882,8 @@ body.touch .mpRow input { padding: 10px; }
       <section data-htab="trap"><div class="tblWrap"><table id="trapTable"></table></div>
     <p class="fine">地面陷阱只能放在怪物通道上，对飞行怪无效；墙壁陷阱的光束会横贯整个通道；岗哨机枪和防空导弹可以放在地上琥珀色框出的 2×2 炮台位（视野开阔）、炮台位和空地上，也可以直接放在怪物通道上——放在通道上会挡住经过的怪物，怪物会停下来攻击它（有耐久，会慢慢自我修复）。每个陷阱可升到 Lv4。布防阶段拆除全额返还，战斗中返还 80%。</p>
     <p class="fine"><b>加特林炮塔（按 [ 选择）</b>放在炮台位或空地上，没人时会自动扫射（火力较弱）；走到旁边按 F 坐上去亲手操控：按住左键先转管预热，转速起来后每秒 20 发，对地对空随意扫射，伤害随炮塔等级提升。连续开火约 5 秒会过热，要松手等枪管冷却（进阶「液冷枪管」不会过热）。再按 F 或空格离开。</p>
-    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine"><b>重型陷阱（按 0 / - / = 选择）</b>占地 2×2：轨道电磁炮和等离子迫击炮最适合放在地上琥珀色框出的 2×2 炮台位上（也能放在 2×2 的空地上）；碎骨绞盘铺在通道上 2×2 的位置。等离子迫击炮也可以走到旁边按 F 亲手操控：站上观测台，用准星在地上选落点，左键开炮（冷却缩短到 55%，伤害 ×1.15），适合追着精英和坦克打。它们贵，但对精英、BOSS、重甲和成群的怪效果最好。</p>
+    <p class="fine"><b>BOSS 分阶段</b>：BOSS 血量降到 60% 时进入第二阶段，会怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫；降到 25% 时进入狂暴，移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>
     </section>
       <section data-htab="evo" hidden><div class="tblWrap"><table id="evoTable"></table></div>
     <ul id="comboList" class="comboList"></ul>
