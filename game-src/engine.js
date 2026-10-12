@@ -127,29 +127,123 @@ const FS = `#version 300 es
 precision highp float;
 in vec3 vW; in vec3 vN; in vec4 vCol; in vec4 vPar; in vec3 vL;
 uniform vec3 uEye; uniform vec3 uSky; uniform vec3 uGround; uniform vec3 uSunDir; uniform vec3 uSunCol;
-uniform vec3 uFogCol; uniform float uFogD; uniform int uNL; uniform float uEmit;
+uniform vec3 uFogCol; uniform float uFogD; uniform int uNL; uniform float uEmit; uniform float uDetail;
 uniform vec4 uLP[12]; uniform vec3 uLC[12];
 out vec4 o;
+/* ---- 程序化纹理：值噪声 / 分形噪声 ---- */
+float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
+float vn(vec2 p) {
+  vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(h21(i), h21(i + vec2(1.0, 0.0)), f.x), mix(h21(i + vec2(0.0, 1.0)), h21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float fbm(vec2 p) {
+  float a = 0.5, s = 0.0;
+  for (int i = 0; i < 4; i++) { if (float(i) >= 1.0 + uDetail * 3.0) break; s += a * vn(p); p = p * 2.03 + 17.1; a *= 0.5; }
+  return s / (1.0 - pow(0.5, 1.0 + uDetail * 3.0));
+}
+float seamLine(float v, float w) { float g = abs(fract(v) - 0.5); return smoothstep(0.5 - w, 0.5, g); }
 void main(){
   vec3 N = normalize(vN);
   if (!gl_FrontFacing) N = -N;
   vec3 base = vCol.rgb;
   vec3 V = normalize(uEye - vW);
-  vec3 lit = mix(uGround, uSky, N.y * 0.5 + 0.5);
-  lit += uSunCol * max(dot(N, -uSunDir), 0.0);
+  float m = vPar.z;
+  /* 天空穹顶：不受光照，按视线方向做渐变 + 太阳光晕 */
+  if (m > 17.5) {
+    vec3 d = -V;
+    float up = clamp(d.y, -0.2, 1.0);
+    vec3 col = mix(uFogCol, uSky * vec3(0.55, 0.68, 0.95), smoothstep(0.0, 0.55, up));
+    col = mix(col, uFogCol * 0.8, smoothstep(0.0, -0.2, up));
+    float sd = max(dot(d, -uSunDir), 0.0);
+    col += uSunCol * (pow(sd, 400.0) * 3.0 + pow(sd, 18.0) * 0.35);
+    float cl = fbm(d.xz / max(d.y + 0.15, 0.08) * 1.6) * smoothstep(0.02, 0.3, up);
+    col = mix(col, vec3(1.0, 0.96, 0.92) * (0.75 + 0.3 * sd), smoothstep(0.55, 0.85, cl) * 0.55);
+    o = vec4(col, 1.0); return;
+  }
+  // 平面投影的世界坐标纹理坐标（物体基本都是轴对齐的）
+  vec3 aN = abs(N);
+  vec2 uv = aN.y > 0.6 ? vW.xz : (aN.x > aN.z ? vW.zy : vW.xy);
+  float spec = 0.12, shin = 24.0, ao = 1.0;
+  vec3 bump = vec3(0.0);
+  if (m > 9.5) {
+    float g1 = fbm(uv * 0.55), n2 = vn(uv * 7.0);
+    if (m < 10.5) {          // 10 金属地板：拼板 + 防滑纹 + 划痕 + 污渍
+      float s1 = max(seamLine(uv.x / 1.2, 0.02), seamLine(uv.y / 1.2, 0.02));
+      vec2 q = uv * 9.0; float tread = step(0.82, abs(sin(q.x + q.y) * sin(q.x - q.y)));
+      float scr = smoothstep(0.93, 1.0, vn(vec2(uv.x * 0.6, uv.y * 22.0))) * 0.5 + smoothstep(0.95, 1.0, vn(vec2(uv.x * 25.0, uv.y * 0.5))) * 0.4;
+      base *= (0.78 + 0.32 * g1) * (1.0 - s1 * 0.55) * (1.0 + tread * 0.12) * (1.0 + scr * 0.35 * uDetail);
+      spec = 0.55 * (0.6 + 0.4 * g1); shin = 48.0;
+    } else if (m < 11.5) {   // 11 混凝土 / 地砖：大块砖缝 + 斑点 + 裂纹
+      float s1 = max(seamLine(uv.x / 2.4, 0.012), seamLine(uv.y / 2.4, 0.012));
+      float crack = smoothstep(0.007, 0.0, abs(fbm(uv * 0.7 + 3.0) - 0.5)) * uDetail * step(0.55, vn(uv * 0.21));
+      base *= (0.82 + 0.26 * g1) * (0.94 + 0.12 * n2) * (1.0 - s1 * 0.4) * (1.0 - crack * 0.16);
+      spec = 0.08;
+    } else if (m < 12.5) {   // 12 墙板：竖向板材 + 横缝 + 铆钉 + 底部积灰
+      float py = vW.y;
+      float sx = seamLine(uv.x / 1.2, 0.015), sy = seamLine(py / 1.6, 0.02);
+      vec2 rq = vec2(fract(uv.x / 1.2), fract(py / 1.6));
+      float riv = smoothstep(0.045, 0.02, length(vec2(min(rq.x, 1.0 - rq.x) * 1.2, (min(rq.y, 1.0 - rq.y)) * 1.6) - vec2(0.09, 0.09)));
+      float streak = vn(vec2(uv.x * 3.0, py * 0.25)) * smoothstep(3.0, 0.0, py);
+      base *= (0.84 + 0.22 * g1) * (1.0 - max(sx, sy) * 0.5) * (1.0 + riv * 0.5) * (1.0 - streak * 0.25 * uDetail);
+      ao = mix(0.55, 1.0, smoothstep(0.0, 1.4, py));
+      spec = 0.32; shin = 32.0;
+    } else if (m < 13.5) {   // 13 岩石：沉积层 + 颜色斑驳 + 凹凸
+      float w = fbm(uv * 0.35);
+      float strata = sin(vW.y * 2.6 + w * 6.0);
+      base *= (0.78 + 0.3 * g1) * (0.9 + 0.12 * strata) * (0.95 + 0.1 * n2);
+      float e = 0.15, f0 = fbm(uv * 1.3);
+      vec2 grad = vec2(fbm(uv * 1.3 + vec2(e, 0.0)) - f0, fbm(uv * 1.3 + vec2(0.0, e)) - f0) / e;
+      bump = vec3(grad.x, 0.0, grad.y) * 0.6 * uDetail;
+      spec = 0.05;
+    } else if (m < 14.5) {   // 14 沙土地面：颗粒 + 碎石
+      vec2 c = floor(uv * 3.0); vec2 f = fract(uv * 3.0) - 0.5;
+      float peb = smoothstep(0.18, 0.1, length(f - (vec2(h21(c), h21(c + 7.0)) - 0.5) * 0.6)) * step(0.6, h21(c + 3.0));
+      base *= (0.8 + 0.3 * g1) * (0.9 + 0.2 * vn(uv * 18.0)) * (1.0 - peb * 0.3 * uDetail);
+      spec = 0.04;
+    } else if (m < 15.5) {   // 15 钢格栅：条形镂空
+      float bar = seamLine(uv.x / 0.24, 0.2);
+      float rim2 = max(seamLine(uv.x / 1.2, 0.03), seamLine(uv.y / 1.2, 0.03));
+      base *= mix(0.62, 0.9, max(bar, rim2)) * (0.85 + 0.2 * g1);
+      spec = 0.12; shin = 24.0;
+    } else if (m < 16.5) {   // 16 警示条纹（黄黑斜纹）
+      float st = step(0.5, fract((uv.x + uv.y) * 1.4));
+      base = mix(vec3(0.08, 0.08, 0.09), base, st) * (0.85 + 0.2 * g1);
+      spec = 0.25;
+    } else {                 // 17 天花板：方格吊顶
+      float s1 = max(seamLine(uv.x / 1.2, 0.04), seamLine(uv.y / 1.2, 0.04));
+      base *= (0.8 + 0.25 * g1) * (1.0 - s1 * 0.5);
+      spec = 0.1;
+    }
+    if (dot(bump, bump) > 0.0) {
+      // 把凹凸梯度投到法线所在平面
+      vec3 t = aN.y > 0.6 ? vec3(bump.x, 0.0, bump.z) : (aN.x > aN.z ? vec3(0.0, bump.z, bump.x) : vec3(bump.x, bump.z, 0.0));
+      N = normalize(N - t + N * dot(N, t));
+    }
+  } else if (vPar.z > 0.0) {
+    vec3 g = abs(fract(vL * vPar.z + 0.5) - 0.5);
+    float seam = smoothstep(0.47, 0.5, max(g.x, g.z));
+    base *= (1.0 - seam * 0.35) * (0.92 + 0.12 * vn(vL.xz * 5.0 + vL.y * 3.0));
+    spec = 0.25;
+  } else if (vPar.x < 0.5 && vCol.a > 0.99) {
+    // 普通模型：按模型局部坐标加一点磨损 / 斑驳（跟着物体走，不会“游动”）
+    base *= 0.9 + 0.14 * vn(vL.xz * 7.0 + vL.y * 5.0) * (0.4 + 0.6 * uDetail);
+    spec = 0.2;
+  }
+  vec3 lit = mix(uGround, uSky, N.y * 0.5 + 0.5) * ao;
+  float ndl = max(dot(N, -uSunDir), 0.0);
+  lit += uSunCol * ndl;
+  vec3 H = normalize(V - uSunDir);
+  vec3 sp = uSunCol * pow(max(dot(N, H), 0.0), shin) * spec * step(0.0, ndl);
   for (int i = 0; i < 12; i++) {
     if (i >= uNL) break;
     vec3 L = uLP[i].xyz - vW; float d = length(L);
     float a = clamp(1.0 - d / uLP[i].w, 0.0, 1.0); a *= a;
-    lit += uLC[i] * a * (max(dot(N, L / max(d, 0.001)), 0.0) * 0.8 + 0.2);
+    vec3 Ld = L / max(d, 0.001);
+    lit += uLC[i] * a * (max(dot(N, Ld), 0.0) * 0.8 + 0.2);
+    sp += uLC[i] * a * pow(max(dot(N, normalize(Ld + V)), 0.0), shin) * spec * 1.4;
   }
   float rim = pow(1.0 - max(dot(N, V), 0.0), 3.0);
-  vec3 col = base * lit + base * rim * 0.22;
-  if (vPar.z > 0.0) {
-    vec3 g = abs(fract(vL * vPar.z + 0.5) - 0.5);
-    float seam = smoothstep(0.47, 0.5, max(g.x, g.z));
-    col *= 1.0 - seam * 0.35;
-  }
+  vec3 col = base * lit + base * rim * 0.18 + sp;
   col = mix(col, base * uEmit, min(vPar.x, 1.0));
   col += vec3(vPar.y);
   float dist = length(vW - uEye);
@@ -217,7 +311,7 @@ function program(gl, vs, fs, names) {
 function create(canvas) {
   const gl = canvas.getContext('webgl2', { antialias: true, alpha: false, powerPreference: 'high-performance' });
   if (!gl) return null;
-  const main = program(gl, VS, FS, ['uVP', 'uEye', 'uSky', 'uGround', 'uSunDir', 'uSunCol', 'uFogCol', 'uFogD', 'uNL', 'uLP', 'uLC', 'uBones', 'uEmit']);
+  const main = program(gl, VS, FS, ['uVP', 'uEye', 'uSky', 'uGround', 'uSunDir', 'uSunCol', 'uFogCol', 'uFogD', 'uNL', 'uLP', 'uLC', 'uBones', 'uEmit', 'uDetail']);
   const U = main.U;
   const halfOK = !!gl.getExtension('EXT_color_buffer_float') || !!gl.getExtension('EXT_color_buffer_half_float');
   let post = null;
@@ -266,7 +360,7 @@ function create(canvas) {
     geoms[name] = { name, vao, ib, count: n, indexed: false, tex: dummyTex };
     GN.push(name);
   }
-  const defs = { box: geoBox(), cyl: geoCyl(14), cone: geoCyl(14, 0), sphere: geoSphere(8, 14), oct: geoOct(), ring: geoRing(48, 0.9), disc: geoDisc(24), frustum: geoCyl(10, 0.32) };
+  const defs = { box: geoBox(), cyl: geoCyl(18), cone: geoCyl(18, 0), sphere: geoSphere(10, 18), oct: geoOct(), ring: geoRing(48, 0.9), disc: geoDisc(24), frustum: geoCyl(10, 0.32) };
   for (const name in defs) addPrimitive(name, defs[name]);
 
   // 外部网格：{pos Float32Array, nrm Int8Array(4/顶点), col Uint8Array(4), jnt Uint8Array(4), wgt Uint8Array(4), idx, bones Uint16Array(half), nb, nf}
@@ -443,6 +537,7 @@ function create(canvas) {
     gl.uniform3fv(U.uSunDir, cam.sunDir); gl.uniform3fv(U.uSunCol, cam.sunCol); gl.uniform3fv(U.uFogCol, cam.fog);
     gl.uniform1f(U.uFogD, cam.fogD);
     gl.uniform1f(U.uEmit, usePost ? 2.4 : 1.5);
+    gl.uniform1f(U.uDetail, cam.detail === undefined ? 1 : cam.detail);
     gl.uniform1i(U.uBones, 0); gl.activeTexture(gl.TEXTURE0);
     const nl = Math.min(12, cam.lights.length);
     for (let i = 0; i < nl; i++) {

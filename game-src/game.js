@@ -787,7 +787,7 @@ function buildPlatforms(S) {
     const H = PLAT_H;
     // 抬高的甲板：深色底座 + 金属台面 + 侧面警示灯带
     E.push('box', cx, G + H / 2 - 0.02, cz, 0, L * 1.0, H - 0.04, L * 1.0, col(0.14, 0.15, 0.17, 1, 0, 0, 2));
-    E.push('box', cx, G + H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.22, 0.23, 0.26, 1, 0, 0, 2));
+    E.push('box', cx, G + H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.34, 0.35, 0.38, 1, 0, 0, 15));
     const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35), SIDE = col(1, 0.55, 0.12, 1, 1.1);
     for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, G + H + 0.02, ez, 0, sx, 0.05, sz, AMB);
     for (const [ex, ez, sx, sz] of [[cx, z0 - 0.005, L * 0.92, 0.02], [cx, z0 + L + 0.005, L * 0.92, 0.02], [x0 - 0.005, cz, 0.02, L * 0.92], [x0 + L + 0.005, cz, 0.02, L * 0.92]]) E.push('box', ex, G + H * 0.5, ez, 0, sx, 0.06, sz, SIDE);
@@ -856,14 +856,19 @@ function buildTerrainStatic(S) {
   // 远景：大地、远山、太阳
   E.push('box', CX, -0.45, CZ, 0, RR * 6, 0.5, RR * 6, C3(TH.ground));
   for (let i = 0; i < 34; i++) {
-    const a = i / 34 * Math.PI * 2 + hash(i, 7) * 0.2, r = RR * (0.95 + hash(i, 3) * 0.7), h = 18 + hash(i, 5) * 34, w = 30 + hash(i, 9) * 40;
+    const a = i / 34 * Math.PI * 2 + hash(i, 7) * 0.2, r = RR * (0.95 + hash(i, 3) * 0.7), h = 16 + hash(i, 5) * 30, w = 70 + hash(i, 9) * 60;
     const k = 0.75 + hash(i, 11) * 0.25;
-    E.push('cone', CX + Math.cos(a) * r, h / 2 - 1, CZ + Math.sin(a) * r, a, w, h, w, col(TH.wall[0] * k * 0.8, TH.wall[1] * k * 0.8, TH.wall[2] * k * 0.85));
+    E.push('cone', CX + Math.cos(a) * r, h / 2 - 1, CZ + Math.sin(a) * r, a, w, h, w, col(TH.wall[0] * k * 0.8, TH.wall[1] * k * 0.8, TH.wall[2] * k * 0.85, 1, 0, 0, 13));
+    // 旁边再叠一两座矮峰，打破锥形轮廓
+    for (let j = 0; j < 2; j++) {
+      const a2 = a + (j ? 1 : -1) * (0.03 + hash(i, 13 + j) * 0.05), r2 = r * (0.97 + hash(i, 17 + j) * 0.1), h2 = h * (0.45 + hash(i, 19 + j) * 0.35), w2 = w * (0.7 + hash(i, 23 + j) * 0.4);
+      E.push('cone', CX + Math.cos(a2) * r2, h2 / 2 - 1, CZ + Math.sin(a2) * r2, a2 * 3, w2, h2, w2, col(TH.wall[0] * k * 0.7, TH.wall[1] * k * 0.7, TH.wall[2] * k * 0.75, 1, 0, 0, 13));
+    }
   }
   E.push('sphere', CX - 0.45 * RR * 3, RR * 1.3, CZ - 0.5 * RR * 3, 0, 40, 40, 40, c(1, 0.85, 0.6, 1, 1, 0, false, true));
-  const FL = { [TILE.LANE]: C3(TH.lane, 0, 2), [TILE.FLOOR]: C3(TH.floor, 0, 2), [TILE.PAD]: C3(TH.pad, 0, 2), [TILE.BASE]: C3(TH.base, 0, 2), [TILE.SPAWN]: C3(TH.spawn, 0, 2) };
+  const FL = { [TILE.LANE]: C3(TH.lane, 0, 14), [TILE.FLOOR]: C3(TH.floor, 0, 11), [TILE.PAD]: C3(TH.pad, 0, 11), [TILE.BASE]: C3(TH.base, 0, 10), [TILE.SPAWN]: C3(TH.spawn, 0, 14) };
   const TRIM = C3(TH.trim, 1), UPPER = C3(TH.upper, 0.75), LAMP = C3(TH.lamp, 1);
-  const CLIFF = k => col(TH.wall[0] * k, TH.wall[1] * k, TH.wall[2] * k, 1, 0, 0, 0);
+  const CLIFF = k => col(TH.wall[0] * k, TH.wall[1] * k, TH.wall[2] * k, 1, 0, 0, 13);
   const tH = (x, z) => S.tileH(x, z);
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
     const t = tileOf(S, x, z), cx = (x + 0.5) * T, cz = (z + 0.5) * T, i = z * W + x;
@@ -893,7 +898,9 @@ function buildTerrainStatic(S) {
       if (t !== TILE.LANE) for (let k = 1; k < 4; k++) { const f = k / 4, y = hl + (hh - hl) * f; E.push('box', cx + d[0] * T * (f - 0.5), y + 0.012, cz + d[1] * T * (f - 0.5), 0, d[0] ? 0.06 : T * 0.9, 0.02, d[1] ? 0.06 : T * 0.9, col(1, 0.62, 0.2, 1, 0.5)); }
     } else {
       const h = tH(x, z);
-      E.push('box', cx, (h - 0.25) / 2, cz, 0, T * 0.985, h + 0.25, T * 0.985, FL[t]);
+      // 高台：下面是岩石 / 挡土墙，上面一层地面材质
+      if (h > 0.5) { E.push('box', cx, (h - 0.25 - 0.2) / 2, cz, 0, T, h + 0.05, T, t === TILE.LANE ? CLIFF(0.9) : col(0.36, 0.35, 0.34, 1, 0, 0, 11)); E.push('box', cx, h - 0.1, cz, 0, T * 0.995, 0.2, T * 0.995, FL[t]); }
+      else E.push('box', cx, (h - 0.25) / 2, cz, 0, T * 0.995, h + 0.25, T * 0.995, FL[t]);
       // 崖边：比旁边高出 1 米以上时，顶上加一圈石沿和灯带
       for (let dd = 0; dd < 4; dd++) {
         const nx = x + DIRS[dd][0], nz = z + DIRS[dd][1];
@@ -913,7 +920,7 @@ function buildTerrainStatic(S) {
     if (S.deck.has(i)) {
       const DH = S.DECK_H, DB = S.DECK_B;
       E.push('box', cx, (DH + DB) / 2, cz, 0, T, DH - DB, T, col(0.3, 0.31, 0.34, 1, 0, 0, 2));
-      E.push('box', cx, DH + 0.005, cz, 0, T * 0.96, 0.01, T * 0.96, C3(TH.floor, 0, 2));
+      E.push('box', cx, DH + 0.005, cz, 0, T * 0.99, 0.01, T * 0.99, col(0.3, 0.31, 0.34, 1, 0, 0, 15));
       E.push('box', cx, DB - 0.12, cz, 0, T, 0.24, 0.3, col(0.22, 0.23, 0.26));
       E.push('box', cx, DB - 0.12, cz, 0, 0.3, 0.24, T, col(0.22, 0.23, 0.26));
       if ((x + z) % 2 === 0) E.push('box', cx + T * 0.25, DB - 0.02, cz + T * 0.25, 0, T * 0.4, 0.04, 0.12, LAMP);
@@ -925,6 +932,43 @@ function buildTerrainStatic(S) {
         E.push('box', fx, DH + 0.5, fz, 0, alongX ? T : 0.04, 0.04, alongX ? 0.04 : T, col(0.4, 0.42, 0.46));
         for (const o of [-0.45, 0.45]) E.push('box', fx + (alongX ? o * T : 0), DH + 0.5, fz + (alongX ? 0 : o * T), 0, 0.08, 1.0, 0.08, col(0.35, 0.36, 0.4));
         E.push('box', fx, DB - 0.05, fz, 0, alongX ? T : 0.04, 0.05, alongX ? 0.04 : T, UPPER);
+      }
+    }
+    // 外场小道具：靠崖壁的空地摆物资箱 / 油桶 / 碎石，通道边缘撒些碎石（只是装饰，不挡路）
+    if (ri === undefined && !S.deck.has(i)) {
+      const h0 = tH(x, z);
+      if (t === TILE.FLOOR) {
+        let wd = -1;
+        for (let dd = 0; dd < 4; dd++) if (S.wallSide(x, z, dd)) { wd = dd; break; }
+        const r0 = hash(x * 3 + 1, z * 5 + 2);
+        if (wd >= 0 && r0 > 0.45) {
+          const d = DIRS[wd], px = cx + d[0] * (T * 0.5 - 0.5) + (d[1] ? (r0 - 0.7) * 1.2 : 0), pz = cz + d[1] * (T * 0.5 - 0.5) + (d[0] ? (r0 - 0.7) * 1.2 : 0);
+          const kind = Math.floor(hash(x + 11, z + 13) * 3);
+          if (kind === 0) {
+            const cc = col(0.42, 0.36, 0.24, 1, 0, 0, 4), rot = r0 * 0.6;
+            E.push('box', px, h0 + 0.4, pz, rot, 0.8, 0.8, 0.8, cc);
+            E.push('box', px, h0 + 0.4, pz, rot, 0.84, 0.1, 0.84, col(0.25, 0.22, 0.16));
+            if (r0 > 0.7) E.push('box', px + 0.1, h0 + 1.1, pz - 0.05, rot + 0.4, 0.6, 0.6, 0.6, cc);
+          } else if (kind === 1) {
+            for (let k = 0; k < 2; k++) {
+              const bx = px + (d[1] ? (k - 0.5) * 0.65 : 0), bz = pz + (d[0] ? (k - 0.5) * 0.65 : 0);
+              const bc = k ? col(0.62, 0.22, 0.14, 1, 0, 0, 0) : col(0.2, 0.38, 0.5);
+              E.push('cyl', bx, h0 + 0.48, bz, 0, 0.56, 0.96, 0.56, bc);
+              E.push('cyl', bx, h0 + 0.3, bz, 0, 0.58, 0.05, 0.58, col(0.2, 0.2, 0.22));
+              E.push('cyl', bx, h0 + 0.68, bz, 0, 0.58, 0.05, 0.58, col(0.2, 0.2, 0.22));
+            }
+          } else {
+            E.push('oct', px, h0 + 0.35, pz, r0 * 4, 1.1, 0.8, 0.9, CLIFF(0.85));
+            E.push('oct', px + 0.55, h0 + 0.18, pz + 0.3, r0 * 7, 0.5, 0.4, 0.45, CLIFF(0.75));
+          }
+        }
+      }
+      if ((t === TILE.LANE || t === TILE.FLOOR) && hash(x + 21, z + 17) > 0.55) {
+        for (let k = 0; k < 3; k++) {
+          const u = hash(x * 7 + k, z * 3 + k * 5), v = hash(z * 7 + k * 3, x * 5 + k);
+          const sz = 0.12 + u * 0.18;
+          E.push('oct', cx + (u - 0.5) * T * 0.9, h0 + sz * 0.3, cz + (v - 0.5) * T * 0.9, u * 6, sz, sz * 0.6, sz * 0.8, CLIFF(0.7 + v * 0.2));
+        }
       }
     }
     if (t === TILE.PAD) {
@@ -943,14 +987,17 @@ function buildStatic(S) {
   const C3 = (a, emit, panel) => col(a[0], a[1], a[2], 1, emit || 0, 0, panel || 0);
   E.beginStatic();
   E.push('box', W * T / 2, -0.35, H * T / 2, 0, W * T, 0.5, H * T, col(0.02, 0.025, 0.035));
-  E.push('box', W * T / 2, WALL_H + 0.25, H * T / 2, 0, W * T, 0.5, H * T, C3(TH.ceil, 0, 2));
-  const FL = { [TILE.LANE]: C3(TH.lane, 0, 2), [TILE.FLOOR]: C3(TH.floor, 0, 2), [TILE.PAD]: C3(TH.pad, 0, 2), [TILE.BASE]: C3(TH.base, 0, 2), [TILE.SPAWN]: C3(TH.spawn, 0, 2) };
-  const WALLC = C3(TH.wall, 0, 2), CORN = C3(TH.cornice);
+  E.push('box', W * T / 2, WALL_H + 0.25, H * T / 2, 0, W * T, 0.5, H * T, C3(TH.ceil, 0, 17));
+  // 材质编号（见 engine.js 片元着色器）：10 金属地板 11 地砖 12 墙板 15 格栅 16 警示条
+  const FL = { [TILE.LANE]: C3(TH.lane, 0, 10), [TILE.FLOOR]: C3(TH.floor, 0, 11), [TILE.PAD]: C3(TH.pad, 0, 11), [TILE.BASE]: C3(TH.base, 0, 10), [TILE.SPAWN]: C3(TH.spawn, 0, 10) };
+  const WALLC = C3(TH.wall, 0, 12), CORN = C3(TH.cornice, 0, 12);
+  const PIPE = col(TH.cornice[0] * 1.6, TH.cornice[1] * 1.6, TH.cornice[2] * 1.6), PIPE2 = col(0.42, 0.36, 0.22), GRATE = col(0.3, 0.32, 0.36, 1, 0, 0, 15), HAZ = col(0.95, 0.72, 0.12, 1, 0, 0, 16);
+  const hsh = (x, z, k) => { let h = (x * 374761393 + z * 668265263 + k * 1274126177) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
   const TRIM = C3(TH.trim, 1), UPPER = C3(TH.upper, 0.75), LAMP = C3(TH.lamp, 1), REDSTRIP = col(1, 0.25, 0.25, 1, 1);
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
     const t = tileOf(S, x, z), cx = (x + 0.5) * T, cz = (z + 0.5) * T;
     if (t !== TILE.WALL) {
-      E.push('box', cx, -0.1, cz, 0, T * 0.965, 0.2, T * 0.965, FL[t]);
+      E.push('box', cx, -0.1, cz, 0, T * 0.995, 0.2, T * 0.995, FL[t]);
       if ((x * 7 + z * 3) % 4 === 0) E.push('box', cx, WALL_H - 0.03, cz, 0, T * 0.62, 0.06, T * 0.14, LAMP);
       for (let d = 0; d < 4; d++) {
         if (tileOf(S, x + DIRS[d][0], z + DIRS[d][1]) !== TILE.WALL) continue;
@@ -961,6 +1008,29 @@ function buildStatic(S) {
         if (t === TILE.SPAWN) E.push('box', fx, 0.2, fz, 0, sx, 0.07, sz, REDSTRIP);
         E.push('box', fx, 4.7, fz, 0, sx, 0.05, sz, UPPER);
         E.push('box', fx, WALL_H - 0.35, fz, 0, alongX ? T : 0.3, 0.7, alongX ? 0.3 : T, CORN);
+        // 墙面细节：踢脚板、贴墙管线、通风格栅、壁灯（贴墙薄片，不挡路）
+        const nx = -DIRS[d][0], nz = -DIRS[d][1], r = hsh(x, z, d);
+        E.push('box', fx + nx * 0.05, 0.12, fz + nz * 0.05, 0, alongX ? T : 0.1, 0.24, alongX ? 0.1 : T, CORN);
+        for (const [py, pr, pc] of [[3.75, 0.18, PIPE], [4.05, 0.12, PIPE2]]) {
+          const ox = fx + nx * (0.12 + pr * 0.5), oz = fz + nz * (0.12 + pr * 0.5);
+          E.pushR('cyl', ox, py, oz, 0, alongX ? 0 : Math.PI / 2, alongX ? Math.PI / 2 : 0, pr, T + 0.02, pr, pc);
+        }
+        if (r < 0.3) E.push('box', fx + nx * 0.04, 1.25, fz + nz * 0.04, 0, alongX ? 1.1 : 0.06, 0.6, alongX ? 0.06 : 1.1, GRATE);
+        else if (r < 0.5) {
+          E.push('box', fx + nx * 0.08, 2.9, fz + nz * 0.08, 0, alongX ? 0.7 : 0.14, 0.18, alongX ? 0.14 : 0.7, col(0.2, 0.22, 0.25));
+          E.push('box', fx + nx * 0.16, 2.86, fz + nz * 0.16, 0, alongX ? 0.6 : 0.02, 0.08, alongX ? 0.02 : 0.6, LAMP);
+        } else if (r < 0.62 && t !== TILE.LANE) {
+          // 墙边的设备柜
+          E.push('box', fx + nx * 0.3, 0.9, fz + nz * 0.3, 0, alongX ? 1.0 : 0.5, 1.8, alongX ? 0.5 : 1.0, col(0.24, 0.26, 0.3, 1, 0, 0, 2));
+          E.push('box', fx + nx * 0.56, 1.45, fz + nz * 0.56, 0, alongX ? 0.5 : 0.02, 0.06, alongX ? 0.02 : 0.5, UPPER);
+        }
+      }
+      // 通道与玩家区域交界处：警示条纹
+      if (t === TILE.LANE) for (let d = 0; d < 4; d++) {
+        const nt = tileOf(S, x + DIRS[d][0], z + DIRS[d][1]);
+        if (nt !== TILE.FLOOR && nt !== TILE.PAD && nt !== TILE.BASE) continue;
+        const alongX = DIRS[d][1] !== 0, fx = cx + DIRS[d][0] * (T * 0.5 - 0.1), fz = cz + DIRS[d][1] * (T * 0.5 - 0.1);
+        E.push('box', fx, 0.004, fz, 0, alongX ? T * 0.96 : 0.18, 0.01, alongX ? 0.18 : T * 0.96, HAZ);
       }
     } else {
       let edge = false;
@@ -4396,6 +4466,7 @@ function frame(now) {
     }
   }
   S_cur = S;
+  if (S.outdoor) E.push('sphere', cam.x, cam.y, cam.z, 0, 480, 480, 480, col(1, 1, 1, 1, 0, 0, 18, false, true));
   drawLava(S);
   drawShells(fxdt);
   for (const m of S.s.monsters) drawMonster(m, frameAlpha);
@@ -4477,7 +4548,7 @@ function frame(now) {
   E.flush({
     vp: VP, eye: [cam.x, cam.y, cam.z], sky: dark ? sc3(TH.sky, 0.35) : TH.sky, ground: dark ? sc3(TH.ground, 0.35) : TH.ground, sunDir: [0.45, -0.74, 0.5], sunCol: dark ? sc3(TH.sun, 0.3) : TH.sun,
     fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : (TH.fogD || 0.0105), lights: LIGHTS.slice(0, 12),
-    bloom: 0.85, bloomThr: 0.92, vig: 0.85,
+    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: settings.detail === 'low' ? 0.25 : 1,
     tint: mode !== 'menu' && cf < 0.3 ? [0.6, 0.02, 0.05, 0.22 * (0.5 + 0.5 * Math.sin(timeNow * 5))] : (timeScale < 1 ? [0.9, 0.6, 0.3, 0.15] : null),
   }, SK.static ? [] : statics);
 
@@ -4856,6 +4927,11 @@ function bindUI() {
   const syncBloom = () => { E.setPost(settings.bloom); bloomBtn.setAttribute('aria-pressed', settings.bloom ? 'true' : 'false'); bloomBtn.textContent = settings.bloom && E.postAvailable() ? '开' : '关'; };
   if (!E.postAvailable()) { bloomBtn.disabled = true; bloomBtn.title = '当前显卡不支持'; }
   bloomBtn.addEventListener('click', () => { settings.bloom = !settings.bloom; syncBloom(); saveSettings(); });
+  const detBtn = $('detailBtn');
+  if (!settings.detail) settings.detail = TOUCH ? 'low' : 'high';
+  const syncDet = () => { const hi = settings.detail !== 'low'; detBtn.setAttribute('aria-pressed', hi ? 'true' : 'false'); detBtn.textContent = hi ? '高' : '低'; };
+  syncDet();
+  detBtn.addEventListener('click', () => { settings.detail = settings.detail === 'low' ? 'high' : 'low'; syncDet(); saveSettings(); });
   syncBloom();
   const sens = $('sens'), vol = $('vol');
   sens.value = settings.sens; vol.value = settings.vol;
