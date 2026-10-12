@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 11;
+const VERSION = 12;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade'];
 const LIMIT = 3900;                       // 平台单条消息上限 4096 字节，留余量
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
@@ -54,7 +54,7 @@ function packMonsters(list) {
     u[o + 12] = Math.max(0, STATES.indexOf(m.state)) | (m.burrow ? 4 : 0) | (m.aiming ? 8 : 0) | (m.frozenT > 0 ? 16 : 0) | (m.champ ? 32 : 0) | (m.shield > 0 ? 64 : 0);
     const x = clamp(Math.round(m.x * 100), 0, 65535), z = clamp(Math.round(m.z * 100), 0, 65535);
     u[o + 5] = x & 255; u[o + 6] = x >> 8; u[o + 7] = z & 255; u[o + 8] = z >> 8;
-    u[o + 9] = clamp(Math.round(m.y * 40), 0, 255);
+    u[o + 9] = clamp(Math.round(m.y * 28), 0, 255);
     u[o + 10] = m.aiming ? angB(Math.atan2(m.ax, m.az)) : angB(Math.atan2(m.fx, m.fz));
     u[o + 11] = clamp(Math.ceil(m.hp / m.maxHp * 255), 0, 255);
     o += MREC;
@@ -319,7 +319,7 @@ function applySnap(sim, snap, ctx) {
   for (let o = 0; o + MREC <= mU.length; o += MREC) {
     const id = mU[o] | (mU[o + 1] << 8) | (mU[o + 2] << 16), type = MTYPES[mU[o + 3]];
     if (!type) continue;
-    const x = (mU[o + 5] | (mU[o + 6] << 8)) / 100, z = (mU[o + 7] | (mU[o + 8] << 8)) / 100, y = mU[o + 9] / 40;
+    const x = (mU[o + 5] | (mU[o + 6] << 8)) / 100, z = (mU[o + 7] | (mU[o + 8] << 8)) / 100, y = mU[o + 9] / 28;
     let m = oldM.get(id);
     if (!m) {
       m = { id, type, lane: '', d: 0, off: 0, x, y, z, ox: x, oy: y, oz: z, tx: x, ty: y, tz: z, vx: 0, vz: 0, fx: 0, fz: 1, hp: 255, maxHp: 255, slowAmt: 0, slowT: 0, poisonT: 0, burnT: 0, stunT: 0, launchT: 0, hitT: 0, atkT: 0, state: 'move', enraged: false, dead: false, leaked: false, seed: (id * 7.31) % 100, born: t };

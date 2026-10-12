@@ -233,7 +233,7 @@ const MAPS = {
       { name: '疾行突袭', groups: [g('grunt', 7, 'A', 1.4, 0), g('grunt', 7, 'B', 1.4, 2), g('runner', 4, 'A', 0.9, 12), g('runner', 4, 'B', 0.9, 14)] },
       { name: '重装来袭', tip: '重装赛博格护甲厚、免疫一半击退', groups: [g('grunt', 8, 'A', 1.3, 0), g('grunt', 8, 'B', 1.3, 1), g('brute', 2, 'A', 5, 10), g('brute', 1, 'B', 5, 14)] },
       { name: '空中威胁', tip: '浮游无人机无视地面陷阱，需要防空导弹、岗哨机枪或墙壁陷阱', groups: [g('grunt', 8, 'A', 1.2, 0), g('grunt', 8, 'B', 1.2, 0), g('flyer', 5, 'A', 1.5, 8), g('flyer', 5, 'B', 1.5, 10)] },
-      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾，护盾会先吸收伤害（包括中毒和灼烧）；精英「狂猩赛博格」半血后狂暴，攻速与移速大增', groups: [g('grunt', 8, 'A', 1.1, 0), g('grunt', 8, 'B', 1.1, 0), g('runner', 5, 'A', 0.8, 10), g('runner', 5, 'B', 0.8, 10), g('elite', 1, 'A', 0, 18), g('shield', 2, 'AB', 6, 4)] },
+      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；精英「狂猩赛博格」半血后狂暴，攻速与移速大增', groups: [g('grunt', 8, 'A', 1.1, 0), g('grunt', 8, 'B', 1.1, 0), g('runner', 5, 'A', 0.8, 10), g('runner', 5, 'B', 0.8, 10), g('elite', 1, 'A', 0, 18), g('shield', 2, 'AB', 6, 4)] },
       { name: '自爆潮', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；自爆蜘蛛遇到阻挡会引爆，击杀它会炸伤周围怪物', groups: [g('runner', 12, 'A', 0.6, 0), g('runner', 12, 'B', 0.6, 2), g('bomber', 4, 'A', 2, 8), g('bomber', 4, 'B', 2, 10), g('blinker', 4, 'AB', 2.5, 4)] },
       { name: '钢铁洪流', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台让它瘫痪——重型轨道电磁炮专克它；火线射手会停下来射击玩家，别站在它们的视线里硬拼', groups: [g('grunt', 10, 'A', 1, 0), g('grunt', 10, 'B', 1, 0), g('brute', 4, 'A', 4, 6), g('brute', 4, 'B', 4, 8), g('gunner', 2, 'A', 3, 10), g('gunner', 2, 'B', 3, 11), g('flyer', 7, 'A', 1.2, 14), g('flyer', 7, 'B', 1.2, 16), g('tank', 1, 'A', 0, 16), g('tank', 1, 'B', 0, 22)] },
       { name: '全面进攻', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；幽影刺客会隐身，炮台锁定不到它；踩到减速器、受到攻击或靠近玩家时才会现形', groups: [g('stalker', 3, 'A', 2, 3), g('stalker', 3, 'B', 2, 4), g('runner', 10, 'A', 0.6, 0), g('runner', 10, 'B', 0.6, 0), g('bomber', 6, 'A', 1.6, 6), g('bomber', 6, 'B', 1.6, 7), g('brute', 3, 'A', 4, 12), g('brute', 3, 'B', 4, 14), g('flyer', 5, 'A', 1, 18), g('flyer', 5, 'B', 1, 20), g('gunship', 2, 'AB', 8, 14), g('shield', 2, 'AB', 5, 8)] },
@@ -262,7 +262,7 @@ const MAPS = {
       { name: '疾行突袭', groups: [g('grunt', 15, '*', 1.3, 0), g('runner', 9, '*', 0.8, 12)] },
       { name: '重装来袭', tip: '重装赛博格护甲厚、免疫一半击退', groups: [g('grunt', 18, '*', 1.1, 0), g('brute', 3, '*', 4, 10)] },
       { name: '空中威胁', tip: '浮游无人机无视地面陷阱；火线射手会远程射击玩家', groups: [g('grunt', 15, '*', 1.1, 0), g('flyer', 12, '*', 1.4, 8), g('gunner', 3, '*', 3, 12)] },
-      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾，护盾会先吸收伤害（包括中毒和灼烧）；狂猩从北门出现', groups: [g('grunt', 18, '*', 1.1, 0), g('runner', 12, '*', 0.8, 10), g('elite', 1, 'B', 0, 18), g('shield', 3, '*', 4, 6)] },
+      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；狂猩从北门出现', groups: [g('grunt', 18, '*', 1.1, 0), g('runner', 12, '*', 0.8, 10), g('elite', 1, 'B', 0, 18), g('shield', 3, '*', 4, 6)] },
       { name: '自爆潮', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；骇客工兵会骇入附近陷阱让它瘫痪 10 秒，优先击杀', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 9, '*', 2, 8), g('sapper', 3, '*', 4, 10), g('blinker', 6, '*', 2, 4)] },
       { name: '维修部队', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台——轨道电磁炮专克它；修复无人机会持续治疗周围怪物，优先击落', groups: [g('grunt', 18, '*', 1, 0), g('brute', 6, '*', 4, 6), g('healer', 3, '*', 3, 10), g('tank', 2, 'AC', 8, 14)] },
       { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；幽影刺客隐身潜入，减速器能让它现形', groups: [g('grunt', 21, '*', 0.9, 4), g('brute', 9, '*', 3.5, 0), g('flyer', 15, '*', 1.2, 10), g('stalker', 6, '*', 2, 12), g('gunship', 3, '*', 6, 16)] },
@@ -296,7 +296,7 @@ const MAPS = {
       { name: '疾行突袭', groups: [g('grunt', 14, '*', 1.2, 0), g('runner', 8, '*', 0.8, 10)] },
       { name: '重装来袭', tip: '钻地虫会钻入地下越过一段陷阱，期间无敌且不受地面陷阱影响', groups: [g('grunt', 16, '*', 1.1, 0), g('brute', 3, '*', 4, 10), g('burrower', 4, '*', 3, 6)] },
       { name: '南门洞开', tip: '西南出怪口开启，南侧也需要布防', groups: [g('grunt', 16, '*', 1, 0), g('flyer', 9, '*', 1.4, 6)] },
-      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾，护盾会先吸收伤害（包括中毒和灼烧）；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('grunt', 18, '*', 1, 0), g('runner', 12, '*', 0.7, 10), g('stalker', 4, '*', 2, 6), g('elite', 1, 'A', 0, 18), g('shield', 3, '*', 4, 8)] },
+      { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('grunt', 18, '*', 1, 0), g('runner', 12, '*', 0.7, 10), g('stalker', 4, '*', 2, 6), g('elite', 1, 'A', 0, 18), g('shield', 3, '*', 4, 8)] },
       { name: '四面楚歌', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；东南出怪口开启，四个方向同时进攻', groups: [g('runner', 28, '*', 0.6, 0), g('bomber', 8, '*', 2, 8), g('blinker', 8, '*', 1.6, 4)] },
       { name: '维修部队', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台——轨道电磁炮专克它；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 6, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('tank', 1, 'A', 0, 14)] },
       { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛', groups: [g('grunt', 20, '*', 0.9, 0), g('flyer', 16, '*', 1.2, 0), g('brute', 6, '*', 3.5, 10), g('gunship', 2, 'AB', 6, 12), g('shield', 2, '*', 4, 6)] },
@@ -335,7 +335,7 @@ const MAPS = {
       { name: '北门开启', tip: '北侧出怪口开启；噬晶蛛又小又快', groups: [g('grunt', 18, '*', 1.1, 0), g('brute', 3, '*', 4, 10), g('mite', 12, '*', 0.4, 6)] },
       { name: '空中威胁', groups: [g('grunt', 15, '*', 1.1, 0), g('flyer', 12, '*', 1.4, 8)] },
       { name: '南门开启', tip: '南侧出怪口开启，狂猩从西北出现', groups: [g('grunt', 20, '*', 1, 0), g('runner', 16, '*', 0.7, 8), g('elite', 1, 'A', 0, 18)] },
-      { name: '自爆潮', tip: '棱盾守卫会给周围的怪套上能量护盾（会吸收中毒和灼烧）；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 10, '*', 2, 8), g('stalker', 6, '*', 2, 4), g('shield', 3, '*', 4, 8)] },
+      { name: '自爆潮', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 10, '*', 2, 8), g('stalker', 6, '*', 2, 4), g('shield', 3, '*', 4, 8)] },
       { name: '维修部队', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 8, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('blinker', 6, '*', 2, 4)] },
       { name: '深渊之门', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，会炮击炮台——轨道电磁炮专克它；西侧直道开启！这条路最短，疾行猎犬会直扑主干道', groups: [g('runner', 30, '*', 0.5, 0), g('grunt', 20, '*', 1, 0), g('flyer', 10, '*', 1.2, 10), g('tank', 2, 'AC', 10, 14)] },
       { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；钻地虫会钻入地下越过一段陷阱', groups: [g('brute', 10, '*', 3.5, 0), g('flyer', 20, '*', 1, 6), g('bomber', 10, '*', 1.5, 12), g('burrower', 6, '*', 2.5, 4), g('gunship', 4, '*', 5, 10), g('shield', 4, '*', 4, 14)] },
@@ -345,6 +345,44 @@ const MAPS = {
       { name: '狂猩巢穴', groups: [g('brute', 15, '*', 3, 0), g('elite', 3, '*', 6, 10), g('bomber', 10, '*', 1.4, 16), g('sapper', 4, '*', 4, 6), g('stalker', 6, '*', 2, 12), g('tank', 4, '*', 5, 6), g('blinker', 8, '*', 1.6, 2)] },
       { name: '决战前夜', groups: [g('runner', 40, '*', 0.4, 0), g('flyer', 20, '*', 1, 8), g('brute', 10, '*', 3, 14), g('healer', 5, '*', 2, 18), g('burrower', 6, '*', 2.5, 4), g('gunner', 6, '*', 2.5, 10), g('tank', 4, '*', 6, 16), g('shield', 5, '*', 4, 6), g('gunship', 4, '*', 6, 20)] },
       { name: '深渊母巢', boss: true, tip: '深渊母巢从西北压境，不断孵化噬晶蛛，击破后分裂成两只母巢裂体；西南有狂猩策应', groups: [g('grunt', 30, '*', 0.9, 0), g('flyer', 15, '*', 1.1, 6), g('brood', 1, 'A', 0, 10), g('brute', 8, '*', 3.5, 16), g('healer', 3, '*', 3, 20), g('elite', 1, 'C', 0, 50), g('tank', 4, '*', 8, 24), g('shield', 5, '*', 4, 14), g('gunship', 4, '*', 8, 30)] },
+    ],
+  },
+  outpost: {
+    id: 'outpost', order: 5, name: '荒原前哨', sub: '高地 · 二层桥', w: 44, h: 40, gold: 1500, goldMul: 1.15, theme: 'outdoor', outdoor: true,
+    desc: '露天的山地前哨。怪物从北面高地沿两条斜坡冲下盆地，汇合后穿过二层桥底冲向水晶；西侧小路中途开启。站在台地和桥上居高临下，只有桥底下能挂天花板陷阱。',
+    lanes: {
+      A: [[5, 2], [5, 9], [14, 9], [14, 24], [21, 24], [21, 35]],
+      B: [[38, 2], [38, 9], [28, 9], [28, 24], [21, 24], [21, 35]],
+      C: [[2, 30], [10, 30], [10, 24], [21, 24], [21, 35]],
+    },
+    laneFrom: { C: 5 },
+    laneNames: { A: '西北高地', B: '东北高地', C: '西侧小路' },
+    rooms: [[16, 8, 26, 22, TILE.FLOOR], [17, 2, 25, 6, TILE.FLOOR], [21, 7, 21, 7, TILE.FLOOR],
+      [15, 26, 19, 31, TILE.FLOOR], [23, 26, 27, 31, TILE.FLOOR], [16, 32, 17, 38, TILE.FLOOR], [25, 32, 26, 38, TILE.FLOOR]],
+    // 地面高度：北面高地 / 中央台地 / 两侧阶地为 4 米，盆地为 0
+    heights: [[0, 0, 43, 12, 4], [16, 8, 26, 22, 4], [17, 2, 25, 7, 4], [15, 26, 19, 31, 4], [23, 26, 27, 31, 4]],
+    // 斜坡 [x0,z0,x1,z1, 上坡方向, 低, 高]：怪物下山的两条坡道 + 玩家上阶地的楼梯
+    ramps: [[13, 11, 15, 16, 3, 0, 4], [27, 11, 29, 16, 3, 0, 4], [16, 32, 17, 37, 3, 0, 4], [25, 32, 26, 37, 3, 0, 4]],
+    // 二层桥面（高 4 米）：连接台地与阶地，桥底下是天花板
+    deckH: 4, decks: [[17, 23, 18, 25], [24, 23, 25, 25], [20, 28, 22, 29]],
+    base: [18, 33, 24, 38], doors: [],
+    pads: [[9, 7], [9, 11], [33, 7], [33, 11], [6, 28], [6, 32], [8, 23], [12, 27], [30, 22], [12, 22]],
+    spawns: [[20, 36], [22, 36], [19, 37], [23, 37]], focus: [21.5, 27], foci: [[21.5, 27]],
+    devices: [],
+    platforms: [[19, 20], [22, 20], [16, 15], [25, 15], [16, 29], [25, 29]],
+    labs: [{ holo: [21.5, 4.3], term: [21, 2, 3], sup: [17, 4, 2], racks: [[25, 2, 0], [25, 3, 0], [25, 4, 0], [25, 5, 0], [25, 6, 0]] }],
+    waves: [
+      { name: '高地来客', groups: [g('grunt', 7, 'A', 1.5, 0), g('grunt', 7, 'B', 1.5, 3)] },
+      { name: '下山突袭', tip: '怪物会沿斜坡冲下盆地；台地边缘和桥上都能居高临下射击', groups: [g('grunt', 9, 'AB', 1.2, 0), g('runner', 10, 'AB', 0.7, 10)] },
+      { name: '重装登场', groups: [g('grunt', 10, 'AB', 1.1, 0), g('brute', 4, 'AB', 4, 8), g('flyer', 6, 'AB', 1.4, 12)] },
+      { name: '护盾方阵', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直', groups: [g('grunt', 12, 'AB', 1, 0), g('shield', 2, 'AB', 6, 6), g('gunner', 4, 'AB', 3, 10)] },
+      { name: '西路开启', tip: '西侧小路开启，怪物直接从盆地西边绕进来；相位行者会瞬移越过阻挡', groups: [g('runner', 18, '*', 0.6, 0), g('blinker', 6, '*', 2, 6), g('elite', 1, 'A', 0, 18)] },
+      { name: '铁蹄', tip: '铁蹄坦克装甲厚、几乎不怕眩晕，还会炮击炮台——轨道电磁炮专克它', groups: [g('grunt', 15, '*', 0.9, 0), g('tank', 2, 'AB', 10, 8), g('bomber', 6, '*', 1.6, 12), g('healer', 3, '*', 3, 14)] },
+      { name: '天空压境', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛', groups: [g('flyer', 15, '*', 1, 0), g('gunship', 3, '*', 6, 8), g('stalker', 6, '*', 2, 4), g('brute', 6, '*', 3, 10)] },
+      { name: '钢铁洪流', groups: [g('grunt', 18, '*', 0.8, 0), g('brute', 8, '*', 3, 4), g('shield', 4, '*', 4, 8), g('sapper', 3, '*', 4, 12), g('burrower', 4, '*', 3, 6)] },
+      { name: '双王', groups: [g('runner', 24, '*', 0.5, 0), g('elite', 2, 'AB', 12, 14), g('tank', 3, '*', 6, 6), g('blinker', 8, '*', 1.6, 4), g('healer', 3, '*', 3, 10)] },
+      { name: '决战前夜', groups: [g('grunt', 24, '*', 0.7, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 3, '*', 6, 14), g('bomber', 10, '*', 1.2, 10)] },
+      { name: '高地之王', boss: true, tip: '攻城机甲「破城者」从西北高地压下来，会炮击远处的炮台；东北有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'A', 0, 12), g('tank', 3, '*', 8, 20), g('shield', 4, '*', 5, 14), g('gunship', 3, '*', 8, 26), g('elite', 1, 'B', 0, 40)] },
     ],
   },
 };
@@ -454,6 +492,17 @@ class Sim {
     this.grid = buildMap(this.def);
     this.plat = new Set();
     for (const [x, z] of this.def.platforms || []) for (let dz = 0; dz < 2; dz++) for (let dx = 0; dx < 2; dx++) this.plat.add((z + dz) * this.W + x + dx);
+    // 地形：高低差（每格地面高度）、斜坡、二层平台（桥面）；室外地图只有二层底下有天花板
+    this.outdoor = !!this.def.outdoor;
+    this.terrain = this.outdoor || !!(this.def.heights || this.def.ramps || this.def.decks);
+    this.hgt = new Float32Array(this.W * this.H);
+    this.rampOf = new Map(); this.ramps = [];
+    this.deck = new Set();
+    this.DECK_H = this.def.deckH || 4; this.DECK_B = this.DECK_H - 0.35;
+    const each = (r, fn) => { for (let z = r[1]; z <= r[3]; z++) for (let x = r[0]; x <= r[2]; x++) if (x >= 0 && z >= 0 && x < this.W && z < this.H) fn(z * this.W + x, x, z); };
+    for (const r of this.def.heights || []) each(r, i => { this.hgt[i] = r[4]; });
+    for (const r of this.def.ramps || []) { const k = this.ramps.length; this.ramps.push({ x0: r[0], z0: r[1], x1: r[2], z1: r[3], dir: r[4], lo: r[5], hi: r[6] }); each(r, i => { this.rampOf.set(i, k); this.hgt[i] = (r[5] + r[6]) / 2; }); }
+    for (const r of this.def.decks || []) each(r, i => this.deck.add(i));
     this.lanes = Object.keys(this.def.lanes);
     this.paths = {}; this.spawnDir = {};
     for (const l of this.lanes) {
@@ -462,6 +511,7 @@ class Sim {
     }
     const pA = this.paths[this.lanes[0]].pts;
     this.crystalPos = { x: pA[pA.length - 1].x, y: 0, z: pA[pA.length - 1].z };
+    this.crystalPos.y = this.floorH(this.crystalPos.x, this.crystalPos.z);
     this.spawnPos = {}; for (const l of this.lanes) this.spawnPos[l] = this.paths[l].pts[0];
     this.waves = this.def.waves;
     this.events = [];
@@ -557,8 +607,36 @@ class Sim {
   solid(x, z) { return this.tileAt(x, z) === TILE.WALL; }
   idxOf(wx, wz) { return Math.floor(wz / T) * this.W + Math.floor(wx / T); }
 
+  // 某格在世界坐标 (x,z) 处的地面高度（斜坡按位置线性插值）
+  tileFloor(i, x, z) {
+    const k = this.rampOf.get(i);
+    if (k === undefined) return this.hgt[i] || 0;
+    const r = this.ramps[k], d = DIRS[r.dir];
+    let t;
+    if (d[0]) { const u = x / T; t = d[0] > 0 ? (u - r.x0) / (r.x1 - r.x0 + 1) : (r.x1 + 1 - u) / (r.x1 - r.x0 + 1); }
+    else { const u = z / T; t = d[1] > 0 ? (u - r.z0) / (r.z1 - r.z0 + 1) : (r.z1 + 1 - u) / (r.z1 - r.z0 + 1); }
+    return r.lo + (r.hi - r.lo) * Math.max(0, Math.min(1, t));
+  }
+  floorH(x, z) {
+    if (!this.terrain) return 0;
+    const tx = Math.floor(x / T), tz = Math.floor(z / T);
+    if (tx < 0 || tz < 0 || tx >= this.W || tz >= this.H) return 0;
+    return this.tileFloor(tz * this.W + tx, x, z);
+  }
+  isRamp(x, z) { return this.rampOf.has(z * this.W + x); }
+  tileH(x, z) { return this.terrain ? this.tileFloor(z * this.W + x, (x + 0.5) * T, (z + 0.5) * T) : 0; }
+  // 地形当作墙：通道旁边高出 2.5 米以上的崖壁也能挂墙壁陷阱
+  cliffWall(x, z, d) {
+    if (!this.terrain || this.isRamp(x, z)) return false;
+    const nx = x + DIRS[d][0], nz = z + DIRS[d][1];
+    if (this.solid(nx, nz) || this.isRamp(nx, nz)) return false;
+    return this.tileH(nx, nz) - this.tileH(x, z) >= 2.5;
+  }
+  wallSide(x, z, d) { return this.solid(x + DIRS[d][0], z + DIRS[d][1]) || this.cliffWall(x, z, d); }
+
   // 网格 DDA 射线：返回第一个命中的 地面 / 天花板 / 墙面
   raycast(ox, oy, oz, dx, dy, dz, maxD) {
+    if (this.terrain) return this._raycastT(ox, oy, oz, dx, dy, dz, maxD);
     let tx = Math.floor(ox / T), tz = Math.floor(oz / T);
     const sx = dx > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
     const ax = Math.abs(dx) < 1e-9, az = Math.abs(dz) < 1e-9;
@@ -581,6 +659,48 @@ class Sim {
       if (this.solid(tx, tz)) {
         return { kind: 'wall', x: tx - DIRS[dir][0], z: tz - DIRS[dir][1], dir, t: tExit, px: ox + dx * tExit, py: oy + dy * tExit, pz: oz + dz * tExit };
       }
+    }
+    return null;
+  }
+
+  // 带地形的射线：逐格检查地面（含斜坡）、二层桥面上下表面、崖壁侧面
+  _raycastT(ox, oy, oz, dx, dy, dz, maxD) {
+    let tx = Math.floor(ox / T), tz = Math.floor(oz / T);
+    const sx = dx > 0 ? 1 : -1, sz = dz > 0 ? 1 : -1;
+    const ax = Math.abs(dx) < 1e-9, az = Math.abs(dz) < 1e-9;
+    let tMaxX = ax ? Infinity : ((tx + (dx > 0 ? 1 : 0)) * T - ox) / dx;
+    let tMaxZ = az ? Infinity : ((tz + (dz > 0 ? 1 : 0)) * T - oz) / dz;
+    const tdX = ax ? Infinity : T / Math.abs(dx), tdZ = az ? Infinity : T / Math.abs(dz);
+    const W = this.W, mk = (kind, t, x, z, dir) => ({ kind, x, z, dir, t, px: ox + dx * t, py: oy + dy * t, pz: oz + dz * t });
+    let tIn = 0;
+    for (let i = 0; i < 400; i++) {
+      if (tx < 0 || tz < 0 || tx >= W || tz >= this.H) return null;
+      const tExit = Math.min(tMaxX, tMaxZ), tEnd = Math.min(tExit, maxD), idx = tz * W + tx;
+      let best = Infinity, kind = null;
+      // 地面（斜坡在格内是线性的）
+      const e = 1e-4, ta = tIn + e, tb = Math.max(ta + e, tEnd - e);
+      const h0 = this.tileFloor(idx, ox + dx * ta, oz + dz * ta), h1 = this.tileFloor(idx, ox + dx * tb, oz + dz * tb);
+      const bslope = (h1 - h0) / (tb - ta), a0 = h0 - bslope * ta, den = dy - bslope;
+      if (den < -1e-9) { const t = (a0 - oy) / den; if (t >= tIn - 1e-6 && t <= tEnd && t < best) { best = Math.max(0, t); kind = 'floor'; } }
+      if (this.deck.has(idx)) {
+        if (dy < -1e-9 && oy + dy * tIn >= this.DECK_H - 1e-3) { const t = (this.DECK_H - oy) / dy; if (t >= tIn - 1e-6 && t <= tEnd && t < best) { best = t; kind = 'deck'; } }
+        if (dy > 1e-9 && oy + dy * tIn <= this.DECK_B + 1e-3) { const t = (this.DECK_B - oy) / dy; if (t >= tIn - 1e-6 && t <= tEnd && t < best) { best = t; kind = 'ceil'; } }
+      }
+      if (!this.outdoor && dy > 1e-9) { const t = (WALL_H - oy) / dy; if (t >= tIn - 1e-6 && t <= tEnd && t < best) { best = t; kind = 'ceil'; } }
+      if (kind) return mk(kind, best, tx, tz);
+      if (tExit > maxD) return null;
+      let dir;
+      if (tMaxX < tMaxZ) { tx += sx; tMaxX += tdX; dir = sx > 0 ? 0 : 2; }
+      else { tz += sz; tMaxZ += tdZ; dir = sz > 0 ? 1 : 3; }
+      const cx = tx - DIRS[dir][0], cz = tz - DIRS[dir][1];
+      if (this.solid(tx, tz)) return mk('wall', tExit, cx, cz, dir);
+      // 走进更高的格子：撞到崖壁侧面
+      const bx = ox + dx * tExit, by = oy + dy * tExit, bz = oz + dz * tExit, ni = tz * W + tx;
+      const hn = this.tileFloor(ni, bx + DIRS[dir][0] * 1e-3, bz + DIRS[dir][1] * 1e-3);
+      if (by < hn - 1e-3) return mk(this.cliffWall(cx, cz, dir) ? 'wall' : 'cliff', tExit, cx, cz, dir);
+      // 桥面侧边
+      if (this.deck.has(ni) !== this.deck.has(idx) && by > this.DECK_B && by < this.DECK_H) return mk('cliff', tExit, cx, cz, dir);
+      tIn = tExit;
     }
     return null;
   }
@@ -648,8 +768,10 @@ class Sim {
   occKeys(tr) { return this.isBig(tr) ? this.tilesOf(tr).map(i => 'f' + i) : [this.slotKey(tr)]; }
   // 2×2 范围的地形是否合适：重型炮台放平台 / 空地，2×2 地面陷阱放通道
   bigFits(cat, x, z) {
+    const h0 = this.terrain ? this.tileH(x, z) : 0;
     for (let dz = 0; dz < 2; dz++) for (let dx = 0; dx < 2; dx++) {
       const t = this.tileAt(x + dx, z + dz);
+      if (this.terrain && (this.isRamp(x + dx, z + dz) || Math.abs(this.tileH(x + dx, z + dz) - h0) > 0.05 || this.deck.has((z + dz) * this.W + x + dx))) return false;
       if (cat === 'hfloor' ? t !== TILE.LANE : (t !== TILE.PAD && t !== TILE.FLOOR)) return false;
       if ((this.def.devices || []).some(dv => dv.lever[0] === x + dx && dv.lever[1] === z + dz)) return false;
     }
@@ -669,24 +791,29 @@ class Sim {
   }
   trapWorld(tr) {
     if (tr.type && TRAP[tr.type] && TRAP[tr.type].big) {
-      const cx = (tr.x + 1) * T, cz = (tr.z + 1) * T;
-      return { x: cx, y: this.plat.has(tr.z * this.W + tr.x) && this.plat.has((tr.z + 1) * this.W + tr.x + 1) ? PLAT_H : 0, z: cz };
+      const cx = (tr.x + 1) * T, cz = (tr.z + 1) * T, g = this.tileH(tr.x, tr.z);
+      return { x: cx, y: g + (this.plat.has(tr.z * this.W + tr.x) && this.plat.has((tr.z + 1) * this.W + tr.x + 1) ? PLAT_H : 0), z: cz };
     }
-    const cx = (tr.x + 0.5) * T, cz = (tr.z + 0.5) * T;
-    if (tr.kind === 'wall') { const d = DIRS[tr.dir]; return { x: cx + d[0] * T * 0.5, y: 1.5, z: cz + d[1] * T * 0.5 }; }
-    if (tr.kind === 'ceil') return { x: cx, y: WALL_H, z: cz };
-    return { x: cx, y: this.plat.has(tr.z * this.W + tr.x) ? PLAT_H : 0, z: cz };
+    const cx = (tr.x + 0.5) * T, cz = (tr.z + 0.5) * T, g = this.tileH(tr.x, tr.z);
+    if (tr.kind === 'wall') { const d = DIRS[tr.dir]; return { x: cx + d[0] * T * 0.5, y: 1.5 + g, z: cz + d[1] * T * 0.5 }; }
+    if (tr.kind === 'ceil') return { x: cx, y: this.deck.has(tr.z * this.W + tr.x) ? this.DECK_B : WALL_H, z: cz };
+    return { x: cx, y: g + (this.plat.has(tr.z * this.W + tr.x) ? PLAT_H : 0), z: cz };
   }
   // 某处地面高度（炮台平台略高于地面）
-  groundAt(x, z) {
+  groundAt(x, z, y) {
     const tx = Math.floor(x / T), tz = Math.floor(z / T);
-    return tx >= 0 && tz >= 0 && tx < this.W && tz < this.H && this.plat.has(tz * this.W + tx) ? PLAT_H : 0;
+    if (tx < 0 || tz < 0 || tx >= this.W || tz >= this.H) return 0;
+    const i = tz * this.W + tx;
+    // 二层桥面：人在桥面高度附近时站在桥上，否则在桥底下
+    if (y !== undefined && this.deck.has(i) && y >= this.DECK_H - 1.2) return this.DECK_H;
+    return (this.terrain ? this.tileFloor(i, x, z) : 0) + (this.plat.has(i) ? PLAT_H : 0);
   }
   wallLine(x, z, dir, n) {
     const d = DIRS[dir], out = [];
     for (let k = 0; k < (n || 4); k++) {
       const tx = x - d[0] * k, tz = z - d[1] * k;
       if (this.solid(tx, tz)) break;
+      if (this.terrain && k && Math.abs(this.tileH(tx, tz) - this.tileH(x, z)) > 1) break;
       out.push(tz * this.W + tx);
     }
     return out;
@@ -698,10 +825,13 @@ class Sim {
       const t = this.tileAt(x, z);
       if (cat === 'heavy') continue;
       if (cat === 'hfloor') { if (this.bigFits('hfloor', x, z)) out.push({ kind: 'floor', x, z }); continue; }
+      if (this.terrain && this.isRamp(x, z)) continue;
+      if (cat === 'ceil' && this.outdoor && !this.deck.has(z * this.W + x)) continue;
       if (cat === 'floor' || cat === 'ceil') { if (t === TILE.LANE) out.push({ kind: cat, x, z }); }
       else if (cat === 'pad') { if (t === TILE.PAD || t === TILE.FLOOR) out.push({ kind: 'floor', x, z }); }
       else if (cat === 'wall' && t === TILE.LANE) {
-        for (let d = 0; d < 4; d++) if (this.solid(x + DIRS[d][0], z + DIRS[d][1])) out.push({ kind: 'wall', x, z, dir: d });
+        if (this.terrain && this.isRamp(x, z)) continue;
+        for (let d = 0; d < 4; d++) if (this.wallSide(x, z, d)) out.push({ kind: 'wall', x, z, dir: d });
       }
     }
     if (cat === 'heavy') for (const [x, z] of this.def.platforms || []) if (this.bigFits('heavy', x, z)) out.push({ kind: 'floor', x, z });
@@ -724,6 +854,9 @@ class Sim {
       if (slot.kind !== 'floor' || !this.bigFits(def.cat, slot.x, slot.z)) return { ok: false, reason: def.cat === 'heavy' ? '需要 2×2 的空地（琥珀色炮台平台最合适）' : '需要通道上 2×2 的空位' };
     }
     if (this.trapAtSlot(slot, type)) return { ok: false, reason: def.big ? '2×2 范围内已有陷阱' : '该位置已有陷阱' };
+    if (this.terrain && !def.big && slot.kind !== 'wall' && this.isRamp(slot.x, slot.z)) return { ok: false, reason: '斜坡上不能放陷阱' };
+    if (this.outdoor && slot.kind === 'ceil' && !this.deck.has(slot.z * this.W + slot.x)) return { ok: false, reason: '露天没有天花板，只有二层底下能挂天花板陷阱' };
+    if (slot.kind === 'wall' && !this.wallSide(slot.x, slot.z, slot.dir)) return { ok: false, reason: '这里没有墙' };
     if (slot.kind === 'floor' && (this.def.devices || []).some(dv => dv.lever[0] === slot.x && dv.lever[1] === slot.z)) return { ok: false, reason: '这里是机关控制台' };
     const p = s.players[pid];
     if (p) {
@@ -752,7 +885,7 @@ class Sim {
     const SP = this.def.spawns, sp = SP[n % SP.length];
     const p = {
       id: pid, name: name || ('玩家' + (n + 1)), slot: n, remote: !!remote, life: 0, ready: false,
-      x: (sp[0] + 0.5) * T, y: 0, z: (sp[1] + 0.5) * T, vx: 0, vy: 0, vz: 0, ox: 0, oy: 0, oz: 0,
+      x: (sp[0] + 0.5) * T, y: this.tileH(sp[0], sp[1]), z: (sp[1] + 0.5) * T, vx: 0, vy: 0, vz: 0, ox: 0, oy: 0, oz: 0,
       yaw: 0, pitch: 0, hp: 100, maxHp: 100, dead: false, respawnT: 0, ground: true,
       ammo: 30, mag: 30, reloadT: 0, fireCd: 0, bloom: 0, lastHurt: -99, kills: 0, dmg: 0,
       wpn: 'rifle', guns: ['rifle'], ammoBy: { rifle: 30 }, nades: SKILL.nade.max, nadeT: 0, energy: 0, supT: 0,
@@ -784,7 +917,7 @@ class Sim {
   }
   _respawn(p) {
     const SP = this.def.spawns, sp = SP[p.slot % SP.length];
-    p.x = p.ox = (sp[0] + 0.5) * T; p.z = p.oz = (sp[1] + 0.5) * T; p.y = p.oy = 0;
+    p.x = p.ox = (sp[0] + 0.5) * T; p.z = p.oz = (sp[1] + 0.5) * T; p.y = p.oy = this.tileH(sp[0], sp[1]);
     p.vx = p.vy = p.vz = 0; p.hp = p.maxHp; p.dead = false; p.ammo = p.mag; p.reloadT = 0; p.life++;
     for (const g of p.guns) p.ammoBy[g] = WPN[g].mag;
     this.ev('respawn', { pid: p.id });
@@ -1044,7 +1177,7 @@ class Sim {
     const off = def.fly ? (this.rand() * 2 - 1) * 0.5 * T : (this.rand() * 2 - 1) * Math.max(0, 0.78 * T - def.r * 0.7);
     const path = this.paths[lane];
     pathAt(path, d, tmp);
-    const x = tmp.x - tmp.dz * off, z = tmp.z + tmp.dx * off, y = def.fly ? FLY_Y : 0;
+    const x = tmp.x - tmp.dz * off, z = tmp.z + tmp.dx * off, y = this.floorH(x, z) + (def.fly ? FLY_Y : 0);
     const m = {
       id: s.nextId++, type, lane, d, off, x, y, z, ox: x, oy: y, oz: z, fx: tmp.dx, fz: tmp.dz,
       hp: def.hp * hpMul, maxHp: def.hp * hpMul, slowAmt: 0, slowT: 0, poisonT: 0, poisonDps: 0, burnT: 0, burnDps: 0,
@@ -1068,7 +1201,8 @@ class Sim {
     return m;
   }
 
-  damage(m, amt, src, pid, pierce) {
+  // shieldMul：对能量护盾的伤害倍率（电系陷阱 / 电磁炮破盾更快）
+  damage(m, amt, src, pid, pierce, shieldMul) {
     if (m.dead || amt <= 0 || m.burrow) return 0;
     const def = MON[m.type];
     if (def.stealth) m.revealT = Math.max(m.revealT, 1.2);
@@ -1083,7 +1217,15 @@ class Sim {
     if (src === 'trap') a *= 1 + 0.08 * this.techLv('overclock');
     m.hitT = 0.12;
     // 能量护盾：先吸收伤害
-    if (m.shield > 0) { const ab = Math.min(m.shield, a); m.shield -= ab; a -= ab; if (m.shield <= 0) { m.shield = 0; this.ev('shieldBreak', { id: m.id, x: m.x, y: m.y + def.body[0], z: m.z }); } if (a <= 0) return 0; }
+    if (m.shield > 0) {
+      const sm = shieldMul || (src === 'gun' ? 1.5 : 1), need = m.shield / sm;
+      if (a < need) { m.shield -= a * sm; return 0; }
+      // 破盾：剩余伤害照常结算，并造成短暂僵直；8 秒内不能再被套盾
+      a -= need; m.shield = 0; m.shieldCd = Math.max(m.shieldCd || 0, 8);
+      if (!def.boss) m.stunT = Math.max(m.stunT, 0.6);
+      this.ev('shieldBreak', { id: m.id, x: m.x, y: m.y + def.body[0], z: m.z });
+      if (a <= 0) return 0;
+    }
     m.hp -= a;
     if (src === 'gun') this.s.stats.dmgGun += a; else this.s.stats.dmgTrap += a;
     if (pid) { const p = this.s.players[pid]; if (p) { p.dmg += a; if (src === 'gun') p.energy = Math.min(100, p.energy + a * 0.012 * (1 + 0.2 * ((p.tal && p.tal.energy) || 0) + (p.cls === 'support' ? 0.4 : 0)) / (this.hasMut('glass') ? 2 : 1)); } }
@@ -1149,7 +1291,7 @@ class Sim {
   }
   _pickTarget(tr, R, ground, air) {
     const cand = [];
-    const hx = tr.wx, hy = 1.7, hz = tr.wz;
+    const hx = tr.wx, hy = tr.wy + 1.7, hz = tr.wz;
     for (const m of this.s.monsters) {
       if (m.dead || !this.canLock(m)) continue;
       const f = MON[m.type].fly;
@@ -1230,7 +1372,7 @@ class Sim {
           const cand = [];
           for (const m of s.monsters) {
             if (m.dead || !this.canLock(m)) continue;
-            const d = Math.hypot(m.x - tr.wx, (m.y + MON[m.type].body[0]) - 2.2, m.z - tr.wz);
+            const d = Math.hypot(m.x - tr.wx, (m.y + MON[m.type].body[0]) - (tr.wy + 2.2), m.z - tr.wz);
             if (d <= def.range + MON[m.type].r) cand.push({ m, d });
           }
           if (!cand.length) { tr.cd = 0; tr.targets = []; break; }
@@ -1238,7 +1380,7 @@ class Sim {
           tr.targets = [];
           const chains = br === 'a' ? 6 : def.chains;
           for (let i = 0; i < cand.length && i < chains; i++) {
-            this.damage(cand[i].m, def.dmg[lv - 1] * (br === 'b' ? 1.2 : 1), 'trap');
+            this.damage(cand[i].m, def.dmg[lv - 1] * (br === 'b' ? 1.2 : 1), 'trap', null, false, 3);
             if (br === 'b' && !MON[cand[i].m.type].boss) cand[i].m.stunT = Math.max(cand[i].m.stunT, 0.35);
             tr.targets.push(cand[i].m.id);
           }
@@ -1292,7 +1434,7 @@ class Sim {
             let dm = def.dmg[lv - 1];
             if (tr.type === 'laser' && br === 'a') dm *= 1.6;
             if (tr.type === 'flame' && br === 'b') dm *= (md.elite || md.boss) ? 2.1 : 1.4;
-            this.damage(m, dm, 'trap');
+            this.damage(m, dm, 'trap', null, false, tr.type === 'laser' ? 2.5 : 1);
             if (tr.type === 'laser' && br === 'b') { m.slowAmt = Math.max(m.slowAmt, 0.25); m.slowT = Math.max(m.slowT, 0.4); }
             if (def.burn && !md.burnImmune) {
               const bd = def.burn[lv - 1] * (br === 'a' ? 1.4 : 1);
@@ -1358,7 +1500,7 @@ class Sim {
             if (u < 0 || u > Lm) continue;
             const px = lx - dx * u, py = ly - dy * u, pz = lz - dz * u;
             if (px * px + py * py + pz * pz > (md.r + 0.55) * (md.r + 0.55)) continue;
-            this.damage(m, dmg, 'trap', null, true); n++;
+            this.damage(m, dmg, 'trap', null, true, 3); n++;
             if (br === 'a' && !md.boss) m.stunT = Math.max(m.stunT, 0.8);
           }
           tr.aimYaw = Math.atan2(-dx, -dz);
@@ -1462,8 +1604,10 @@ class Sim {
     if (this.solid(Math.floor(nx / T), Math.floor(p.z / T))) p.vx = -p.vx * 0.45; else p.x = nx;
     if (this.solid(Math.floor(p.x / T), Math.floor(nz / T))) p.vz = -p.vz * 0.45; else p.z = nz;
     p.y = ny;
-    if (p.y < 0.15) { p.y = 0.15; p.vy = Math.abs(p.vy) * 0.35; p.vx *= 0.6; p.vz *= 0.6; }
-    if (p.y > WALL_H - 0.2) { p.y = WALL_H - 0.2; p.vy = -Math.abs(p.vy) * 0.3; }
+    const ng = this.terrain ? this.groundAt(p.x, p.z, p.y) : 0;
+    if (p.y < ng + 0.15) { p.y = ng + 0.15; p.vy = Math.abs(p.vy) * 0.35; p.vx *= 0.6; p.vz *= 0.6; }
+    const nc = this.outdoor ? 40 : WALL_H;
+    if (p.y > nc - 0.2) { p.y = nc - 0.2; p.vy = -Math.abs(p.vy) * 0.3; }
     if (p.life <= 0) {
       const N = SKILL.nade;
       this._blast(p.x, p.y + 0.5, p.z, N.r, N.dmg * (1 + 0.12 * this.techLv('ammo')), p.owner);
@@ -1477,7 +1621,7 @@ class Sim {
     for (const k of s.strikes) {
       k.t -= dt;
       if (k.t <= 0) {
-        this._blast(k.x, 1.5, k.z, U.r, U.dmg, k.owner, U.stun);
+        this._blast(k.x, this.floorH(k.x, k.z) + 1.5, k.z, U.r, U.dmg, k.owner, U.stun);
         for (const m of s.monsters) if (!m.dead && MON[m.type].fly && Math.hypot(m.x - k.x, m.z - k.z) < U.r) this.damage(m, U.dmg * 0.5, 'gun', k.owner);
         this.ev('strike', { pid: k.owner, x: k.x, z: k.z, r: U.r });
       }
@@ -1499,7 +1643,7 @@ class Sim {
         if (L < 1.0) p.life = 0;
       } else { p.vy -= 2 * dt; }
       p.x += p.vx * dt; p.y += p.vy * dt; p.z += p.vz * dt;
-      if (p.y > WALL_H - 0.2 || p.y < 0.1) p.life = Math.min(p.life, 0);
+      if (p.y > (this.outdoor ? 40 : WALL_H - 0.2) || p.y < (this.terrain ? this.floorH(p.x, p.z) : 0) + 0.1) p.life = Math.min(p.life, 0);
       if (p.life <= 0) {
         for (const m of s.monsters) {
           if (m.dead || (!MON[m.type].fly && !p.ground)) continue;
@@ -1586,18 +1730,24 @@ class Sim {
       m._st = m.stunT;
       const path = this.paths[m.lane];
       m.state = 'move';
-      // 棱盾守卫：周期性给周围的怪（含自己）套上能量护盾
+      if (m.shieldCd > 0) m.shieldCd -= dt;
+      // 棱盾守卫：周期性给周围的怪（含自己）套上能量护盾。
+      // 同一只怪 8 秒内只能被套一次盾（多个守卫不会叠加 / 无限续盾）；每次最多罩 6 只
       if (def.aura) {
         m.auraT -= dt;
         if (m.auraT <= 0 && m.stunT <= 0) {
           m.auraT = def.aura.every;
-          const amt = def.aura.amt * (m.hpMul || 1), ids = [];
+          const amt = def.aura.amt * (m.hpMul || 1), ids = [], cand = [];
           for (const o of s.monsters) {
-            if (o.dead || o.burrow || Math.hypot(o.x - m.x, o.z - m.z) > def.aura.r) continue;
-            const cap = o.maxHp * (MON[o.type].boss ? 0.08 : 0.6);
-            o.shield = Math.max(o.shield || 0, Math.min(amt, cap)); ids.push(o.id);
+            if (o.dead || o.burrow || o.shield > 0 || o.shieldCd > 0) continue;
+            const d = Math.hypot(o.x - m.x, o.z - m.z);
+            if (d <= def.aura.r) cand.push([d, o]);
           }
-          this.ev('aura', { id: m.id, x: m.x, z: m.z, r: def.aura.r, n: ids.length });
+          cand.sort((a, b) => a[0] - b[0]);
+          for (const [, o] of cand.slice(0, 6)) {
+            o.shield = Math.min(amt, o.maxHp * (MON[o.type].boss ? 0.06 : 0.35)); o.shieldCd = 8; ids.push(o.id);
+          }
+          if (ids.length) this.ev('aura', { id: m.id, x: m.x, z: m.z, r: def.aura.r, n: ids.length });
         }
       }
       // 铁蹄坦克：炮击射程内的炮台 / 阻挡物，命中处的陷阱短暂瘫痪
@@ -1741,12 +1891,13 @@ class Sim {
       const k = 1 - Math.exp(-dt * 9);
       m.x += (tx - m.x) * k; m.z += (tz - m.z) * k;
       m.fx = tmp.dx; m.fz = tmp.dz;
+      const gy = this.terrain ? this.floorH(m.x, m.z) : 0;
       if (def.fly) {
-        if (m.pullT > 0) { m.pullT -= dt; m.y += (0.7 - m.y) * Math.min(1, dt * 6); }
-        else m.y += (FLY_Y + Math.sin(s.time * 2 + m.seed) * 0.25 - m.y) * Math.min(1, dt * 4);
+        if (m.pullT > 0) { m.pullT -= dt; m.y += (gy + 0.7 - m.y) * Math.min(1, dt * 6); }
+        else m.y += (gy + FLY_Y + Math.sin(s.time * 2 + m.seed) * 0.25 - m.y) * Math.min(1, dt * 4);
       }
-      else if (m.launchT > 0) m.y = Math.sin((1 - m.launchT / (m.launchMax || 0.6)) * Math.PI) * 2.2;
-      else m.y = 0;
+      else if (m.launchT > 0) m.y = gy + Math.sin((1 - m.launchT / (m.launchMax || 0.6)) * Math.PI) * 2.2;
+      else m.y = gy;
 
       if (m.d >= path.len - 1.7 - def.r * 0.5) {
         m.dead = true; m.leaked = true;
@@ -1974,12 +2125,16 @@ class Sim {
     p.vx += (wx * spd - p.vx) * acc; p.vz += (wz * spd - p.vz) * acc;
     if (inp.jump && p.ground) { p.vy = 7.4; p.ground = false; this.ev('jump', { pid: p.id }); }
     p.vy -= 22 * dt; p.y += p.vy * dt;
-    p.x += p.vx * dt; this._collide(p);
-    p.z += p.vz * dt; this._collide(p);
-    // 地面：平台台阶可以直接走上去；走下台阶时贴地，不会“掉下去”
-    const g = this.groundAt(p.x, p.z);
-    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < PLAT_H + 0.05)) { p.y = g; p.vy = 0; p.ground = true; }
+    // 台阶：低于 0.75 米可以直接走上去，更高的崖壁挡住
+    const STEP = 0.75;
+    { const ox = p.x; p.x += p.vx * dt; this._collide(p); if (this.terrain && this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP) { p.x = ox; p.vx = 0; } }
+    { const oz = p.z; p.z += p.vz * dt; this._collide(p); if (this.terrain && this.groundAt(p.x, p.z, p.y + STEP) - p.y > STEP) { p.z = oz; p.vz = 0; } }
+    // 地面：平台台阶可以直接走上去；走下台阶 / 下坡时贴地，不会“掉下去”
+    const g = this.groundAt(p.x, p.z, p.y + 0.3);
+    if (p.y <= g || (p.ground && p.vy <= 0 && p.y - g < (this.terrain ? 0.5 : PLAT_H + 0.05))) { p.y = g; p.vy = 0; p.ground = true; }
     else p.ground = false;
+    // 二层底下：跳起来会碰头
+    if (this.terrain && p.vy > 0) { const i = this.idxOf(p.x, p.z); if (this.deck.has(i) && p.y < this.DECK_B && p.y + 1.85 > this.DECK_B) { p.y = this.DECK_B - 1.85; p.vy = 0; } }
   }
   // 武器节奏：返回本帧是否开火
   weapon(p, dt) {

@@ -700,13 +700,173 @@ const THEMES = {
   furnace: { lane: [0.23, 0.185, 0.175], floor: [0.27, 0.22, 0.21], pad: [0.33, 0.24, 0.16], base: [0.2, 0.2, 0.24], spawn: [0.34, 0.12, 0.1], wall: [0.28, 0.22, 0.21], cornice: [0.15, 0.1, 0.09], ceil: [0.09, 0.06, 0.05], trim: [1, 0.32, 0.1], upper: [1, 0.55, 0.2], lamp: [1, 0.66, 0.38], fog: [0.075, 0.035, 0.025], sky: [0.68, 0.5, 0.44], ground: [0.33, 0.21, 0.17], sun: [0.5, 0.32, 0.24] },
   abyss: { lane: [0.19, 0.19, 0.26], floor: [0.23, 0.23, 0.3], pad: [0.29, 0.25, 0.31], base: [0.16, 0.22, 0.3], spawn: [0.25, 0.12, 0.25], wall: [0.25, 0.25, 0.34], cornice: [0.12, 0.12, 0.18], ceil: [0.07, 0.07, 0.11], trim: [0.75, 0.45, 1], upper: [0.5, 0.82, 1], lamp: [0.76, 0.8, 1], fog: [0.03, 0.03, 0.065], sky: [0.54, 0.56, 0.76], ground: [0.22, 0.2, 0.28], sun: [0.38, 0.38, 0.5] },
 };
+// 室外：沙岩山体 + 傍晚天光
+THEMES.outdoor = { lane: [0.33, 0.29, 0.24], floor: [0.4, 0.37, 0.33], pad: [0.42, 0.34, 0.22], base: [0.25, 0.31, 0.34], spawn: [0.38, 0.18, 0.14], wall: [0.5, 0.4, 0.31], cornice: [0.36, 0.28, 0.21], ceil: [0.2, 0.2, 0.22], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.62, 0.66, 0.74], fogD: 0.0058, sky: [0.92, 0.9, 0.95], ground: [0.45, 0.37, 0.29], sun: [1.05, 0.88, 0.68] };
 const themeOf = S => THEMES[S.def.theme] || THEMES.station;
 function tileOf(S, x, z) { if (x < 0 || z < 0 || x >= S.W || z >= S.H) return TILE.WALL; return S.grid[z * S.W + x]; }
 function laneFrame(S, lane) {
   const p0 = S.paths[lane].pts[0], d = S.spawnDir[lane];
   return { x: p0.x, z: p0.z, dx: d.dx, dz: d.dz, yaw: Math.atan2(d.dx, d.dz) };
 }
+function buildPlatforms(S) {
+  // 2×2 炮台平台：金属甲板 + 警示边框 + 四角灯柱，中间十字线分出 4 个炮台位
+  for (const [px0, pz0] of S.def.platforms || []) {
+    const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T, G = S.tileH(px0, pz0);
+    const H = PLAT_H;
+    // 抬高的甲板：深色底座 + 金属台面 + 侧面警示灯带
+    E.push('box', cx, G + H / 2 - 0.02, cz, 0, L * 1.0, H - 0.04, L * 1.0, col(0.14, 0.15, 0.17, 1, 0, 0, 2));
+    E.push('box', cx, G + H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.22, 0.23, 0.26, 1, 0, 0, 2));
+    const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35), SIDE = col(1, 0.55, 0.12, 1, 1.1);
+    for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, G + H + 0.02, ez, 0, sx, 0.05, sz, AMB);
+    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.005, L * 0.92, 0.02], [cx, z0 + L + 0.005, L * 0.92, 0.02], [x0 - 0.005, cz, 0.02, L * 0.92], [x0 + L + 0.005, cz, 0.02, L * 0.92]]) E.push('box', ex, G + H * 0.5, ez, 0, sx, 0.06, sz, SIDE);
+    // 斜面台阶（四边中间）
+    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.25, 1.1, 0.5], [cx, z0 + L + 0.25, 1.1, 0.5], [x0 - 0.25, cz, 0.5, 1.1], [x0 + L + 0.25, cz, 0.5, 1.1]]) {
+      E.push('box', ex, G + H * 0.25, ez, 0, sx, H * 0.5, sz, col(0.2, 0.21, 0.24, 1, 0, 0, 2));
+      E.push('box', ex, G + H * 0.5 + 0.005, ez, 0, sx * (sx > 1 ? 0.9 : 0.3), 0.01, sz * (sz > 1 ? 0.9 : 0.3), DIM);
+    }
+    E.push('box', cx, G + H + 0.01, cz, 0, L * 0.9, 0.02, 0.07, DIM);
+    E.push('box', cx, G + H + 0.01, cz, 0, 0.07, 0.02, L * 0.9, DIM);
+    for (const [kx, kz] of [[x0 + 0.25, z0 + 0.25], [x0 + L - 0.25, z0 + 0.25], [x0 + 0.25, z0 + L - 0.25], [x0 + L - 0.25, z0 + L - 0.25]]) {
+      E.push('cyl', kx, G + H + 0.7, kz, 0, 0.16, 1.4, 0.16, col(0.3, 0.31, 0.34));
+      E.push('cyl', kx, G + H + 1.45, kz, 0, 0.22, 0.12, 0.22, col(1, 0.62, 0.15, 1, 1));
+    }
+  }
+}
+function buildCommonStatic(S, TH) {
+  // 路线箭头（让玩家看清怪物行进方向）
+  const tmp = { x: 0, z: 0, dx: 0, dz: 0 };
+  const drawn = new Set();
+  for (const lane of S.lanes) {
+    const p = S.paths[lane];
+    for (let d = 3; d < p.len - 4; d += 2.4) {
+      pathAt(p, d, tmp);
+      const key = Math.round(tmp.x * 2) + ',' + Math.round(tmp.z * 2);
+      if (drawn.has(key)) continue; drawn.add(key);
+      const rx = -tmp.dz, rz = tmp.dx;
+      const tx = tmp.x + tmp.dx * 0.3, tz = tmp.z + tmp.dz * 0.3;
+      const ch = col(0.95, 0.3, 0.25, 1, 0.55);
+      const gy = S.floorH(tx, tz) + 0.012, gy2 = S.floorH(tx - tmp.dx * 0.45, tz - tmp.dz * 0.45) + 0.012;
+      E.pushBeam('box', tx, gy, tz, tx - tmp.dx * 0.45 + rx * 0.4, gy2, tz - tmp.dz * 0.45 + rz * 0.4, 0.13, 0.01, ch);
+      E.pushBeam('box', tx, gy, tz, tx - tmp.dx * 0.45 - rx * 0.4, gy2, tz - tmp.dz * 0.45 - rz * 0.4, 0.13, 0.01, ch);
+    }
+  }
+  // 水晶基座
+  const cp = S.crystalPos, CG = cp.y || 0;
+  E.push('cyl', cp.x, CG + 0.25, cp.z, 0, 4.6, 0.5, 4.6, col(0.16, 0.2, 0.24, 1, 0, 0, 4));
+  E.push('cyl', cp.x, CG + 0.55, cp.z, 0, 3.2, 0.12, 3.2, col(0.22, 0.3, 0.36));
+  E.push('ring', cp.x, CG + 0.62, cp.z, 0, 1.75, 1, 1.75, col(0.37, 0.89, 1.0, 1, 1));
+  E.push('ring', cp.x, CG + 0.02, cp.z, 0, 4.2, 1, 4.2, col(0.37, 0.89, 1.0, 1, 0.8));
+  for (let i = 0; i < 6; i++) {
+    const a = i / 6 * Math.PI * 2, px = cp.x + Math.cos(a) * 3.4, pz = cp.z + Math.sin(a) * 3.4;
+    if (tileOf(S, Math.floor(px / T), Math.floor(pz / T)) !== TILE.BASE) continue;
+    E.push('box', px, CG + 1.1, pz, -a, 0.25, 2.2, 0.5, col(0.2, 0.24, 0.28, 1, 0, 0, 2));
+    E.push('box', px, CG + 2.1, pz, -a, 0.27, 0.12, 0.52, col(0.37, 0.89, 1.0, 1, 1));
+  }
+  // 科研舱：服务器机柜、科研终端、补给柜、全息沙盘台
+  buildLabStatic(S, TH);
+  // 出怪口门框（朝向沿第一段路线）
+  for (const lane of S.lanes) {
+    const f = laneFrame(S, lane), bx = f.x - f.dx * 1.6, bz = f.z - f.dz * 1.6, rx = f.dz, rz = -f.dx, G = S.floorH(f.x, f.z);
+    const fr = col(0.22, 0.12, 0.13, 1, 0, 0, 2);
+    E.push('box', bx + rx * 2.6, G + 2.6, bz + rz * 2.6, f.yaw, 0.6, 5.2, 0.6, fr);
+    E.push('box', bx - rx * 2.6, G + 2.6, bz - rz * 2.6, f.yaw, 0.6, 5.2, 0.6, fr);
+    E.push('box', bx, G + 5.3, bz, f.yaw, 5.8, 0.5, 0.6, fr);
+    E.push('box', bx + f.dx * 0.3, G + 5.0, bz + f.dz * 0.3, f.yaw, 5.0, 0.08, 0.05, col(1, 0.25, 0.2, 1, 1));
+  }
+}
+// 有高低差的地图：逐格画出不同高度的地面、斜坡、崖壁、二层桥面；室外没有天花板
+function buildTerrainStatic(S) {
+  const TH = themeOf(S), W = S.W, H = S.H;
+  const C3 = (a, emit, panel) => col(a[0], a[1], a[2], 1, emit || 0, 0, panel || 0);
+  const hash = (x, z) => { let h = (x * 374761393 + z * 668265263) | 0; h = (h ^ (h >>> 13)) * 1274126177; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  E.beginStatic();
+  const CX = W * T / 2, CZ = H * T / 2, RR = Math.max(W, H) * T;
+  // 远景：大地、远山、太阳
+  E.push('box', CX, -0.45, CZ, 0, RR * 6, 0.5, RR * 6, C3(TH.ground));
+  for (let i = 0; i < 34; i++) {
+    const a = i / 34 * Math.PI * 2 + hash(i, 7) * 0.2, r = RR * (0.95 + hash(i, 3) * 0.7), h = 18 + hash(i, 5) * 34, w = 30 + hash(i, 9) * 40;
+    const k = 0.75 + hash(i, 11) * 0.25;
+    E.push('cone', CX + Math.cos(a) * r, h / 2 - 1, CZ + Math.sin(a) * r, a, w, h, w, col(TH.wall[0] * k * 0.8, TH.wall[1] * k * 0.8, TH.wall[2] * k * 0.85));
+  }
+  E.push('sphere', CX - 0.45 * RR * 3, RR * 1.3, CZ - 0.5 * RR * 3, 0, 40, 40, 40, c(1, 0.85, 0.6, 1, 1, 0, false, true));
+  const FL = { [TILE.LANE]: C3(TH.lane, 0, 2), [TILE.FLOOR]: C3(TH.floor, 0, 2), [TILE.PAD]: C3(TH.pad, 0, 2), [TILE.BASE]: C3(TH.base, 0, 2), [TILE.SPAWN]: C3(TH.spawn, 0, 2) };
+  const TRIM = C3(TH.trim, 1), UPPER = C3(TH.upper, 0.75), LAMP = C3(TH.lamp, 1);
+  const CLIFF = k => col(TH.wall[0] * k, TH.wall[1] * k, TH.wall[2] * k, 1, 0, 0, 0);
+  const tH = (x, z) => S.tileH(x, z);
+  for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
+    const t = tileOf(S, x, z), cx = (x + 0.5) * T, cz = (z + 0.5) * T, i = z * W + x;
+    if (t === TILE.WALL) {
+      let edge = false, top = 0;
+      for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (tileOf(S, x + dx, z + dz) !== TILE.WALL) { edge = true; top = Math.max(top, tH(x + dx, z + dz)); }
+      if (!edge) continue;
+      const hh = top + 3.4 + hash(x, z) * 3.2, k = 0.82 + hash(z, x) * 0.22;
+      E.push('box', cx, hh / 2 - 0.3, cz, 0, T, hh + 0.6, T, CLIFF(k));
+      // 岩层：中间一道深色横纹，顶上一块错位的岩石
+      E.push('box', cx, top + 1.2 + hash(x + 3, z) * 1.5, cz, 0, T * 1.02, 0.35, T * 1.02, CLIFF(k * 0.72));
+      E.push('box', cx + (hash(x, z + 5) - 0.5) * 0.6, hh + 0.25, cz + (hash(x + 5, z) - 0.5) * 0.6, hash(x, z) * 1.5, T * 0.78, 0.7, T * 0.7, CLIFF(k * 0.9));
+      if (hash(x + 9, z + 9) > 0.7) E.push('oct', cx, hh + 0.9, cz, hash(x, z) * 3, 1.3, 1.1, 1.3, CLIFF(k * 0.8));
+      continue;
+    }
+    const ri = S.rampOf.get(i);
+    if (ri !== undefined) {
+      // 斜坡：底下垫阶梯，上面一块倾斜的坡面
+      const r = S.ramps[ri], d = DIRS[r.dir], N = 4;
+      const hAt = f => S.tileFloor(i, cx + d[0] * T * (f - 0.5), cz + d[1] * T * (f - 0.5));
+      for (let k = 0; k < N; k++) {
+        const h0 = hAt(k / N), f = (k + 0.5) / N;
+        if (h0 > 0.02) E.push('box', cx + d[0] * T * (f - 0.5), (h0 - 0.25) / 2, cz + d[1] * T * (f - 0.5), 0, d[0] ? T / N : T * 0.985, h0 + 0.25, d[1] ? T / N : T * 0.985, CLIFF(0.75));
+      }
+      const hl = hAt(0), hh = hAt(1), L = Math.hypot(T, hh - hl), pitch = Math.atan2(hh - hl, T);
+      E.pushR('box', cx, (hl + hh) / 2 - 0.1 * Math.cos(pitch), cz, Math.atan2(-d[0], -d[1]), pitch, 0, T * 0.985, 0.2, L, FL[t]);
+      if (t !== TILE.LANE) for (let k = 1; k < 4; k++) { const f = k / 4, y = hl + (hh - hl) * f; E.push('box', cx + d[0] * T * (f - 0.5), y + 0.012, cz + d[1] * T * (f - 0.5), 0, d[0] ? 0.06 : T * 0.9, 0.02, d[1] ? 0.06 : T * 0.9, col(1, 0.62, 0.2, 1, 0.5)); }
+    } else {
+      const h = tH(x, z);
+      E.push('box', cx, (h - 0.25) / 2, cz, 0, T * 0.985, h + 0.25, T * 0.985, FL[t]);
+      // 崖边：比旁边高出 1 米以上时，顶上加一圈石沿和灯带
+      for (let dd = 0; dd < 4; dd++) {
+        const nx = x + DIRS[dd][0], nz = z + DIRS[dd][1];
+        if (tileOf(S, nx, nz) === TILE.WALL || S.isRamp(nx, nz) || tH(nx, nz) > h - 1) continue;
+        const alongX = DIRS[dd][1] !== 0, fx = cx + DIRS[dd][0] * (T * 0.5 - 0.12), fz = cz + DIRS[dd][1] * (T * 0.5 - 0.12);
+        E.push('box', fx, h + 0.12, fz, 0, alongX ? T : 0.24, 0.24, alongX ? 0.24 : T, CLIFF(0.7));
+        E.push('box', fx + DIRS[dd][0] * 0.13, h - 0.25, fz + DIRS[dd][1] * 0.13, 0, alongX ? T : 0.02, 0.06, alongX ? 0.02 : T, UPPER);
+      }
+    }
+    // 通道贴着墙 / 崖壁的地方：琥珀色踢脚灯
+    if (t === TILE.LANE || t === TILE.SPAWN) for (let dd = 0; dd < 4; dd++) {
+      if (!S.wallSide(x, z, dd) || ri !== undefined) continue;
+      const alongX = DIRS[dd][1] !== 0, fx = cx + DIRS[dd][0] * (T * 0.5 - 0.02), fz = cz + DIRS[dd][1] * (T * 0.5 - 0.02);
+      E.push('box', fx, tH(x, z) + 0.2, fz, 0, alongX ? T : 0.05, 0.07, alongX ? 0.05 : T, t === TILE.SPAWN ? col(1, 0.25, 0.25, 1, 1) : TRIM);
+    }
+    // 二层桥面：桥板 + 底部钢梁和灯 + 两侧栏杆
+    if (S.deck.has(i)) {
+      const DH = S.DECK_H, DB = S.DECK_B;
+      E.push('box', cx, (DH + DB) / 2, cz, 0, T, DH - DB, T, col(0.3, 0.31, 0.34, 1, 0, 0, 2));
+      E.push('box', cx, DH + 0.005, cz, 0, T * 0.96, 0.01, T * 0.96, C3(TH.floor, 0, 2));
+      E.push('box', cx, DB - 0.12, cz, 0, T, 0.24, 0.3, col(0.22, 0.23, 0.26));
+      E.push('box', cx, DB - 0.12, cz, 0, 0.3, 0.24, T, col(0.22, 0.23, 0.26));
+      if ((x + z) % 2 === 0) E.push('box', cx + T * 0.25, DB - 0.02, cz + T * 0.25, 0, T * 0.4, 0.04, 0.12, LAMP);
+      for (let dd = 0; dd < 4; dd++) {
+        const nx = x + DIRS[dd][0], nz = z + DIRS[dd][1], ni = nz * W + nx;
+        if (S.deck.has(ni) || tileOf(S, nx, nz) === TILE.WALL || Math.abs(tH(nx, nz) - DH) < 0.3) continue;
+        const alongX = DIRS[dd][1] !== 0, fx = cx + DIRS[dd][0] * (T * 0.5 - 0.06), fz = cz + DIRS[dd][1] * (T * 0.5 - 0.06);
+        E.push('box', fx, DH + 1.0, fz, 0, alongX ? T : 0.08, 0.08, alongX ? 0.08 : T, col(1, 0.6, 0.2, 1, 0.6));
+        E.push('box', fx, DH + 0.5, fz, 0, alongX ? T : 0.04, 0.04, alongX ? 0.04 : T, col(0.4, 0.42, 0.46));
+        for (const o of [-0.45, 0.45]) E.push('box', fx + (alongX ? o * T : 0), DH + 0.5, fz + (alongX ? 0 : o * T), 0, 0.08, 1.0, 0.08, col(0.35, 0.36, 0.4));
+        E.push('box', fx, DB - 0.05, fz, 0, alongX ? T : 0.04, 0.05, alongX ? 0.04 : T, UPPER);
+      }
+    }
+    if (t === TILE.PAD) {
+      const py = tH(x, z) + (S.plat.has(i) ? PLAT_H : 0);
+      E.push('ring', cx, py + 0.015, cz, 0, T * 0.42, 1, T * 0.42, col(1, 0.68, 0.22, 1, 0.9));
+      E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
+    }
+  }
+  buildPlatforms(S);
+  buildCommonStatic(S, TH);
+  return E.endStatic();
+}
 function buildStatic(S) {
+  if (S.terrain) return buildTerrainStatic(S);
   const TH = themeOf(S), W = S.W, H = S.H;
   const C3 = (a, emit, panel) => col(a[0], a[1], a[2], 1, emit || 0, 0, panel || 0);
   E.beginStatic();
@@ -741,67 +901,8 @@ function buildStatic(S) {
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
   }
-  // 2×2 炮台平台：金属甲板 + 警示边框 + 四角灯柱，中间十字线分出 4 个炮台位
-  for (const [px0, pz0] of S.def.platforms || []) {
-    const x0 = px0 * T, z0 = pz0 * T, cx = x0 + T, cz = z0 + T, L = 2 * T;
-    const H = PLAT_H;
-    // 抬高的甲板：深色底座 + 金属台面 + 侧面警示灯带
-    E.push('box', cx, H / 2 - 0.02, cz, 0, L * 1.0, H - 0.04, L * 1.0, col(0.14, 0.15, 0.17, 1, 0, 0, 2));
-    E.push('box', cx, H - 0.03, cz, 0, L * 0.98, 0.06, L * 0.98, col(0.22, 0.23, 0.26, 1, 0, 0, 2));
-    const AMB = col(1, 0.62, 0.15, 1, 0.85), DIM = col(1, 0.62, 0.15, 1, 0.35), SIDE = col(1, 0.55, 0.12, 1, 1.1);
-    for (const [ex, ez, sx, sz] of [[cx, z0 + 0.12, L, 0.2], [cx, z0 + L - 0.12, L, 0.2], [x0 + 0.12, cz, 0.2, L], [x0 + L - 0.12, cz, 0.2, L]]) E.push('box', ex, H + 0.02, ez, 0, sx, 0.05, sz, AMB);
-    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.005, L * 0.92, 0.02], [cx, z0 + L + 0.005, L * 0.92, 0.02], [x0 - 0.005, cz, 0.02, L * 0.92], [x0 + L + 0.005, cz, 0.02, L * 0.92]]) E.push('box', ex, H * 0.5, ez, 0, sx, 0.06, sz, SIDE);
-    // 斜面台阶（四边中间）
-    for (const [ex, ez, sx, sz] of [[cx, z0 - 0.25, 1.1, 0.5], [cx, z0 + L + 0.25, 1.1, 0.5], [x0 - 0.25, cz, 0.5, 1.1], [x0 + L + 0.25, cz, 0.5, 1.1]]) {
-      E.push('box', ex, H * 0.25, ez, 0, sx, H * 0.5, sz, col(0.2, 0.21, 0.24, 1, 0, 0, 2));
-      E.push('box', ex, H * 0.5 + 0.005, ez, 0, sx * (sx > 1 ? 0.9 : 0.3), 0.01, sz * (sz > 1 ? 0.9 : 0.3), DIM);
-    }
-    E.push('box', cx, H + 0.01, cz, 0, L * 0.9, 0.02, 0.07, DIM);
-    E.push('box', cx, H + 0.01, cz, 0, 0.07, 0.02, L * 0.9, DIM);
-    for (const [kx, kz] of [[x0 + 0.25, z0 + 0.25], [x0 + L - 0.25, z0 + 0.25], [x0 + 0.25, z0 + L - 0.25], [x0 + L - 0.25, z0 + L - 0.25]]) {
-      E.push('cyl', kx, H + 0.7, kz, 0, 0.16, 1.4, 0.16, col(0.3, 0.31, 0.34));
-      E.push('cyl', kx, H + 1.45, kz, 0, 0.22, 0.12, 0.22, col(1, 0.62, 0.15, 1, 1));
-    }
-  }
-  // 路线箭头（让玩家看清怪物行进方向）
-  const tmp = { x: 0, z: 0, dx: 0, dz: 0 };
-  const drawn = new Set();
-  for (const lane of S.lanes) {
-    const p = S.paths[lane];
-    for (let d = 3; d < p.len - 4; d += 2.4) {
-      pathAt(p, d, tmp);
-      const key = Math.round(tmp.x * 2) + ',' + Math.round(tmp.z * 2);
-      if (drawn.has(key)) continue; drawn.add(key);
-      const rx = -tmp.dz, rz = tmp.dx;
-      const tx = tmp.x + tmp.dx * 0.3, tz = tmp.z + tmp.dz * 0.3;
-      const ch = col(0.95, 0.3, 0.25, 1, 0.55);
-      E.pushBeam('box', tx, 0.012, tz, tx - tmp.dx * 0.45 + rx * 0.4, 0.012, tz - tmp.dz * 0.45 + rz * 0.4, 0.13, 0.01, ch);
-      E.pushBeam('box', tx, 0.012, tz, tx - tmp.dx * 0.45 - rx * 0.4, 0.012, tz - tmp.dz * 0.45 - rz * 0.4, 0.13, 0.01, ch);
-    }
-  }
-  // 水晶基座
-  const cp = S.crystalPos;
-  E.push('cyl', cp.x, 0.25, cp.z, 0, 4.6, 0.5, 4.6, col(0.16, 0.2, 0.24, 1, 0, 0, 4));
-  E.push('cyl', cp.x, 0.55, cp.z, 0, 3.2, 0.12, 3.2, col(0.22, 0.3, 0.36));
-  E.push('ring', cp.x, 0.62, cp.z, 0, 1.75, 1, 1.75, col(0.37, 0.89, 1.0, 1, 1));
-  E.push('ring', cp.x, 0.02, cp.z, 0, 4.2, 1, 4.2, col(0.37, 0.89, 1.0, 1, 0.8));
-  for (let i = 0; i < 6; i++) {
-    const a = i / 6 * Math.PI * 2, px = cp.x + Math.cos(a) * 3.4, pz = cp.z + Math.sin(a) * 3.4;
-    if (tileOf(S, Math.floor(px / T), Math.floor(pz / T)) !== TILE.BASE) continue;
-    E.push('box', px, 1.1, pz, -a, 0.25, 2.2, 0.5, col(0.2, 0.24, 0.28, 1, 0, 0, 2));
-    E.push('box', px, 2.1, pz, -a, 0.27, 0.12, 0.52, col(0.37, 0.89, 1.0, 1, 1));
-  }
-  // 科研舱：服务器机柜、科研终端、补给柜、全息沙盘台
-  buildLabStatic(S, TH);
-  // 出怪口门框（朝向沿第一段路线）
-  for (const lane of S.lanes) {
-    const f = laneFrame(S, lane), bx = f.x - f.dx * 1.6, bz = f.z - f.dz * 1.6, rx = f.dz, rz = -f.dx;
-    const fr = col(0.22, 0.12, 0.13, 1, 0, 0, 2);
-    E.push('box', bx + rx * 2.6, 2.6, bz + rz * 2.6, f.yaw, 0.6, 5.2, 0.6, fr);
-    E.push('box', bx - rx * 2.6, 2.6, bz - rz * 2.6, f.yaw, 0.6, 5.2, 0.6, fr);
-    E.push('box', bx, 5.3, bz, f.yaw, 5.8, 0.5, 0.6, fr);
-    E.push('box', bx + f.dx * 0.3, 5.0, bz + f.dz * 0.3, f.yaw, 5.0, 0.08, 0.05, col(1, 0.25, 0.2, 1, 1));
-  }
+  buildPlatforms(S);
+  buildCommonStatic(S, TH);
   return E.endStatic();
 }
 
@@ -1020,7 +1121,7 @@ function drawMonster(m, a) {
           let tr = null, bd = 3.8;
           for (const q of S_cur.s.traps) { const d = Math.hypot(q.wx - x, q.wz - z); if (d < bd) { bd = d; tr = q; } }
           if (tr) {
-            let x0 = x, y0 = y + 1.3, z0 = z; const ty = tr.kind === 'ceil' ? WALL_H - 0.6 : tr.kind === 'wall' ? 1.5 : 0.5;
+            let x0 = x, y0 = y + 1.3, z0 = z; const ty = tr.kind === 'ceil' ? tr.wy - 0.6 : tr.kind === 'wall' ? tr.wy : tr.wy + 0.5;
             for (let k = 1; k <= 4; k++) {
               const f = k / 4, j = k < 4 ? 0.25 : 0;
               const xn = lerp(x, tr.wx, f) + rnd(-j, j), yn = lerp(y + 1.3, ty, f) + rnd(-j, j), zn = lerp(z, tr.wz, f) + rnd(-j, j);
@@ -1259,19 +1360,20 @@ function drawMonster(m, a) {
     }
   }
   if (ghost) return;
+  const gy = S_cur && S_cur.terrain ? S_cur.floorH(x, z) : 0;
   if (m.champ) {
-    E.push('ring', x, 0.07, z, timeNow * 2, def.r * 2.4, 1, def.r * 2.4, c(1, 0.78, 0.25, 0.9, 1, 0, true));
+    E.push('ring', x, gy + 0.07, z, timeNow * 2, def.r * 2.4, 1, def.r * 2.4, c(1, 0.78, 0.25, 0.9, 1, 0, true));
     E.push('sphere', x, y + top * 0.5, z, 0, def.r * 3, top * 1.1, def.r * 3, c(1, 0.75, 0.2, 0.07, 1, 0, true));
   }
   // 影子
-  E.push('disc', x, 0.025, z, 0, def.r * 2.6, 1, def.r * 2.6, c(0, 0, 0, def.fly ? 0.28 : 0.42));
+  E.push('disc', x, gy + 0.025, z, 0, def.r * 2.6, 1, def.r * 2.6, c(0, 0, 0, def.fly ? 0.28 : 0.42));
   if (m.stunT > 0) {
     for (let i = 0; i < 3; i++) {
       const aa = timeNow * 5 + i * 2.1, rr = def.r * 0.9 + 0.2;
       E.push('oct', x + Math.cos(aa) * rr, y + top + 0.15, z + Math.sin(aa) * rr, aa, 0.16, 0.16, 0.16, c(1, 0.9, 0.3, 1, 1));
     }
   }
-  if (m.slowAmt > 0 && !def.fly) E.push('ring', x, 0.05, z, timeNow, def.r * 1.6, 1, def.r * 1.6, c(0.5, 0.8, 1, 0.6, 1, 0, true));
+  if (m.slowAmt > 0 && !def.fly) E.push('ring', x, gy + 0.05, z, timeNow, def.r * 1.6, 1, def.r * 1.6, c(0.5, 0.8, 1, 0.6, 1, 0, true));
   // 能量护盾
   if (m.shield > 0) {
     const cy = def.fly ? y : y + top * 0.5, rr = def.r * 2.4 + 0.5, pu = 0.5 + 0.5 * Math.sin(timeNow * 6 + m.seed);
@@ -1545,13 +1647,14 @@ function drawTrap(S, tr, ghost) {
     }
     case 'crusher': {
       Q('box', 0, -0.2, 0, T * 0.9, 0.4, T * 0.9, tc(0.22, 0.23, 0.26));
-      let yy = WALL_H - 1.45;
+      const CH = tr.wy, G0 = S.floorH(tr.wx, tr.wz) + 0.42, REST = CH - (CH < 5 ? 1.15 : 1.45);
+      let yy = REST;
       if (!GHOST) {
-        if (since < 0.1) yy = lerp(WALL_H - 1.45, 0.42, since / 0.1);
-        else if (since < 0.45) yy = 0.42;
-        else if (since < 1.4) yy = lerp(0.42, WALL_H - 1.45, (since - 0.45) / 0.95);
+        if (since < 0.1) yy = lerp(REST, G0, since / 0.1);
+        else if (since < 0.45) yy = G0;
+        else if (since < 1.4) yy = lerp(G0, REST, (since - 0.45) / 0.95);
       }
-      const ly = yy - WALL_H;
+      const ly = yy - CH;
       Q('cyl', 0, ly / 2, 0, 0.35, Math.max(0.1, -ly - 0.8), 0.35, tc(0.6, 0.62, 0.66));
       Q('box', 0, ly, 0, T * 0.95, 0.8, T * 0.95, tc(0.3, 0.29, 0.27));
       Q('box', 0, ly - 0.25, 0, T * 0.97, 0.12, T * 0.97, tc(1, 0.6, 0.15, 1));
@@ -1749,9 +1852,10 @@ function evoFx(S, tr, since) {
       break;
     }
     case 'crushera': { // 重锤：锤面加装尖刺与金色护甲
-      let yy = WALL_H - 1.45;
-      if (since < 0.1) yy = lerp(WALL_H - 1.45, 0.42, since / 0.1); else if (since < 0.45) yy = 0.42; else if (since < 1.4) yy = lerp(0.42, WALL_H - 1.45, (since - 0.45) / 0.95);
-      const ly = yy - WALL_H;
+      const CH = tr.wy, G0 = S.floorH(tr.wx, tr.wz) + 0.42, REST = CH - (CH < 5 ? 1.15 : 1.45);
+      let yy = REST;
+      if (since < 0.1) yy = lerp(REST, G0, since / 0.1); else if (since < 0.45) yy = G0; else if (since < 1.4) yy = lerp(G0, REST, (since - 0.45) / 0.95);
+      const ly = yy - CH;
       for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) QR('cone', i * T * 0.3, ly - 0.42, j * T * 0.3, 0, Math.PI, 0, 0.22, 0.3, 0.22, tc(0.75, 0.7, 0.6));
       for (const [ox, oz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Q('box', ox * T * 0.49, ly, oz * T * 0.49, ox ? 0.08 : T * 0.97, 0.7, oz ? 0.08 : T * 0.97, C(0.9));
       break;
@@ -2097,9 +2201,9 @@ function computeAim() {
   let best = null, bt = hit ? hit.t : 20;
   for (const tr of sim.s.traps) {
     const def = TRAP[tr.type];
-    const h = def.block ? 1.6 : def.cat === 'heavy' ? 1.5 : def.cat === 'hfloor' ? 0.3 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? WALL_H - 1 : (tr.kind === 'wall' ? 1.5 : 0.3)));
+    const h = def.block ? 1.6 : def.cat === 'heavy' ? 1.5 : def.cat === 'hfloor' ? 0.3 : (def.cat === 'pad' ? 1.0 : (tr.kind === 'ceil' ? -1 : (tr.kind === 'wall' ? 0 : 0.3)));
     const r = def.block ? 1.0 : def.big ? 1.7 : (def.cat === 'pad' ? 0.9 : 0.75);
-    const lx = tr.wx - ex, ly = h + (tr.kind === 'floor' ? tr.wy : 0) - ey, lz = tr.wz - ez;
+    const lx = tr.wx - ex, ly = h + tr.wy - ey, lz = tr.wz - ez;
     const tca = lx * dx + ly * dy + lz * dz;
     if (tca < 0 || tca > bt + 0.5) continue;
     const d2 = lx * lx + ly * ly + lz * lz - tca * tca;
@@ -2129,9 +2233,9 @@ function drawBuildOverlay() {
     if (big) { E.push('box', w.x, w.y + 0.04, w.z, 0, T * 1.86, 0.01, T * 1.86, c(cc[0], cc[1], cc[2], 0.1, 1, 0, true)); continue; }
     if (sl.kind === 'wall') {
       const alongX = DIRS[sl.dir][1] !== 0;
-      E.push('box', w.x - DIRS[sl.dir][0] * 0.03, 1.5, w.z - DIRS[sl.dir][1] * 0.03, 0, alongX ? T * 0.8 : 0.02, 2.2, alongX ? 0.02 : T * 0.8, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
+      E.push('box', w.x - DIRS[sl.dir][0] * 0.03, w.y, w.z - DIRS[sl.dir][1] * 0.03, 0, alongX ? T * 0.8 : 0.02, 2.2, alongX ? 0.02 : T * 0.8, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
     } else {
-      const yy = sl.kind === 'ceil' ? WALL_H - 0.03 : w.y + 0.03;
+      const yy = sl.kind === 'ceil' ? w.y - 0.03 : w.y + 0.03;
       E.push('box', w.x, yy, w.z, 0, T * 0.86, 0.01, T * 0.86, c(cc[0], cc[1], cc[2], 0.07, 1, 0, true));
     }
   }
@@ -2145,11 +2249,11 @@ function drawBuildOverlay() {
     if (aim.slot.kind === 'wall') {
       for (const i of sim.wallLine(aim.slot.x, aim.slot.z, aim.slot.dir)) {
         const tx = i % sim.W, tz = Math.floor(i / sim.W);
-        E.push('box', (tx + 0.5) * T, 0.04, (tz + 0.5) * T, 0, T * 0.9, 0.01, T * 0.9, c(gc[0], gc[1], gc[2], 0.16, 1, 0, true));
+        E.push('box', (tx + 0.5) * T, sim.tileH(tx, tz) + 0.04, (tz + 0.5) * T, 0, T * 0.9, 0.01, T * 0.9, c(gc[0], gc[1], gc[2], 0.16, 1, 0, true));
       }
     } else if (tool === 'crusher') {
       for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (!sim.solid(aim.slot.x + dx, aim.slot.z + dz))
-        E.push('box', (aim.slot.x + dx + 0.5) * T, 0.04, (aim.slot.z + dz + 0.5) * T, 0, T * 0.9, 0.01, T * 0.9, c(gc[0], gc[1], gc[2], 0.14, 1, 0, true));
+        E.push('box', (aim.slot.x + dx + 0.5) * T, sim.tileH(aim.slot.x + dx, aim.slot.z + dz) + 0.04, (aim.slot.z + dz + 0.5) * T, 0, T * 0.9, 0.01, T * 0.9, c(gc[0], gc[1], gc[2], 0.14, 1, 0, true));
     }
     const R = def.range ? (Array.isArray(def.range) ? def.range[0] : def.range) : 0;
     if (R) E.push('ring', w.x, w.y + 0.06, w.z, 0, R, 1, R, c(gc[0], gc[1], gc[2], 0.5, 1, 0, true));
@@ -2185,11 +2289,13 @@ function drawShells(dt) {
   for (let i = shellFx.length - 1; i >= 0; i--) {
     const f = shellFx[i]; f.t += dt;
     if (f.t >= f.T) { shellFx.splice(i, 1); continue; }
-    const k = f.t / f.T, x = lerp(f.x, f.tx, k), z = lerp(f.z, f.tz, k), y = lerp(f.y || 4.2, 0.4, k) + Math.sin(k * Math.PI) * (f.k === 't' ? 2.2 : 5);
+    if (f.gy === undefined) f.gy = S_cur ? S_cur.floorH(f.tx, f.tz) : 0;
+    const top = S_cur && S_cur.outdoor ? 60 : WALL_H - 0.3;
+    const k = f.t / f.T, x = lerp(f.x, f.tx, k), z = lerp(f.z, f.tz, k), y = Math.min(top, lerp(f.y || 4.2, f.gy + 0.4, k) + Math.sin(k * Math.PI) * (f.k === 't' ? 2.2 : 5));
     const pc = f.k === 'm' ? [0.6, 0.45, 1] : f.k === 't' ? [1, 0.8, 0.35] : [1, 0.6, 0.25], R = f.k === 'm' ? 3.8 : f.k === 't' ? 2.2 : 2.6;
-    E.push('sphere', x, Math.min(WALL_H - 0.3, y), z, 0, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, c(pc[0], pc[1], pc[2], 1, 1, 0, true));
-    particle({ x, y: Math.min(WALL_H - 0.3, y), z, vy: 0.3, life: 0.6, s0: 0.25, s1: 0.7, c: f.k === 'm' ? [0.55, 0.45, 0.9] : [0.5, 0.48, 0.45], add: f.k === 'm', a0: 0.4 });
-    E.push('ring', f.tx, 0.06, f.tz, timeNow * 3, R * (1.2 - k * 0.3), 1, R * (1.2 - k * 0.3), f.k === 'm' ? c(0.6, 0.45, 1, 0.8, 1, 0, true) : c(1, 0.35, 0.2, 0.8, 1, 0, true));
+    E.push('sphere', x, y, z, 0, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, f.k === 'm' ? 0.55 : 0.35, c(pc[0], pc[1], pc[2], 1, 1, 0, true));
+    particle({ x, y, z, vy: 0.3, life: 0.6, s0: 0.25, s1: 0.7, c: f.k === 'm' ? [0.55, 0.45, 0.9] : [0.5, 0.48, 0.45], add: f.k === 'm', a0: 0.4 });
+    E.push('ring', f.tx, f.gy + 0.06, f.tz, timeNow * 3, R * (1.2 - k * 0.3), 1, R * (1.2 - k * 0.3), f.k === 'm' ? c(0.6, 0.45, 1, 0.8, 1, 0, true) : c(1, 0.35, 0.2, 0.8, 1, 0, true));
   }
   // 轨道电磁炮的贯穿光束
   for (let i = railFx.length - 1; i >= 0; i--) {
@@ -2293,9 +2399,9 @@ function drawDecals(dt) {
     if (d.t > 12) { decals.splice(i, 1); continue; }
     const a = d.t > 10 ? (12 - d.t) / 2 : 1, hot = Math.max(0, 1 - d.t / 0.6);
     let yaw = d.r, pitch = 0, x = d.x, y = d.y, z = d.z;
-    if (d.hk === 'floor') y = 0.012;
-    else if (d.hk === 'ceil') y = WALL_H - 0.012;
-    else if (d.hk === 'wall' && d.dir >= 0) { const nx = -DIRS[d.dir][0], nz = -DIRS[d.dir][1]; yaw = Math.atan2(nx, nz); pitch = Math.PI / 2; x += nx * 0.015; z += nz * 0.015; }
+    if (d.hk === 'floor' || d.hk === 'deck') y = d.y + 0.012;
+    else if (d.hk === 'ceil') y = d.y - 0.012;
+    else if ((d.hk === 'wall' || d.hk === 'cliff') && d.dir >= 0) { const nx = -DIRS[d.dir][0], nz = -DIRS[d.dir][1]; yaw = Math.atan2(nx, nz); pitch = Math.PI / 2; x += nx * 0.015; z += nz * 0.015; }
     E.pushR('disc', x, y, z, yaw, pitch, d.r, d.s, 1, d.s, c(0.03, 0.03, 0.035, 0.7 * a));
     if (hot > 0) E.pushR('disc', x, y, z, yaw, pitch, d.r, d.s * 0.55, 1, d.s * 0.55, c(1, 0.55, 0.15, hot, 1, 0, true));
   }
@@ -2718,7 +2824,7 @@ function buildHelp() {
   };
   const rows = TRAPS.map(t => `<tr><td><span class="kb">${t.key}</span></td><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td>${CAT_NAME[t.cat]}</td><td class="num">${t.cost}</td><td>${t.desc.split(' · ')[1] || t.desc}<div class="lv">Lv1→4 ${lvStat(t)}</div></td></tr>`).join('');
   $('trapTable').innerHTML = `<thead><tr><th>键</th><th>陷阱</th><th>位置</th><th>价格</th><th>作用</th></tr></thead><tbody>${rows}</tbody>`;
-  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.aura) tags.push('给周围敌人套能量护盾（会吸收中毒与灼烧）'); if (m.cannon) tags.push('炮击炮台与阻挡物使其瘫痪'); if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%'); if (m.blink) tags.push('周期性向前瞬移，越过阻挡'); if (m.drop) tags.push('空投噬晶蛛'); if (m.heavy) tags.push('重装单位·电磁炮优先锁定'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
+  const mons = Object.keys(MON).map(k => { const m = MON[k]; const tags = []; if (m.fly) tags.push('飞行·地面陷阱无效'); if (m.armor) tags.push('护甲 ' + Math.round(m.armor * 100) + '%'); if (m.bomb) tags.push('遇阻挡自爆'); if (m.elite) tags.push('半血狂暴·免疫击退'); if (m.boss) tags.push('EMP·召唤·踩踏'); if (m.heal) tags.push('治疗周围怪物·优先击落'); if (m.stealth) tags.push('隐身·炮台无法锁定，减速/攻击/靠近会现形'); if (m.burrow) tags.push('钻入地下越过陷阱，期间无敌'); if (m.hack) tags.push('骇入附近陷阱使其瘫痪 10 秒'); if (m.ranged) tags.push('远程射击玩家'); if (m.burnImmune) tags.push('免疫燃烧'); if (m.split) tags.push('击破后分裂'); if (m.aura) tags.push('给周围敌人套能量护盾（同一只怪 8 秒内只能套一次）；磁暴塔、电磁炮对护盾 ×3，激光 ×2.5，枪械 ×1.5，破盾瞬间敌人僵直'); if (m.cannon) tags.push('炮击炮台与阻挡物使其瘫痪'); if (m.stunRes) tags.push('眩晕时间 -' + Math.round(m.stunRes * 100) + '%'); if (m.blink) tags.push('周期性向前瞬移，越过阻挡'); if (m.drop) tags.push('空投噬晶蛛'); if (m.heavy) tags.push('重装单位·电磁炮优先锁定'); if (m.type === 'mite' || k === 'mite') tags.push('体型小、速度快'); return `<li><b>${m.name}</b><span>${tags.join(' · ') || '基础单位'}</span></li>`; }).join('');
   $('monList').innerHTML = mons;
   $('evoTable').innerHTML = `<thead><tr><th>陷阱</th><th>进阶·甲</th><th>进阶·乙</th></tr></thead><tbody>` + TRAPS.map(t => `<tr><td class="cat-${t.cat}"><span class="ic">${svgIcon(t.id)}</span>${t.name}</td><td><b>${EVO[t.id].a.name}</b><div class="lv">${EVO[t.id].a.desc}</div></td><td><b>${EVO[t.id].b.name}</b><div class="lv">${EVO[t.id].b.desc}</div></td></tr>`).join('') + '</tbody>';
   $('techList').innerHTML = TD.TECH.map((t, i) => `<li><b style="color:${TECH_CSS[i]}">${t.name}</b><span>${t.desc(1)}（每级叠加，最高 ${TD.TECH_MAX} 级） · ${t.cost.join(' / ')} 金币</span></li>`).join('');
@@ -3311,18 +3417,20 @@ function buildLabStatic(S, TH) {
     // 服务器机柜：顶部色条标明对应的科技
     lb.racks.forEach((o, i) => {
       const w = S.labObj(o), tc = TECH_COL[i];
-      setMX(w.x, 0, w.z, w.yaw);
+      setMX(w.x, S.floorH(w.x, w.z), w.z, w.yaw);
       P('box', 0, 1.35, -0.12, 1.8, 2.7, 0.95, col(0.12, 0.13, 0.16, 1, 0, 0, 2));
       P('box', 0, 1.3, 0.37, 1.6, 2.45, 0.03, c(0.045, 0.055, 0.07));
       for (let k = 0; k < 7; k++) P('box', -0.2, 0.36 + k * 0.29, 0.39, 1.05, 0.035, 0.02, c(UP[0] * 0.6, UP[1] * 0.6, UP[2] * 0.6, 1, 0.45));
       P('box', 0, 2.78, 0.3, 1.8, 0.14, 0.06, c(tc[0], tc[1], tc[2], 1, 0.7));
       P('box', 0.86, 1.3, 0.38, 0.05, 2.45, 0.03, c(0.3, 0.32, 0.36));
-      P('cyl', 0.45, (2.7 + WALL_H) / 2, -0.4, 0.22, WALL_H - 2.7, 0.22, c(0.08, 0.08, 0.1));
-      P('cyl', -0.45, (2.7 + WALL_H) / 2, -0.4, 0.16, WALL_H - 2.7, 0.16, c(0.1, 0.1, 0.12));
+      if (!S.outdoor) {
+        P('cyl', 0.45, (2.7 + WALL_H) / 2, -0.4, 0.22, WALL_H - 2.7, 0.22, c(0.08, 0.08, 0.1));
+        P('cyl', -0.45, (2.7 + WALL_H) / 2, -0.4, 0.16, WALL_H - 2.7, 0.16, c(0.1, 0.1, 0.12));
+      }
     });
     // 科研终端：控制台 + 大屏
     let w = S.labObj(lb.term);
-    setMX(w.x, 0, w.z, w.yaw);
+    setMX(w.x, S.floorH(w.x, w.z), w.z, w.yaw);
     P('box', 0, 0.5, -0.05, 2.1, 1.0, 0.95, col(0.2, 0.22, 0.26, 1, 0, 0, 2));
     PR('box', 0, 1.05, 0.12, 0.35, 0, 1.95, 0.07, 0.62, c(0.1, 0.11, 0.14));
     P('box', 0, 1.09, 0.14, 1.6, 0.02, 0.4, c(UP[0], UP[1], UP[2], 1, 0.35));
@@ -3332,7 +3440,7 @@ function buildLabStatic(S, TH) {
     P('box', 0, 3.17, -0.36, 2.4, 0.16, 0.1, c(UP[0], UP[1], UP[2], 1, 0.9));
     // 补给柜 + 弹药箱
     w = S.labObj(lb.sup);
-    setMX(w.x, 0, w.z, w.yaw);
+    setMX(w.x, S.floorH(w.x, w.z), w.z, w.yaw);
     P('box', 0, 1.2, -0.1, 1.6, 2.4, 0.95, col(0.16, 0.21, 0.18, 1, 0, 0, 2));
     for (const sx of [-0.39, 0.39]) { P('box', sx, 1.12, 0.385, 0.74, 2.1, 0.04, c(0.21, 0.27, 0.23)); P('box', sx * 0.2, 1.15, 0.42, 0.04, 0.36, 0.04, c(0.6, 0.62, 0.64)); }
     P('box', 0, 1.82, 0.42, 0.52, 0.15, 0.02, c(0.35, 1, 0.5, 1, 0.55));
@@ -3341,12 +3449,12 @@ function buildLabStatic(S, TH) {
     P('box', -1.22, 0.98, 0.06, 0.56, 0.52, 0.56, c(0.26, 0.26, 0.17));
     P('box', -1.28, 0.36, 0.47, 0.5, 0.08, 0.01, c(1, 0.75, 0.2, 1, 0.6));
     // 全息沙盘台
-    const h = labHolo(S, lb);
-    E.push('cyl', h.x, 0.45, h.z, 0, 1.7, 0.9, 1.7, col(0.13, 0.14, 0.17, 1, 0, 0, 2));
-    E.push('cyl', h.x, 0.93, h.z, 0, 1.9, 0.06, 1.9, c(0.22, 0.24, 0.28));
-    E.push('ring', h.x, 0.97, h.z, 0, 0.92, 1, 0.92, c(UP[0], UP[1], UP[2], 1, 0.55));
-    E.push('ring', h.x, 0.015, h.z, 0, 2.0, 1, 2.0, c(UP[0], UP[1], UP[2], 1, 0.3));
-    E.push('ring', h.x, 0.015, h.z, 0, 1.35, 1, 1.35, c(UP[0], UP[1], UP[2], 1, 0.16));
+    const h = labHolo(S, lb), hg = S.floorH(h.x, h.z);
+    E.push('cyl', h.x, hg + 0.45, h.z, 0, 1.7, 0.9, 1.7, col(0.13, 0.14, 0.17, 1, 0, 0, 2));
+    E.push('cyl', h.x, hg + 0.93, h.z, 0, 1.9, 0.06, 1.9, c(0.22, 0.24, 0.28));
+    E.push('ring', h.x, hg + 0.97, h.z, 0, 0.92, 1, 0.92, c(UP[0], UP[1], UP[2], 1, 0.55));
+    E.push('ring', h.x, hg + 0.015, h.z, 0, 2.0, 1, 2.0, c(UP[0], UP[1], UP[2], 1, 0.3));
+    E.push('ring', h.x, hg + 0.015, h.z, 0, 1.35, 1, 1.35, c(UP[0], UP[1], UP[2], 1, 0.16));
   }
 }
 function drawLabs(S, dt) {
@@ -3358,7 +3466,7 @@ function drawLabs(S, dt) {
     // 机柜指示灯：每研究一级亮一盏；已研究的机柜前面板闪烁
     lb.racks.forEach((o, i) => {
       const w = S.labObj(o), tc = TECH_COL[i], lv = lvs[i];
-      setMX(w.x, 0, w.z, w.yaw);
+      setMX(w.x, S.floorH(w.x, w.z), w.z, w.yaw);
       for (let k = 0; k < 3; k++) {
         const on = k < lv;
         P('box', -0.5 + k * 0.5, 2.5, 0.41, 0.38, 0.13, 0.03, on ? c(tc[0], tc[1], tc[2], 1, 1) : c(0.13, 0.13, 0.15, 1, 0.05));
@@ -3371,27 +3479,27 @@ function drawLabs(S, dt) {
     });
     // 终端大屏：五根科技等级条 + 扫描线
     let w = S.labObj(lb.term);
-    setMX(w.x, 0, w.z, w.yaw);
+    setMX(w.x, S.floorH(w.x, w.z), w.z, w.yaw);
     for (let i = 0; i < 5; i++) {
       const tc = TECH_COL[i], hh = 0.1 + 0.3 * lvs[i];
       P('box', -0.84 + i * 0.42, 1.74 + hh / 2, -0.28, 0.28, hh, 0.02, c(tc[0] * 0.8, tc[1] * 0.8, tc[2] * 0.8, 1, lvs[i] ? 0.55 : 0.15));
     }
     P('box', 0, 1.7 + ((t * 0.45) % 1) * 1.22, -0.275, 2.15, 0.025, 0.01, c(0.5, 0.95, 1, 0.5, 1, 0, true));
     const nearT = p && !p.dead && Math.hypot(p.x - w.x, p.z - w.z) < 3.6;
-    if (nearT) E.push('ring', w.x + w.dx * 0.9, 0.03, w.z + w.dz * 0.9, t, 0.9 + 0.08 * Math.sin(t * 5), 1, 0.9 + 0.08 * Math.sin(t * 5), c(0.37, 0.89, 1, 0.8, 1, 0, true));
+    if (nearT) E.push('ring', w.x + w.dx * 0.9, S.floorH(w.x, w.z) + 0.03, w.z + w.dz * 0.9, t, 0.9 + 0.08 * Math.sin(t * 5), 1, 0.9 + 0.08 * Math.sin(t * 5), c(0.37, 0.89, 1, 0.8, 1, 0, true));
     // 补给柜状态灯：绿色可用，红色冷却（下方进度条）
     w = S.labObj(lb.sup);
-    setMX(w.x, 0, w.z, w.yaw);
+    setMX(w.x, S.floorH(w.x, w.z), w.z, w.yaw);
     const cd = p ? p.supT || 0 : 0, ready = cd <= 0;
     P('box', 0, 2.5, 0.38, 1.4, 0.09, 0.03, ready ? c(0.35, 1, 0.5, 1, 0.6 + 0.4 * Math.sin(t * 4)) : c(1, 0.3, 0.25, 1, 0.8));
     if (!ready) { const f = 1 - cd / TD.SUPPLY_CD; P('box', -0.65 + 0.65 * f, 2.36, 0.4, 1.3 * f, 0.05, 0.02, c(1, 0.75, 0.3, 1, 0.9)); }
-    else if (p && !p.dead && Math.hypot(p.x - w.x, p.z - w.z) < 3.6) E.push('ring', w.x + w.dx * 0.9, 0.03, w.z + w.dz * 0.9, t, 0.9 + 0.08 * Math.sin(t * 5), 1, 0.9 + 0.08 * Math.sin(t * 5), c(0.35, 1, 0.5, 0.8, 1, 0, true));
+    else if (p && !p.dead && Math.hypot(p.x - w.x, p.z - w.z) < 3.6) E.push('ring', w.x + w.dx * 0.9, S.floorH(w.x, w.z) + 0.03, w.z + w.dz * 0.9, t, 0.9 + 0.08 * Math.sin(t * 5), 1, 0.9 + 0.08 * Math.sin(t * 5), c(0.35, 1, 0.5, 0.8, 1, 0, true));
     drawHolo(S, h, lvs);
   }
 }
 // 全息战术沙盘：整张地图缩小到台面上方，实时显示路线、水晶、敌人与队友
 function drawHolo(S, h, lvs) {
-  const t = timeNow, Y = 1.18, R = 1.05, k = 2 * R / (Math.max(S.W, S.H) * T);
+  const t = timeNow, Y = 1.18 + S.floorH(h.x, h.z), R = 1.05, k = 2 * R / (Math.max(S.W, S.H) * T);
   const ox = h.x - S.W * T * k / 2, oz = h.z - S.H * T * k / 2;
   const X = x => ox + x * k, Z = z => oz + z * k;
   E.push('disc', h.x, Y - 0.25, h.z, 0, R * 1.08, 1, R * 1.08, c(0.3, 0.75, 1, 0.06, 0.6, 0, true));
@@ -3417,7 +3525,7 @@ function drawHolo(S, h, lvs) {
   }
   const mix = [0.37, 0.89, 1];
   const tot = lvs.reduce((a, b) => a + b, 0);
-  flashLight(h.x, 2.2, h.z, 9 + tot * 0.3, mix, 0.7 + tot * 0.04, 0.02);
+  flashLight(h.x, 2.2 + S.floorH(h.x, h.z), h.z, 9 + tot * 0.3, mix, 0.7 + tot * 0.04, 0.02);
 }
 // 本机玩家附近的科研舱物件
 function nearLabObj() {
@@ -4024,10 +4132,11 @@ function frame(now) {
       const k = (timeNow - bt) / 0.55;
       if (k >= 1) buildFx.delete(tr.id);
       else {
-        const hy = tr.kind === 'ceil' ? WALL_H - 1.2 : (tr.kind === 'wall' ? 1.2 : 0), hh = TRAP[tr.type].block ? 3.2 : (TRAP[tr.type].cat === 'pad' ? 2 : 1.4);
+        const hh = TRAP[tr.type].block ? 3.2 : (TRAP[tr.type].cat === 'pad' ? 2 : 1.4);
+        const by = tr.kind === 'ceil' ? tr.wy - hh : tr.kind === 'wall' ? tr.wy - 0.7 : tr.wy;
         const bw = TRAP[tr.type].big ? T * 2 : T;
-        E.push('box', tr.wx, tr.wy + hy + hh / 2 - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, bw * 0.96, hh, bw * 0.96, c(0.4, 1, 0.85, 0.1 * (1 - k), 1, 0, true));
-        E.push('box', tr.wx, tr.wy + hy + k * hh - (tr.kind === 'wall' ? 1.2 : 0), tr.wz, 0, bw, 0.04, bw, c(0.5, 1, 0.9, 1 - k, 1, 0, true));
+        E.push('box', tr.wx, by + hh / 2, tr.wz, 0, bw * 0.96, hh, bw * 0.96, c(0.4, 1, 0.85, 0.1 * (1 - k), 1, 0, true));
+        E.push('box', tr.wx, by + k * hh, tr.wz, 0, bw, 0.04, bw, c(0.5, 1, 0.9, 1 - k, 1, 0, true));
       }
     }
   }
@@ -4053,8 +4162,8 @@ function frame(now) {
   if (mode !== 'menu') drawPings(dt);
   if (mode !== 'menu') { drawOtherPlayers(S, frameAlpha, dt); drawBuildOverlay(); }
   if (mode === 'play' && aim && aim.trap && !(aim.slot && aim.can && aim.can.ok)) {
-    const tr = aim.trap, yy = tr.kind === 'ceil' ? WALL_H - 0.05 : tr.wy + 0.05;
-    if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, 0.05, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));
+    const tr = aim.trap, yy = tr.kind === 'ceil' ? tr.wy - 0.05 : tr.wy + 0.05;
+    if (tr.kind === 'wall') E.push('ring', tr.wx - DIRS[tr.dir][0] * 0.4, tr.wy - 1.45, tr.wz - DIRS[tr.dir][1] * 0.4, 0, 0.9, 1, 0.9, c(1, 0.75, 0.3, 0.8, 1, 0, true));
     else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * (TRAP[tr.type].big ? 1.15 : 0.62), 1, T * (TRAP[tr.type].big ? 1.15 : 0.62), c(1, 0.75, 0.3, 0.8, 1, 0, true));
   }
   // 子弹轨迹
@@ -4112,7 +4221,7 @@ function frame(now) {
   const sc3 = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
   E.flush({
     vp: VP, eye: [cam.x, cam.y, cam.z], sky: dark ? sc3(TH.sky, 0.35) : TH.sky, ground: dark ? sc3(TH.ground, 0.35) : TH.ground, sunDir: [0.45, -0.74, 0.5], sunCol: dark ? sc3(TH.sun, 0.3) : TH.sun,
-    fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : 0.0105, lights: LIGHTS.slice(0, 12),
+    fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : (TH.fogD || 0.0105), lights: LIGHTS.slice(0, 12),
     bloom: 0.85, bloomThr: 0.92, vig: 0.85,
     tint: mode !== 'menu' && cf < 0.3 ? [0.6, 0.02, 0.05, 0.22 * (0.5 + 0.5 * Math.sin(timeNow * 5))] : (timeScale < 1 ? [0.9, 0.6, 0.3, 0.15] : null),
   }, SK.static ? [] : statics);
