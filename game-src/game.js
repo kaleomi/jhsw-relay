@@ -4552,7 +4552,61 @@ const TUT_STEPS = [
   { t: '射击', d: () => TOUCH ? '按「开火」射击，按「瞄准」开镜；打死 3 只怪' : '左键射击、右键瞄准，打头伤害更高；打死 3 只怪', ok: (T0, s, p) => p.kills >= 3 },
   { t: '更多玩法', d: () => TOUCH ? '「军械」买新武器，走到紫色「科」科研舱按「互动」研究科技。守住这一波吧！' : `${K_('KeyB')} 打开军械库买新武器；走到小地图上紫色「科」的科研舱按 ${K_('KeyF')} 研究科技；${K_('KeyH')} 查看图鉴。守住这一波吧！`, ok: T0 => T0.stepT > 9 },
 ];
+// 每一步要高亮的东西：els = 界面上要点的按钮，zone = 手机上要拖动的半屏，keys = 电脑上要按的键（显示成按键图标）
+const popOpen = g => popGrp === g;
+const TUT_HI = [
+  () => TOUCH ? { zone: 'left' } : { keys: ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft'].map(k => keyName(keyOf(k))) },
+  () => TOUCH ? { zone: 'right' } : { keys: ['移动鼠标'] },
+  () => ({ els: [popOpen('floor') ? '#trapPop [data-id="spike"]' : '#hotbar .grp[data-grp="floor"]'], keys: popOpen('floor') ? ['2'] : ['1', '2'] }),
+  () => TOUCH ? { els: ['#tbFire'], aim: 1 } : { keys: ['鼠标左键'] },
+  () => tool === 'laser' ? (TOUCH ? { els: ['#tbFire'], aim: 1 } : { keys: ['鼠标左键'] }) : ({ els: [popOpen('wall') ? '#trapPop [data-id="laser"]' : '#hotbar .grp[data-grp="wall"]'], keys: popOpen('wall') ? ['1'] : ['2', '1'] }),
+  () => TOUCH ? { els: ['#tbUp'] } : { keys: [keyName(keyOf('KeyE'))] },
+  () => TOUCH ? { els: ['#tbReady'] } : { keys: [keyName(keyOf('KeyG'))] },
+  () => TOUCH ? { els: ['#tbFire', '#tbAds'], aim: 1 } : { keys: ['鼠标左键', '鼠标右键'] },
+  () => TOUCH ? { els: ['#touchUI [data-k="KeyB"]', '#touchUI [data-k="Tab"]'] } : { keys: [keyName(keyOf('KeyB')), 'Tab', keyName(keyOf('KeyH'))] },
+];
 const Tut = { on: false, i: 0, moved: 0, turned: 0, stepT: 0, lx: 0, lz: 0, lyaw: 0 };
+// 把高亮圈 / 指示箭头 / 按键图标摆到位，并把引导卡片挪到不挡住目标的位置
+function tutHighlight() {
+  const box = $('tutHi'), card = $('tut');
+  // 打开了陷阱一览 / 军械库等面板时，引导卡片和高亮先让开，关掉面板再出来
+  const cover = Tut.on && (mode === 'pause' || anyPanel() || anyFullPage());
+  card.style.visibility = cover ? 'hidden' : '';
+  if (!Tut.on || mode !== 'play' || !TUT_HI[Tut.i] || cover) { box.hidden = true; return; }
+  box.hidden = false;
+  const H = TUT_HI[Tut.i](), rects = [];
+  for (const sel of H.els || []) {
+    const el = document.querySelector(sel);
+    if (!el || el.hidden || el.offsetParent === null) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 2) continue;
+    rects.push(r);
+  }
+  const key = JSON.stringify([rects.map(r => [r.left | 0, r.top | 0, r.width | 0, r.height | 0]), H.zone || '', H.keys || [], popGrp || '', innerWidth, innerHeight]);
+  if (box.dataset.key !== key) {
+    box.dataset.key = key;
+    let html = rects.map(r => `<i class="ring" style="left:${r.left - 5}px;top:${r.top - 5}px;width:${r.width + 10}px;height:${r.height + 10}px"></i><b class="arrow${r.top < innerHeight / 2 ? ' up' : ''}" style="left:${r.left + r.width / 2}px;top:${r.top < innerHeight / 2 ? r.bottom + 14 : r.top - 14}px"></b>`).join('');
+    if (H.zone) html += `<div class="zone ${H.zone}"><span>${H.zone === 'left' ? '在这里按住拖动，走到通道里' : '在这里滑动，转动视角'}</span></div>`;
+    if (H.keys && !TOUCH) html += `<div class="keys">${H.keys.map(k => `<kbd>${k}</kbd>`).join('')}</div>`;
+    box.innerHTML = html;
+    // 手机：引导卡片放到不和目标重叠的位置（上方 → 中间 → 左下）
+    if (TOUCH) {
+      const pop = $('trapPop'), avoid = rects.slice();
+      if (pop && !pop.hidden) avoid.push(pop.getBoundingClientRect());
+      // 需要瞄准的步骤：屏幕中间（准星和放置预览）也不能挡
+      if (H.aim) { const cx = innerWidth / 2, cy = innerHeight / 2; avoid.push({ left: cx - 100, right: cx + 100, top: cy - 50, bottom: cy + 90 }); }
+      // 量位置时先关掉过渡动画，否则量到的是动画起点；选好后再带动画移过去
+      const prev = card.dataset.pos || 'top'; let pick = 'low';
+      card.style.transition = 'none';
+      for (const pos of ['top', 'left', 'mid', 'low']) {
+        card.dataset.pos = pos;
+        const c = card.getBoundingClientRect();
+        if (!avoid.some(r => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { pick = pos; break; }
+      }
+      card.dataset.pos = prev; void card.offsetWidth;
+      card.style.transition = ''; card.dataset.pos = pick;
+    }
+  }
+}
 function tutDone() { try { return localStorage.getItem('jhsw-tut') === '1'; } catch (e) { return true; } }
 function tutSetDone() { try { localStorage.setItem('jhsw-tut', '1'); } catch (e) { /* 无存储 */ } }
 function startTutorial() {
@@ -4567,7 +4621,7 @@ function startTutorial() {
 }
 function stopTutorial(done) {
   if (!Tut.on) return;
-  Tut.on = false; $('tut').hidden = true; tutSetDone();
+  Tut.on = false; $('tut').hidden = true; $('tut').style.visibility = ''; $('tutHi').hidden = true; tutSetDone();
   if (done) { banner('新手引导完成', '接下来就靠你守住水晶了！在主菜单可以随时重新打开引导'); Snd.play('clear'); }
 }
 function renderTut() {
@@ -4583,6 +4637,7 @@ function updateTut(dt) {
   Tut.moved += Math.hypot(p.x - Tut.lx, p.z - Tut.lz); Tut.lx = p.x; Tut.lz = p.z;
   let dy = cam.yaw - Tut.lyaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; Tut.turned += Math.abs(dy); Tut.lyaw = cam.yaw;
   if (mode === 'play') Tut.stepT += dt;
+  tutHighlight();
   // 引导中布防倒计时不走（直到玩家自己开战）
   if (s.phase === 'build' && Tut.i < 6) s.timer = Math.max(s.timer, 40);
   const st = TUT_STEPS[Tut.i];
@@ -5726,7 +5781,7 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();

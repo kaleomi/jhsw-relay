@@ -139,7 +139,28 @@ body.touch .qcType .kb { display: none; }
 #tut p { margin: 4px 0 10px; font-size: 14px; line-height: 1.55; color: var(--ink); }
 #tut .tutProg { height: 4px; background: rgba(255, 255, 255, .1); }
 #tut .tutProg i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--crys), var(--ok)); transition: width .4s; }
-body.touch #tut { right: auto; left: 50%; margin-left: max(-190px, -26vw); top: calc(108px + env(safe-area-inset-top, 0px)); width: min(380px, 52vw); padding: 8px 12px 10px; }
+body.touch #tut { right: auto; left: 50%; margin-left: max(-140px, -18vw); top: calc(108px + env(safe-area-inset-top, 0px)); width: min(340px, 44vw); padding: 7px 11px 8px; transition: top .25s, left .25s; }
+body.touch #tut[data-pos="left"] { left: calc(56px + env(safe-area-inset-left, 0px)); margin-left: 0; box-sizing: border-box; width: min(236px, 28vw); }
+body.touch #tut[data-pos="mid"] { top: 40%; }
+body.touch #tut[data-pos="low"] { top: auto; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+/* 新手引导高亮：脉动圆框 + 跳动箭头 + 半屏操作区 + 按键图标 */
+#tutHi { position: fixed; inset: 0; pointer-events: none; z-index: 8; }
+#tutHi[hidden] { display: none; }
+#tutHi .ring { position: fixed; border: 2px solid var(--ok); border-radius: 10px; box-shadow: 0 0 0 3px rgba(108, 240, 164, .25), 0 0 22px rgba(108, 240, 164, .65), inset 0 0 14px rgba(108, 240, 164, .35); animation: tutRing 1.1s ease-in-out infinite; }
+@keyframes tutRing { 50% { box-shadow: 0 0 0 7px rgba(108, 240, 164, .08), 0 0 34px rgba(108, 240, 164, .9), inset 0 0 18px rgba(108, 240, 164, .5); transform: scale(1.04); } }
+#tutHi .arrow { position: fixed; width: 0; height: 0; margin-left: -9px; margin-top: -12px; border: 9px solid transparent; border-top: 12px solid var(--ok); filter: drop-shadow(0 0 6px rgba(108, 240, 164, .8)); animation: tutBob .7s ease-in-out infinite alternate; }
+#tutHi .arrow.up { margin-top: 0; border-top: 9px solid transparent; border-bottom: 12px solid var(--ok); }
+@keyframes tutBob { to { transform: translateY(-6px); } }
+#tutHi .arrow.up { animation-name: tutBobUp; }
+@keyframes tutBobUp { to { transform: translateY(6px); } }
+#tutHi .zone { position: fixed; top: 22%; bottom: 18%; width: 34%; display: grid; place-items: center; border: 2px dashed rgba(108, 240, 164, .7); border-radius: 18px; background: rgba(108, 240, 164, .07); animation: tutZone 1.4s ease-in-out infinite; }
+#tutHi .zone.left { left: 7%; width: 25%; }
+#tutHi .zone.right { right: 22%; width: 30%; }
+#tutHi .zone span { padding: 6px 12px; font-size: 13px; color: #eafff3; background: rgba(4, 20, 12, .7); border-radius: 6px; }
+@keyframes tutZone { 50% { background: rgba(108, 240, 164, .16); } }
+#tutHi .keys { position: fixed; left: 50%; bottom: 168px; transform: translateX(-50%); display: flex; gap: 8px; }
+#tutHi kbd { min-width: 34px; padding: 7px 12px; text-align: center; font: 600 16px/1 var(--f-num), monospace; color: #04140b; background: var(--ok); border-radius: 6px; box-shadow: 0 3px 0 #2c8a5a, 0 0 18px rgba(108, 240, 164, .7); animation: tutKey 1s ease-in-out infinite; }
+@keyframes tutKey { 50% { transform: translateY(2px); box-shadow: 0 1px 0 #2c8a5a, 0 0 26px rgba(108, 240, 164, .95); } }
 body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; margin-bottom: 6px; }
 #invTag { margin-bottom: 6px; padding: 3px 12px; font-size: 12.5px; font-weight: 700; color: #071018; background: linear-gradient(90deg, #5fe3ff, #a8f4ff); box-shadow: 0 0 14px rgba(95, 227, 255, .5); animation: tcBlink .7s infinite alternate; }
 #invTag[hidden] { display: none; }
@@ -262,19 +283,21 @@ body.touch #tut b { font-size: 15px; } body.touch #tut p { font-size: 12px; marg
 #trapBook .shopHead { align-items: center; flex-wrap: nowrap; }
 #bookList { min-height: 0; }
 .bookCdx { grid-template-columns: minmax(0, 1fr) minmax(300px, 50%) !important; height: 100%; }
-.bookCdx .cdxTile em { margin-left: auto; font-style: normal; font-family: var(--f-num); font-size: 12px; color: var(--gold); }
+.bookCdx .cdxTile { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; row-gap: 1px; align-items: center; }
+.bookCdx .cdxTile .ic { grid-row: span 2; }
+.bookCdx .cdxTile em { grid-column: 2; font-style: normal; font-family: var(--f-num); font-size: 12px; line-height: 1.2; color: var(--gold); white-space: nowrap; }
 .bookCdx .cdxTile em.poor { color: var(--danger); }
 .bookCdx .cdxTile.cur { box-shadow: inset 0 -2px 0 var(--cc); }
 .bookCdx .cdxCols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .bkUse { margin-left: auto; padding: 8px 20px; font-size: 14px; letter-spacing: .14em; }
-.bookCdx .cdxTile > span:nth-child(2) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.bookCdx .cdxTile > span:nth-child(2) { min-width: 0; line-height: 1.25; overflow-wrap: anywhere; }
 @media (max-height: 560px) {
   #trapBook { padding: 8px 10px 10px; gap: 6px; }
   #trapBook .shopHead span { display: none; }
   #trapBook .shopHead h3 { margin: 0; font-size: 15px; }
   .bookCdx { grid-template-columns: minmax(0, 1fr) minmax(280px, 58%) !important; }
   .bookCdx .cdxTiles { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
-  .bookCdx .cdxTile { padding: 4px 6px; font-size: 11.5px; }
+  .bookCdx .cdxTile { padding: 4px 6px; font-size: 11.5px; column-gap: 5px; }
   .bookCdx .cdxTile em { font-size: 10.5px; }
   .bkUse { padding: 6px 14px; font-size: 13px; }
 }
@@ -593,7 +616,7 @@ body.touch .pitch { font-size: 13px; }
 .cdxTiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr)); gap: 6px; }
 .cdxTiles.maps { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .cdxTile { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 10px; font: inherit; font-size: 13.5px; color: var(--ink); text-align: left; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); border-left: 3px solid var(--cc); cursor: pointer; }
-.cdxTile > span:last-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cdxTile > span:last-child { min-width: 0; line-height: 1.25; overflow-wrap: anywhere; }
 .cdxTile .ic { flex: none; display: grid; place-items: center; width: 20px; height: 20px; color: var(--cc); }
 .cdxTile .ic svg { width: 100%; height: 100%; }
 .cdxTiles.maps .cdxTile { flex-direction: column; align-items: stretch; gap: 6px; }
@@ -825,6 +848,7 @@ body.tEditOnly #hud { background: #05080c; }
   <div id="hitmark"></div>
   <div id="prompt"></div>
   <div id="trapCard" hidden></div>
+  <div id="tutHi" hidden></div>
   <div id="tut" hidden><div class="tutTop"><span id="tutStep"></span><button type="button" id="tutSkip">跳过引导</button></div><b id="tutT"></b><p id="tutD"></p><div class="tutProg"><i id="tutBar"></i></div></div>
   <div id="lockHint" hidden>点击画面锁定鼠标继续</div>
   <div id="banner"><div class="b1" id="bannerT"></div><div class="b2" id="bannerS"></div></div>
@@ -9467,7 +9491,61 @@ const TUT_STEPS = [
   { t: '射击', d: () => TOUCH ? '按「开火」射击，按「瞄准」开镜；打死 3 只怪' : '左键射击、右键瞄准，打头伤害更高；打死 3 只怪', ok: (T0, s, p) => p.kills >= 3 },
   { t: '更多玩法', d: () => TOUCH ? '「军械」买新武器，走到紫色「科」科研舱按「互动」研究科技。守住这一波吧！' : `${K_('KeyB')} 打开军械库买新武器；走到小地图上紫色「科」的科研舱按 ${K_('KeyF')} 研究科技；${K_('KeyH')} 查看图鉴。守住这一波吧！`, ok: T0 => T0.stepT > 9 },
 ];
+// 每一步要高亮的东西：els = 界面上要点的按钮，zone = 手机上要拖动的半屏，keys = 电脑上要按的键（显示成按键图标）
+const popOpen = g => popGrp === g;
+const TUT_HI = [
+  () => TOUCH ? { zone: 'left' } : { keys: ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ShiftLeft'].map(k => keyName(keyOf(k))) },
+  () => TOUCH ? { zone: 'right' } : { keys: ['移动鼠标'] },
+  () => ({ els: [popOpen('floor') ? '#trapPop [data-id="spike"]' : '#hotbar .grp[data-grp="floor"]'], keys: popOpen('floor') ? ['2'] : ['1', '2'] }),
+  () => TOUCH ? { els: ['#tbFire'], aim: 1 } : { keys: ['鼠标左键'] },
+  () => tool === 'laser' ? (TOUCH ? { els: ['#tbFire'], aim: 1 } : { keys: ['鼠标左键'] }) : ({ els: [popOpen('wall') ? '#trapPop [data-id="laser"]' : '#hotbar .grp[data-grp="wall"]'], keys: popOpen('wall') ? ['1'] : ['2', '1'] }),
+  () => TOUCH ? { els: ['#tbUp'] } : { keys: [keyName(keyOf('KeyE'))] },
+  () => TOUCH ? { els: ['#tbReady'] } : { keys: [keyName(keyOf('KeyG'))] },
+  () => TOUCH ? { els: ['#tbFire', '#tbAds'], aim: 1 } : { keys: ['鼠标左键', '鼠标右键'] },
+  () => TOUCH ? { els: ['#touchUI [data-k="KeyB"]', '#touchUI [data-k="Tab"]'] } : { keys: [keyName(keyOf('KeyB')), 'Tab', keyName(keyOf('KeyH'))] },
+];
 const Tut = { on: false, i: 0, moved: 0, turned: 0, stepT: 0, lx: 0, lz: 0, lyaw: 0 };
+// 把高亮圈 / 指示箭头 / 按键图标摆到位，并把引导卡片挪到不挡住目标的位置
+function tutHighlight() {
+  const box = $('tutHi'), card = $('tut');
+  // 打开了陷阱一览 / 军械库等面板时，引导卡片和高亮先让开，关掉面板再出来
+  const cover = Tut.on && (mode === 'pause' || anyPanel() || anyFullPage());
+  card.style.visibility = cover ? 'hidden' : '';
+  if (!Tut.on || mode !== 'play' || !TUT_HI[Tut.i] || cover) { box.hidden = true; return; }
+  box.hidden = false;
+  const H = TUT_HI[Tut.i](), rects = [];
+  for (const sel of H.els || []) {
+    const el = document.querySelector(sel);
+    if (!el || el.hidden || el.offsetParent === null) continue;
+    const r = el.getBoundingClientRect(); if (r.width < 2) continue;
+    rects.push(r);
+  }
+  const key = JSON.stringify([rects.map(r => [r.left | 0, r.top | 0, r.width | 0, r.height | 0]), H.zone || '', H.keys || [], popGrp || '', innerWidth, innerHeight]);
+  if (box.dataset.key !== key) {
+    box.dataset.key = key;
+    let html = rects.map(r => `<i class="ring" style="left:${r.left - 5}px;top:${r.top - 5}px;width:${r.width + 10}px;height:${r.height + 10}px"></i><b class="arrow${r.top < innerHeight / 2 ? ' up' : ''}" style="left:${r.left + r.width / 2}px;top:${r.top < innerHeight / 2 ? r.bottom + 14 : r.top - 14}px"></b>`).join('');
+    if (H.zone) html += `<div class="zone ${H.zone}"><span>${H.zone === 'left' ? '在这里按住拖动，走到通道里' : '在这里滑动，转动视角'}</span></div>`;
+    if (H.keys && !TOUCH) html += `<div class="keys">${H.keys.map(k => `<kbd>${k}</kbd>`).join('')}</div>`;
+    box.innerHTML = html;
+    // 手机：引导卡片放到不和目标重叠的位置（上方 → 中间 → 左下）
+    if (TOUCH) {
+      const pop = $('trapPop'), avoid = rects.slice();
+      if (pop && !pop.hidden) avoid.push(pop.getBoundingClientRect());
+      // 需要瞄准的步骤：屏幕中间（准星和放置预览）也不能挡
+      if (H.aim) { const cx = innerWidth / 2, cy = innerHeight / 2; avoid.push({ left: cx - 100, right: cx + 100, top: cy - 50, bottom: cy + 90 }); }
+      // 量位置时先关掉过渡动画，否则量到的是动画起点；选好后再带动画移过去
+      const prev = card.dataset.pos || 'top'; let pick = 'low';
+      card.style.transition = 'none';
+      for (const pos of ['top', 'left', 'mid', 'low']) {
+        card.dataset.pos = pos;
+        const c = card.getBoundingClientRect();
+        if (!avoid.some(r => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { pick = pos; break; }
+      }
+      card.dataset.pos = prev; void card.offsetWidth;
+      card.style.transition = ''; card.dataset.pos = pick;
+    }
+  }
+}
 function tutDone() { try { return localStorage.getItem('jhsw-tut') === '1'; } catch (e) { return true; } }
 function tutSetDone() { try { localStorage.setItem('jhsw-tut', '1'); } catch (e) { /* 无存储 */ } }
 function startTutorial() {
@@ -9482,7 +9560,7 @@ function startTutorial() {
 }
 function stopTutorial(done) {
   if (!Tut.on) return;
-  Tut.on = false; $('tut').hidden = true; tutSetDone();
+  Tut.on = false; $('tut').hidden = true; $('tut').style.visibility = ''; $('tutHi').hidden = true; tutSetDone();
   if (done) { banner('新手引导完成', '接下来就靠你守住水晶了！在主菜单可以随时重新打开引导'); Snd.play('clear'); }
 }
 function renderTut() {
@@ -9498,6 +9576,7 @@ function updateTut(dt) {
   Tut.moved += Math.hypot(p.x - Tut.lx, p.z - Tut.lz); Tut.lx = p.x; Tut.lz = p.z;
   let dy = cam.yaw - Tut.lyaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; Tut.turned += Math.abs(dy); Tut.lyaw = cam.yaw;
   if (mode === 'play') Tut.stepT += dt;
+  tutHighlight();
   // 引导中布防倒计时不走（直到玩家自己开战）
   if (s.phase === 'build' && Tut.i < 6) s.timer = Math.max(s.timer, 40);
   const st = TUT_STEPS[Tut.i];
@@ -10641,7 +10720,7 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
