@@ -55,11 +55,12 @@ function animClip(asset, clip, t) {
 function animStatic(asset) { const A = ASSETS[asset]; if (A) { const C = A.clips.bind || Object.values(A.clips)[0]; E.anim(C.row, C.row, 0); } }
 
 /* ---------------- 设置 ---------------- */
-const settings = { sens: 1.0, vol: 0.7, music: 0.5, bloom: true, fov: 75, autoReady: false, keys: {}, tb: { pos: {}, scale: 1, alpha: 1 } };
+const settings = { sens: 1.0, vol: 0.7, music: 0.5, bloom: true, fov: 75, autoReady: false, keys: {}, tb: { pos: {}, size: {}, scale: 1, alpha: 1 } };
 try { Object.assign(settings, JSON.parse(localStorage.getItem('jhsw-settings') || '{}')); } catch (e) { /* 无存储 */ }
 if (!settings.keys || typeof settings.keys !== 'object') settings.keys = {};
 if (!settings.tb || typeof settings.tb !== 'object') settings.tb = { pos: {}, scale: 1, alpha: 1 };
 if (!settings.tb.pos) settings.tb.pos = {};
+if (!settings.tb.size || typeof settings.tb.size !== 'object') settings.tb.size = {};
 /* ---------- 按键绑定：动作以默认键位命名，玩家改键后按「实际按键 → 默认键位」翻译 ---------- */
 const KEY_ACTIONS = [
   ['KeyW', '前进'], ['KeyS', '后退'], ['KeyA', '左移'], ['KeyD', '右移'], ['Space', '跳跃'], ['ShiftLeft', '冲刺'],
@@ -4667,7 +4668,7 @@ function beginPlay(S, gesture) {
   banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向核心水晶 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
   if (gesture) requestLock();
   if (gesture && TOUCH) goFullscreen();
-  if (TOUCH) requestAnimationFrame(applyTouchLayout);
+  if (TOUCH) { applyTouchLayout(); requestAnimationFrame(applyTouchLayout); }
   if (MP.role !== 'client') ensureBgTicker();
 }
 function pauseGame() {
@@ -4764,34 +4765,61 @@ function fillCtrlHelp() {
 }
 /* ---------- 触屏按钮：自定义位置 / 大小 / 透明度 ---------- */
 const TB_DRAG = ['tbFire', 'tbJump', 'tbReload', 'tbAds', 'tbNade', 'tbUlt', 'tbSwap', 'tbUtil', 'tbCtx'];
-let tbEdit = null, tbEditFrom = '';
+const TB_NAME = { tbFire: '开火', tbJump: '跳跃', tbReload: '换弹', tbAds: '瞄准', tbNade: '手雷', tbUlt: '轨道打击', tbSwap: '切枪', tbUtil: '左侧按钮栏', tbCtx: '底部操作栏' };
+const TB_MIN = 0.5, TB_MAX = 2;
+let tbEdit = null, tbEditFrom = '', tbSel = null;
+const tbSize = id => clamp(+settings.tb.size[id] || 1, TB_MIN, TB_MAX);
 function applyTouchLayout() {
   const ui = $('touchUI'); if (!ui) return;
   ui.style.setProperty('--tbs', settings.tb.scale || 1);
   ui.style.setProperty('--tba', settings.tb.alpha || 1);
   for (const id of TB_DRAG) {
-    const el = $(id), pos = settings.tb.pos[id];
+    const el = $(id), pos = settings.tb.pos[id], k = tbSize(id);
     if (!el) continue;
+    // 单个按钮的大小：用 scale 等比放大（文字一起变大），以按钮中心为基准
+    el.style.scale = k === 1 ? '' : String(k);
     if (!pos) { el.style.left = el.style.top = el.style.right = el.style.bottom = el.style.transform = ''; continue; }
     if (!el.offsetWidth) continue;   // 界面未显示时尺寸未知，进入游戏后再排
-    const w = el.offsetWidth, h = el.offsetHeight;
+    const w = el.offsetWidth, h = el.offsetHeight, ex = (w * k - w) / 2, ey = (h * k - h) / 2;
     el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
-    el.style.left = clamp(pos[0] * innerWidth - w / 2, 0, Math.max(0, innerWidth - w)) + 'px';
-    el.style.top = clamp(pos[1] * innerHeight - h / 2, 0, Math.max(0, innerHeight - h)) + 'px';
+    el.style.left = clamp(pos[0] * innerWidth - w / 2, ex, Math.max(ex, innerWidth - w - ex)) + 'px';
+    el.style.top = clamp(pos[1] * innerHeight - h / 2, ey, Math.max(ey, innerHeight - h - ey)) + 'px';
   }
+}
+// 编辑栏：显示选中的按钮和它的大小
+function renderTeBar() {
+  const on = !!tbSel;
+  $('teSel').textContent = on ? TB_NAME[tbSel] || '' : '点一个按钮可单独调大小';
+  $('teSize').textContent = on ? Math.round(tbSize(tbSel) * 100) + '%' : '';
+  for (const b of ['teMinus', 'tePlus', 'teOne']) $(b).hidden = !on;
+  for (const id of TB_DRAG) { const el = $(id); if (el) el.classList.toggle('teSel', id === tbSel); }
+}
+function tbSetSize(id, k) {
+  const el = $(id); if (!el) return;
+  // 还没自定义过位置的按钮先记下当前中心，放大缩小都以它为准，不会被挤出屏幕
+  if (!settings.tb.pos[id]) {
+    const r = el.getBoundingClientRect();
+    settings.tb.pos[id] = [Math.round((r.left + r.width / 2) / innerWidth * 1000) / 1000, Math.round((r.top + r.height / 2) / innerHeight * 1000) / 1000];
+  }
+  k = Math.round(clamp(k, TB_MIN, TB_MAX) * 10) / 10;
+  if (k === 1) delete settings.tb.size[id]; else settings.tb.size[id] = k;
+  saveSettings(); applyTouchLayout(); renderTeBar();
 }
 function openTouchEditor() {
   if (!TOUCH) return;
-  tbEditFrom = mode;
+  tbEditFrom = mode; tbSel = null;
   show('settings', false); show('pause', false);
-  if (mode === 'menu') { show('hud', true); document.body.classList.add('tEditOnly'); }
+  // 从主菜单进来：主菜单会盖在按钮上面（点不到、拖不动），先藏起来
+  if (mode === 'menu') { show('menu', false); show('hud', true); document.body.classList.add('tEditOnly'); }
   $('touchUI').classList.add('editing');
+  renderTeBar();
   requestAnimationFrame(applyTouchLayout);
 }
 function closeTouchEditor() {
   $('touchUI').classList.remove('editing');
   document.body.classList.remove('tEditOnly');
-  if (tbEditFrom === 'menu') show('hud', false); else show('pause', true);
+  tbSel = null; renderTeBar(); tbEdit = null;
+  if (tbEditFrom === 'menu') { show('hud', false); show('menu', true); } else show('pause', true);
   openSettings('touch');
 }
 function initTouchEditor() {
@@ -4802,17 +4830,20 @@ function initTouchEditor() {
     if (e.target.closest('#teBar')) return;
     const el = e.target.closest('[data-drag]');
     e.stopPropagation(); e.preventDefault();
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    tbEdit = { el, id: el.dataset.drag, dx: e.clientX - r.left, dy: e.clientY - r.top, pid: e.pointerId };
+    if (!el) { tbSel = null; renderTeBar(); return; }
+    tbSel = el.dataset.drag; renderTeBar();
+    const r = el.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    // r 是放大后的外框；left/top 记的是未放大的盒子，所以按中心换算
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    tbEdit = { el, id: el.dataset.drag, dx: e.clientX - cx, dy: e.clientY - cy, pid: e.pointerId };
     el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
-    el.style.left = r.left + 'px'; el.style.top = r.top + 'px';
+    el.style.left = (cx - w / 2) + 'px'; el.style.top = (cy - h / 2) + 'px';
   }, true);
   addEventListener('pointermove', e => {
     if (!tbEdit || e.pointerId !== tbEdit.pid) return;
-    const el = tbEdit.el, w = el.offsetWidth, h = el.offsetHeight;
-    el.style.left = clamp(e.clientX - tbEdit.dx, 0, innerWidth - w) + 'px';
-    el.style.top = clamp(e.clientY - tbEdit.dy, 0, innerHeight - h) + 'px';
+    const el = tbEdit.el, w = el.offsetWidth, h = el.offsetHeight, k = tbSize(tbEdit.id), ex = (w * k - w) / 2, ey = (h * k - h) / 2;
+    el.style.left = clamp(e.clientX - tbEdit.dx - w / 2, ex, Math.max(ex, innerWidth - w - ex)) + 'px';
+    el.style.top = clamp(e.clientY - tbEdit.dy - h / 2, ey, Math.max(ey, innerHeight - h - ey)) + 'px';
   });
   const up = e => {
     if (!tbEdit || e.pointerId !== tbEdit.pid) return;
@@ -4822,8 +4853,12 @@ function initTouchEditor() {
   };
   addEventListener('pointerup', up); addEventListener('pointercancel', up);
   // touchUI 屏蔽了 touchstart 默认行为（不会合成 click），这里用 pointerup
-  $('teDone').addEventListener('pointerup', e => { e.stopPropagation(); closeTouchEditor(); });
-  $('teReset').addEventListener('pointerup', e => { e.stopPropagation(); settings.tb.pos = {}; saveSettings(); applyTouchLayout(); });
+  const tap = (id, fn) => $(id).addEventListener('pointerup', e => { e.stopPropagation(); fn(); });
+  tap('teDone', closeTouchEditor);
+  tap('teReset', () => { settings.tb.pos = {}; settings.tb.size = {}; saveSettings(); applyTouchLayout(); renderTeBar(); });
+  tap('teMinus', () => tbSel && tbSetSize(tbSel, tbSize(tbSel) - 0.1));
+  tap('tePlus', () => tbSel && tbSetSize(tbSel, tbSize(tbSel) + 0.1));
+  tap('teOne', () => tbSel && tbSetSize(tbSel, 1));
   addEventListener('resize', () => setTimeout(applyTouchLayout, 50));
   applyTouchLayout();
 }
@@ -5551,7 +5586,7 @@ function bindUI() {
   tbA.addEventListener('input', () => { settings.tb.alpha = +tbA.value; syncTB(); applyTouchLayout(); saveSettings(); });
   syncTB();
   $('touchEditBtn').addEventListener('click', openTouchEditor);
-  $('touchResetBtn').addEventListener('click', () => { settings.tb = { pos: {}, scale: 1, alpha: 1 }; tbS.value = 1; tbA.value = 1; syncTB(); saveSettings(); applyTouchLayout(); toast('已恢复默认布局'); });
+  $('touchResetBtn').addEventListener('click', () => { settings.tb = { pos: {}, size: {}, scale: 1, alpha: 1 }; tbS.value = 1; tbA.value = 1; syncTB(); saveSettings(); applyTouchLayout(); toast('已恢复默认布局'); });
   initChat();
   for (const b of document.querySelectorAll('.pClose')) b.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); const k = b.dataset.close; if (k === 'shop') toggleShop(false); else if (k === 'book') toggleBook(false); else if (k === 'lab') toggleLab(false); else if (k === 'evo') closeEvo(); else if (k === 'qchat') toggleQuick(false); });
   fillCtrlHelp();

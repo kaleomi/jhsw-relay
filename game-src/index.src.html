@@ -705,6 +705,12 @@ body.tEditOnly #hud > :not(#touchUI) { visibility: hidden; }
 body.tEditOnly #hud { background: #05080c; }
 #teBar { display: none; position: absolute; left: 50%; top: calc(10px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); gap: 8px; align-items: center; padding: 8px 12px; background: var(--panel2); pointer-events: auto; z-index: 3; font-size: 13px; color: var(--dim); white-space: nowrap; }
 #touchUI.editing #teBar { display: flex; }
+#teBar #teSel { color: var(--gold); font-weight: 600; min-width: 4em; }
+#teBar #teSize { min-width: 3.2em; text-align: center; font-family: var(--f-num); color: var(--ink); }
+#teBar .teK { min-width: 38px; padding: 6px 0; font-size: 18px; line-height: 1; }
+#teBar [hidden] { display: none; }
+#touchUI.editing [data-drag].teSel { outline: 2px solid var(--ok); box-shadow: 0 0 16px rgba(108, 240, 164, .6); }
+@media (max-width: 700px) { #teBar .teHint { display: none; } }
 /* ============ 主菜单：首页 / 多人游戏 / 开局设置 ============ */
 #menu { background: radial-gradient(ellipse 62% 78% at 50% 50%, rgba(4, 8, 13, .9) 0%, rgba(4, 8, 13, .72) 55%, rgba(4, 8, 13, .35) 100%); overflow: hidden; }
 #menu .scr { margin: auto; box-sizing: border-box; }
@@ -924,7 +930,7 @@ body.tEditOnly #hud { background: #05080c; }
       <button type="button" class="tb pill" data-k="KeyX" id="tbSell">拆除<small>X</small></button>
       <button type="button" class="tb pill go" data-k="KeyG" id="tbReady">开战<small>G</small></button>
     </div>
-    <div id="teBar"><span>拖动按钮调整位置</span><button type="button" class="ghostBtn small" id="teReset">恢复默认</button><button type="button" class="cta" id="teDone" style="padding:8px 18px;font-size:14px">完成</button></div>
+    <div id="teBar"><span class="teHint">拖动调整位置</span><span id="teSel"></span><button type="button" class="ghostBtn small teK" id="teMinus" aria-label="缩小">−</button><b id="teSize"></b><button type="button" class="ghostBtn small teK" id="tePlus" aria-label="放大">＋</button><button type="button" class="ghostBtn small" id="teOne">原大小</button><button type="button" class="ghostBtn small" id="teReset">全部恢复默认</button><button type="button" class="cta" id="teDone" style="padding:8px 18px;font-size:14px">完成</button></div>
     <button type="button" class="tb big" id="tbFire"><span id="tbFireL">开火</span></button>
     <button type="button" class="tb" id="tbJump" data-hold="Space">跳跃</button>
     <button type="button" class="tb" id="tbReload" data-k="KeyR"><b id="tbAmmo">30</b><small>换弹</small></button>
@@ -1075,7 +1081,7 @@ body.tEditOnly #hud { background: #05080c; }
         <p class="fine" style="margin:0 0 8px">进入编辑后，直接拖动屏幕上的按钮到顺手的位置，完成后自动保存。</p>
         <div class="slider"><label for="tbScale">按钮大小</label><input id="tbScale" type="range" min="0.75" max="1.4" step="0.05"><b id="tbScaleV"></b></div>
         <div class="slider"><label for="tbAlpha">按钮透明度</label><input id="tbAlpha" type="range" min="0.3" max="1" step="0.05"><b id="tbAlphaV"></b></div>
-        <div class="row2" style="margin-top:12px"><button type="button" class="cta" id="touchEditBtn">编辑按钮位置</button><button type="button" class="ghostBtn" id="touchResetBtn">恢复默认布局</button></div>
+        <div class="row2" style="margin-top:12px"><button type="button" class="cta" id="touchEditBtn">编辑按钮位置和大小</button><button type="button" class="ghostBtn" id="touchResetBtn">恢复默认布局</button></div>
       </section>
     </div>
   </div>
