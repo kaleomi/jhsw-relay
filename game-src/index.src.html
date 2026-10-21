@@ -362,6 +362,25 @@ h1 em { font-style: normal; color: var(--crys); }
 .seg button em { display: block; font-style: normal; font-size: 11px; color: var(--gold); margin-top: 2px; min-height: 1em; }
 .seg button[aria-pressed="true"] { border-color: var(--crys); background: rgba(95, 227, 255, .12); }
 .seg button[aria-pressed="true"] b { color: var(--crys); }
+.gfxRow { flex-wrap: wrap; }
+.saveGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-top: 10px; }
+.saveBox { display: grid; gap: 8px; align-content: start; padding: 12px 14px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.saveBox h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.saveBox h3 small { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--faint); }
+.saveBox .fine { margin: 0; }
+.saveBox .row2 { margin: 0; }
+.cloudInfo { font-size: 13px; color: var(--dim); }
+.cloudInfo b { font-family: var(--f-num); font-size: 22px; letter-spacing: .18em; color: var(--gold); user-select: all; }
+.codeRow { display: flex; gap: 8px; }
+.codeRow input { flex: 1; min-width: 0; padding: 8px 10px; font: 600 16px var(--f-num), monospace; letter-spacing: .14em; text-transform: uppercase; color: var(--ink); background: rgba(0, 0, 0, .3); border: 1px solid var(--line); }
+#saveText { width: 100%; box-sizing: border-box; padding: 8px 10px; font: 12px/1.4 var(--f-num), monospace; color: var(--ink); background: rgba(0, 0, 0, .3); border: 1px solid var(--line); resize: vertical; word-break: break-all; }
+.saveMsg { margin: 6px 0 0; padding: 6px 10px; color: var(--crys); background: rgba(95, 227, 255, .07); border-left: 2px solid var(--crys); }
+.saveMsg:empty { display: none; }
+#cloudUp { padding: 8px 18px; font-size: 14px; }
+.saveMsg.bad { color: var(--danger); background: rgba(255, 82, 102, .07); border-left-color: var(--danger); }
+.setRow > .gfxSeg { display: flex; flex-wrap: nowrap; flex: 0 1 300px; gap: 4px; }
+.gfxSeg button { min-width: 56px; padding: 6px 8px; text-align: center; }
+.gfxSeg button b { font-size: 13.5px; }
 .cta { padding: 15px 28px; font-size: 18px; letter-spacing: .3em; font-weight: 700; background: var(--crys); color: #03222c; border: 0; cursor: pointer; clip-path: var(--cut); transition: filter .15s, transform .15s; }
 .cta:hover { filter: brightness(1.12); transform: translateY(-1px); }
 .ghostBtn { padding: 12px 18px; font-size: 14px; letter-spacing: .12em; background: transparent; border: 1px solid var(--line); cursor: pointer; color: var(--ink); }
@@ -474,7 +493,49 @@ h3 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: .2em; color: 
 .talRow .bt { grid-column: 2; grid-row: 1 / span 3; display: flex; gap: 4px; }
 .talRow .bt button { width: 34px; height: 34px; font-size: 18px; background: transparent; border: 1px solid var(--line); cursor: pointer; color: var(--ink); }
 .talRow .bt button:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+#netBanner { position: absolute; left: 50%; top: calc(86px + env(safe-area-inset-top, 0px)); transform: translateX(-50%); z-index: 9; padding: 6px 16px; font-size: 14px; color: #fff; background: rgba(120, 20, 30, .85); border: 1px solid var(--danger); white-space: nowrap; pointer-events: none; animation: netBlink 1.2s ease-in-out infinite; }
+#netBanner[hidden] { display: none; }
+@keyframes netBlink { 50% { opacity: .7; } }
+.wrow { display: grid; gap: 4px; }
+.wrow { align-content: start; }
+.wmods { display: grid; gap: 4px; }
+.wmods > span { font-size: 11.5px; color: var(--faint); }
+.wmod { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 8px; padding: 5px 9px; text-align: left; font: inherit; color: var(--ink); background: rgba(255, 181, 71, .06); border: 1px solid rgba(255, 181, 71, .35); cursor: pointer; }
+.wmod:hover { background: rgba(255, 181, 71, .14); }
+.wmod b { font-size: 13px; color: var(--gold); }
+.wmod small { grid-column: 1 / -1; font-size: 11.5px; color: var(--dim); line-height: 1.35; }
+.wmod em { grid-column: 2; grid-row: 1; font-style: normal; font-family: var(--f-num); font-size: 12px; color: var(--gold); }
+.wmod.poor { opacity: .55; }
+.wmodTag { margin-left: 8px; padding: 1px 6px; font-size: 11px; font-weight: 500; color: #1b1204; background: var(--gold); vertical-align: middle; }
 .endStar { margin: 0; color: var(--gold); font-size: 14px; }
+.endStars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.endStars li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--faint); background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.endStars li i { font-style: normal; font-size: 22px; line-height: 1; color: rgba(255, 255, 255, .15); }
+.endStars li.on { color: var(--ink); border-color: rgba(255, 181, 71, .5); background: rgba(255, 181, 71, .08); }
+.endStars li.on i { color: var(--gold); text-shadow: 0 0 12px rgba(255, 181, 71, .8); animation: starPop .5s ease-out backwards; }
+.endStars li:nth-child(2).on i { animation-delay: .25s; } .endStars li:nth-child(3).on i { animation-delay: .5s; }
+@keyframes starPop { from { transform: scale(2.4); opacity: 0; } }
+/* 成就页 */
+.achSum { margin-left: auto; font-family: var(--f-num); color: var(--gold); font-size: 15px; white-space: nowrap; }
+.achBody h3 { margin: 0 0 8px; font-size: 15px; font-weight: 600; letter-spacing: .06em; }
+.achBody h3 small { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--faint); letter-spacing: 0; }
+.achMapList { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; }
+.achMap { display: grid; gap: 4px; padding: 8px 10px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
+.achMap b { font-weight: 600; font-size: 14px; }
+.achMap div { display: grid; grid-template-columns: 3em auto; font-size: 12.5px; color: var(--dim); }
+.achMap span { font-size: 15px; letter-spacing: 2px; color: rgba(255, 255, 255, .18); }
+.achMap span.has { color: var(--gold); }
+.achList { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; }
+.achCard { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 2px 10px; align-items: center; padding: 8px 10px; background: rgba(255, 255, 255, .03); border: 1px solid var(--line); border-left: 3px solid var(--line); }
+.achCard .md { grid-row: span 3; width: 34px; height: 34px; display: grid; place-items: center; font-size: 18px; color: rgba(255, 255, 255, .25); border: 1px solid var(--line); border-radius: 50%; }
+.achCard b { font-weight: 600; font-size: 14px; }
+.achCard em { font-style: normal; font-family: var(--f-num); font-size: 12.5px; color: var(--gold); justify-self: end; }
+.achCard p { grid-column: 2 / span 2; margin: 0; font-size: 12px; color: var(--dim); line-height: 1.4; }
+.achCard .bar { grid-column: 2 / span 2; height: 3px; background: rgba(255, 255, 255, .08); }
+.achCard .bar i { display: block; height: 100%; background: var(--crys); }
+.achCard.done { border-left-color: var(--gold); background: rgba(255, 181, 71, .06); }
+.achCard.done .md { color: #1b1204; background: var(--gold); border-color: var(--gold); box-shadow: 0 0 12px rgba(255, 181, 71, .5); }
+@media (max-height: 560px) { .achMapList { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } .achCard { padding: 5px 8px; } .achCard p { font-size: 11px; } .achBody { gap: 8px; } }
 .mapCard:disabled, .seg button:disabled { cursor: default; opacity: .55; }
 .mapCard[aria-pressed="true"]:disabled, .seg button[aria-pressed="true"]:disabled { opacity: 1; }
 #endTeam { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; }
@@ -741,7 +802,8 @@ body.tEditOnly #hud { background: #05080c; }
 #tutBtn b { color: var(--ok); }
 #tutBtn::before { background: var(--ok); }
 .hBtn:disabled { opacity: .5; cursor: default; }
-.hGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+.hGrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-top: 4px; }
+#achTag { color: var(--gold); }
 .hBtn.sm { grid-template-columns: 1fr; justify-items: center; row-gap: 4px; padding: 12px 6px 11px; text-align: center; }
 .hBtn.sm b { font-size: 17px; letter-spacing: .08em; }
 .hBtn.sm small { justify-self: center; font-size: 11px; color: var(--faint); max-width: 100%; }
@@ -832,6 +894,7 @@ body.tEditOnly #hud { background: #05080c; }
 <canvas id="view" aria-label="游戏画面"></canvas>
 
 <div id="hud" hidden>
+  <div id="netBanner" role="status" hidden></div>
   <div id="scope" hidden><i></i></div>
   <div id="tags"></div>
   <div id="nums"></div>
@@ -958,6 +1021,7 @@ body.tEditOnly #hud { background: #05080c; }
       <button type="button" class="hBtn primary" id="mpBtn"><b>多人游戏</b><small id="mpSub">创建或加入房间，最多 4 人合作</small></button>
       <div class="hGrid">
         <button type="button" class="hBtn sm" id="talentBtn"><b>天赋</b><small id="starTag"></small></button>
+        <button type="button" class="hBtn sm" id="achBtn"><b>成就</b><small id="achTag"></small></button>
         <button type="button" class="hBtn sm" id="menuHelpBtn"><b>图鉴</b><small>陷阱 · 敌人 · 操作</small></button>
         <button type="button" class="hBtn sm" id="menuSetBtn"><b>设置</b><small>画面 · 声音 · 按键</small></button>
         <button type="button" class="hBtn sm" id="lbBtn"><b>无尽排行榜</b><small>各关卡全服前 20</small></button>
@@ -1059,7 +1123,7 @@ body.tEditOnly #hud { background: #05080c; }
 
 <div id="settings" class="overlay fullPage" hidden>
   <div class="fpIn">
-    <div class="fpHead"><h2>设置</h2><nav class="fpTabs" id="setTabs"><button type="button" data-stab="gen" aria-selected="true">通用</button><button type="button" data-stab="keys" id="setKeysTab">按键</button><button type="button" data-stab="touch" id="setTouchTab">触屏按钮</button></nav><button type="button" class="fpClose" id="settingsClose" aria-label="关闭设置">✕ 关闭</button></div>
+    <div class="fpHead"><h2>设置</h2><nav class="fpTabs" id="setTabs"><button type="button" data-stab="gen" aria-selected="true">通用</button><button type="button" data-stab="keys" id="setKeysTab">按键</button><button type="button" data-stab="touch" id="setTouchTab">触屏按钮</button><button type="button" data-stab="save" id="setSaveTab">存档</button></nav><button type="button" class="fpClose" id="settingsClose" aria-label="关闭设置">✕ 关闭</button></div>
     <div class="fpBody">
       <section data-stab="gen">
         <div class="slider"><label for="sens">视角灵敏度</label><input id="sens" type="range" min="0.3" max="2.5" step="0.1"><b id="sensV"></b></div>
@@ -1067,7 +1131,7 @@ body.tEditOnly #hud { background: #05080c; }
         <div class="slider"><label for="musVol">音乐</label><input id="musVol" type="range" min="0" max="1" step="0.05"><b id="musV"></b></div>
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
-        <div class="setRow"><div><b>材质精细度</b><span class="fine">地面、墙面、岩石等纹理细节；手机发热或掉帧时选“低”</span></div><button type="button" class="ghostBtn small" id="detailBtn" aria-pressed="true">高</button></div>
+        <div class="setRow gfxRow"><div><b>画质</b><span class="fine">分辨率、材质细节、远处物件和光源数量；手机发热或掉帧时调低（卡顿时也会自动降分辨率）</span></div><div class="seg gfxSeg" id="gfxSeg"></div></div>
         <div class="setRow"><div><b>屏幕震动</b><span class="fine">爆炸、BOSS 脚步和践踏时画面晃动（离得越近越明显），晕 3D 可以关闭</span></div><button type="button" class="ghostBtn small" id="shakeBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>显示帧率</b><span class="fine">左上角显示每秒帧数和当前渲染分辨率，方便判断手机能否跑得动</span></div><button type="button" class="ghostBtn small" id="fpsBtn" aria-pressed="false">关</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
@@ -1083,6 +1147,25 @@ body.tEditOnly #hud { background: #05080c; }
         <div class="slider"><label for="tbAlpha">按钮透明度</label><input id="tbAlpha" type="range" min="0.3" max="1" step="0.05"><b id="tbAlphaV"></b></div>
         <div class="row2" style="margin-top:12px"><button type="button" class="cta" id="touchEditBtn">编辑按钮位置和大小</button><button type="button" class="ghostBtn" id="touchResetBtn">恢复默认布局</button></div>
       </section>
+      <section data-stab="save" hidden>
+        <p class="fine" style="margin:0">存档包括星级、天赋、成就、击杀、解锁和按键设置。进度只存在这台设备上，卸载 App 或清除浏览器数据会丢失，建议定期备份。</p>
+        <p id="saveMsg" class="fine saveMsg" role="status"></p>
+        <div class="saveGrid">
+          <div class="saveBox">
+            <h3>云存档 <small>换手机时用</small></h3>
+            <p class="fine">上传后得到一个 8 位提取码，在新设备的这里输入提取码即可取回进度。之后在这台设备上再点上传，会更新同一个提取码。</p>
+            <div id="cloudInfo" class="cloudInfo"></div>
+            <div class="row2"><button type="button" class="cta small" id="cloudUp">上传到云端</button></div>
+            <div class="codeRow"><input id="cloudCode" maxlength="9" placeholder="输入提取码" autocomplete="off" spellcheck="false"><button type="button" class="ghostBtn small" id="cloudDown">取回</button></div>
+          </div>
+          <div class="saveBox">
+            <h3>存档码 <small>不联网也能用</small></h3>
+            <p class="fine">把整个存档变成一段文字，自己保存（发给自己、存到备忘录）；以后粘贴回来就能恢复。</p>
+            <textarea id="saveText" rows="3" spellcheck="false" placeholder="点「生成存档码」，或把之前保存的存档码粘贴到这里"></textarea>
+            <div class="row2"><button type="button" class="ghostBtn small" id="saveExport">生成并复制</button><button type="button" class="ghostBtn small" id="saveImport">导入这段存档码</button></div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </div>
@@ -1090,6 +1173,7 @@ body.tEditOnly #hud { background: #05080c; }
 <div id="end" class="overlay" hidden>
   <div class="modal">
     <div class="endHead"><div id="endGrade" class="grade"></div><div><h2 id="endTitle"></h2><div id="endBest" class="fine"></div></div></div>
+    <ul id="endStars" class="endStars" hidden></ul>
     <dl id="endStats"></dl>
     <section id="endTraps" hidden><h3>陷阱输出占比</h3><ol id="endTrapList"></ol></section>
     <ul id="endTeam" hidden></ul>
@@ -1106,9 +1190,19 @@ body.tEditOnly #hud { background: #05080c; }
 <div id="talents" class="overlay" hidden>
   <div class="modal">
     <div class="talHead"><h2>天赋</h2><div id="talStars" class="talStars"></div></div>
-    <p class="fine" style="margin:0">通关得星：每张地图的普通 / 困难 / 炼狱各 1 颗，无尽模式超过剧本 10 波再得 1 颗，每赢一次每日挑战得 1 颗。星星用来点天赋，可以随时重置。全队效果的天赋（标 ◆）在联机时以房主的为准。</p>
+    <p class="fine" style="margin:0">星星来源：每张地图的普通 / 困难 / 炼狱各有三星评价（通关 ★ · 水晶剩 70% 以上 ★★ · 水晶无损 ★★★），无尽模式超过剧本 10 波 ★，每赢一次每日挑战 ★，完成成就也有星星。天赋第 1 / 2 / 3 级分别花 1 / 2 / 3 颗星，可以随时重置。全队效果的天赋（标 ◆）在联机时以房主的为准。</p>
     <div id="talList" class="talList"></div>
     <div class="row2"><button type="button" class="cta" id="talClose">完成</button><button type="button" class="ghostBtn" id="talReset">全部重置</button></div>
+  </div>
+</div>
+
+<div id="achv" class="overlay fullPage" hidden>
+  <div class="fpIn">
+    <div class="fpHead"><h2>成就</h2><div id="achSum" class="achSum"></div><button type="button" class="fpClose" id="achClose" aria-label="关闭成就">✕ 关闭</button></div>
+    <div class="fpBody achBody">
+      <section class="achMaps"><h3>关卡评价 <small>通关 ★ · 水晶剩 70% 以上 ★★ · 水晶无损 ★★★</small></h3><div id="achMapList" class="achMapList"></div></section>
+      <section><h3>成就</h3><div id="achList" class="achList"></div></section>
+    </div>
   </div>
 </div>
 

@@ -112,10 +112,12 @@ const MP = {
   ev: null, seq: 0, lastSnap: 0, lastParts: 1, sentAd: '', sentHost: '',
   asm: null, pending: [], cmdSeq: 0, dmgBuf: new Map(), lastPres: 0, sentPres: '',
   name: '', err: '', joining: false, lastSnapAt: 0,
+  away: new Map(), hostAway: 0,   // 掉线重连：房主记录掉线的队友；队友记录房主掉线的时间
 };
+const AWAY_GRACE = 90000, HOST_GRACE = 60000;
 try { MP.name = (localStorage.getItem('jhsw-nick') || '').slice(0, 12); } catch (e) { /* 无存储 */ }
 if (!MP.name) MP.name = '特工' + Math.floor(100 + Math.random() * 900);
-const NET_CMDS = new Set(['build', 'upgrade', 'sell', 'ready', 'dmg', 'buy', 'rocket', 'nade', 'ult', 'use', 'research', 'resupply']);
+const NET_CMDS = new Set(['build', 'upgrade', 'sell', 'ready', 'dmg', 'buy', 'wmod', 'rocket', 'nade', 'ult', 'use', 'research', 'resupply']);
 const cleanName = v => String(v || '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, 12);
 const r2n = v => Math.round(v * 100) / 100, r3n = v => Math.round(v * 1000) / 1000;
 const TEAM_COL = [[0.37, 0.89, 1], [1, 0.71, 0.28], [0.42, 0.94, 0.64], [0.85, 0.55, 1]];
@@ -210,6 +212,7 @@ async function createRoom() {
     MP.pres.clear(); MP.lastSeq.clear(); MP.results.clear();
     PID = me;
     MP.unsub.push(g.onPeers(hostPeers, err => roomLost(err)));
+    MP.away.clear();
     hostPresence(); lobbyAd();
     mpNote(pw ? `房间已创建（密码：${pw}），把密码告诉队友。也可以直接开始，中途有人加入会出现在你的出生点。` : '房间已创建，等待队友加入。也可以直接开始，中途有人加入会出现在你的出生点。');
   } catch (e) { mpNote('创建房间失败：' + ((e && e.code) || '网络错误'), true); }
@@ -228,6 +231,7 @@ async function joinRoom(code, hostPeer, pw) {
     PID = me;
     MP.unsub.push(g.on('snap', onSnapMsg, err => roomLost(err)));
     MP.unsub.push(g.onPeers(clientPeers, err => roomLost(err)));
+    MP.hostAway = 0;
     clientPresence(true);
     mpNote('已加入房间，等待房主开始游戏…');
     setTimeout(() => { if (MP.role === 'client' && MP.code === code && !MP.hostPres) { leaveRoom(); mpNote('没有找到房主，房间可能已解散', true); } }, 8000);
@@ -239,7 +243,7 @@ function roomLost(err) {
   const wasPlaying = mode !== 'menu';
   leaveRoom(true);
   mpNote('与房间的连接中断' + (err && err.code ? `（${err.code}）` : ''), true);
-  if (wasPlaying) toMenu();
+  if (wasPlaying && mode !== 'menu') toMenu();
 }
 async function leaveRoom(silent) {
   const g = MP.game, role = MP.role;
@@ -248,9 +252,13 @@ async function leaveRoom(silent) {
   Object.assign(MP, { game: null, role: 'solo', code: '', gid: null, hostPeer: null, hostPres: null, roster: [], full: [], deny: [], pw: '', pk: '', asm: null, pending: [] });
   PID = 'p1';
   if (role === 'host' && MP.room) MP.room.presence({ ad: null }).catch(() => {});
-  if (g) g.leave().catch(() => {});
+  // 主动离开：先告诉房间里的人「我走了」，对方就不用等掉线重连
+  if (g) { g.presence({ bye: 1 }).catch(() => {}); g.leave().catch(() => {}); }
+  MP.away.clear(); MP.hostAway = 0;
   if (!silent) mpNote('');
   refreshSel(); renderMP();
+  // 对局中离开房间：本机已不在这局里，直接回主菜单
+  if (mode !== 'menu' && sim && !sim.s.players[PID]) toMenu();
 }
 
 /* ---------- 房主 ---------- */
@@ -259,8 +267,15 @@ function hostPeers(ch) {
   const me = myPeer();
   for (const p of ch.peers) if (!p.isMe && p.kind === 'viewer') MP.pres.set(p.peer, p.presence || {});
   for (const p of ch.left) {
+    const bye = (MP.pres.get(p.peer) || {}).bye;
     MP.pres.delete(p.peer);
-    const i = MP.roster.indexOf(p.peer);
+    const i = MP.roster.indexOf(p.peer), sp = sim && MP.gid && mode !== 'menu' && sim.s.players[p.peer];
+    // 对局中掉线（不是主动离开）：保留角色等他重连，期间无敌、头顶标「掉线」
+    if (i >= 0 && sp && !bye) {
+      if (!MP.away.has(p.peer)) { MP.away.set(p.peer, performance.now()); sp.invT = 1e9; sp.name = (sp.name || '队友').replace(/（掉线）$/, '') + '（掉线）'; feed(`${sp.name.replace(/（掉线）$/, '')} 掉线了，正在等他重连…`, 'bad'); }
+      continue;
+    }
+    MP.away.delete(p.peer);
     if (i >= 0) { MP.roster.splice(i, 1); if (sim && MP.gid) sim.removePlayer(p.peer); }
     MP.full = MP.full.filter(x => x !== p.peer);
     MP.deny = (MP.deny || []).filter(x => x !== p.peer);
@@ -270,6 +285,11 @@ function hostPeers(ch) {
     const pr = p.presence || {};
     if (pr.v !== NP.VERSION || pr.host) continue;
     if (MP.pk && pr.pk !== MP.pk) { if (!MP.deny.includes(p.peer)) MP.deny.push(p.peer); continue; }
+    if (MP.away.has(p.peer)) {
+      MP.away.delete(p.peer);
+      const sp = sim && sim.s.players[p.peer];
+      if (sp) { sp.invT = 2; sp.name = cleanName(pr.n) || '队友'; feed(`${sp.name} 重新连上了`, 'good'); }
+    }
     if (!MP.roster.includes(p.peer) && !MP.full.includes(p.peer)) {
       if (MP.roster.length < 3) {
         MP.roster.push(p.peer);
@@ -313,7 +333,19 @@ function hostStartGame() {
 }
 // 每个模拟步之前：应用队友的位置与命令
 function hostPump() {
+  // 掉线太久：真正移出这局
+  if (MP.away.size) {
+    const now = performance.now();
+    for (const [peer, t] of MP.away) {
+      if (now - t < AWAY_GRACE) continue;
+      MP.away.delete(peer);
+      const i = MP.roster.indexOf(peer);
+      if (i >= 0) { MP.roster.splice(i, 1); const sp = sim.s.players[peer]; if (sp) feed(`${sp.name.replace(/（掉线）$/, '')} 掉线超过 ${AWAY_GRACE / 1000} 秒，已移出本局`, 'bad'); sim.removePlayer(peer); }
+      hostPresence(); lobbyAd(); renderMP();
+    }
+  }
   for (const peer of MP.roster) {
+    if (MP.away.has(peer)) continue;
     const pr = MP.pres.get(peer), p = sim.s.players[peer];
     if (!pr || !p || pr.gid !== MP.gid) continue;
     const n = cleanName(pr.n); if (n && n !== p.name) p.name = n;
@@ -368,14 +400,18 @@ function clientPeers(ch) {
   const host = ch.peers.find(p => p.peer === MP.hostPeer) || ch.peers.find(p => p.presence && p.presence.host === 1 && !p.isMe);
   if (!host) {
     if (MP.hostPres && ch.left.some(p => p.peer === MP.hostPeer)) {
-      const wasPlaying = mode !== 'menu';
+      const wasPlaying = mode !== 'menu' && MP.gid;
+      // 对局中房主掉线（不是主动离开）：先等他重连
+      if (wasPlaying && !MP.hostPres.bye) { if (!MP.hostAway) { MP.hostAway = performance.now(); feed('房主掉线了，正在等待重连…', 'bad'); } return; }
       leaveRoom(true); mpNote('房主已离开，房间解散', true);
-      if (wasPlaying) toMenu();
+      if (wasPlaying && mode !== 'menu') toMenu();
     }
     return;
   }
   const pr = host.presence || {};
   if (!pr.host) return;
+  if (MP.hostAway) { MP.hostAway = 0; feed('房主重新连上了', 'good'); }
+  if (pr.bye) { const wasPlaying = mode !== 'menu'; leaveRoom(true); mpNote('房主已离开，房间解散', true); if (wasPlaying && mode !== 'menu') toMenu(); return; }
   MP.hostPeer = host.peer;
   if (pr.v !== NP.VERSION) { leaveRoom(true); mpNote('房主的游戏版本和你不一样，请双方都刷新页面后再试', true); return; }
   MP.hostPres = pr;
@@ -504,23 +540,28 @@ function gameCfg() {
   return { map: selMap, diff, endless: selMode === 'endless', mut: selMut.slice(), daily: null, seed: (Math.random() * 1e9) | 0 };
 }
 /* ---------- 局外成长：星星与天赋 ---------- */
+const DIFF_IDS = ['normal', 'hard', 'hell'];
+// 三星评价：通关 1 颗；水晶剩 70% 以上 2 颗；水晶无损 3 颗
+const STAR_RULES = ['通关', '水晶剩余 ≥ 70%', '水晶无损（满血通关）'];
+const starsOf = r => !r || !r.win ? 0 : r.grade === 'S' ? 3 : r.grade === 'A' ? 2 : 1;
+const starStr = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 const PROG = {
   tal: {},
   load() { try { this.tal = JSON.parse(localStorage.getItem('jhsw-tal') || '{}') || {}; } catch (e) { this.tal = {}; } },
   save() { try { localStorage.setItem('jhsw-tal', JSON.stringify(this.tal)); } catch (e) { /* 无存储 */ } },
   dailyWins() { try { const a = JSON.parse(localStorage.getItem('jhsw-daily') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } },
   addDailyWin(d) { const a = this.dailyWins(); if (!a.includes(d)) { a.push(d); try { localStorage.setItem('jhsw-daily', JSON.stringify(a.slice(-400))); } catch (e) { /* 无存储 */ } } },
+  // 星星来源：每张地图每个难度的三星评价 + 无尽超过剧本 10 波 + 每日挑战 + 成就奖励
+  mapStars() { const all = loadBest(); let n = 0; for (const m of MAP_LIST) for (const d of DIFF_IDS) n += starsOf(all[bestKey(m.id, d, 'std')]); return n; },
   stars() {
-    const all = loadBest(); let n = 0;
-    for (const m of MAP_LIST) {
-      for (const d of ['normal', 'hard', 'hell']) { const r = all[bestKey(m.id, d, 'std')]; if (r && r.win) n++; }
-      if (['normal', 'hard', 'hell'].some(d => { const r = all[bestKey(m.id, d, 'endless')]; return r && r.wave >= m.waves.length + 10; })) n++;
-    }
-    return n + this.dailyWins().length;
+    const all = loadBest(); let n = this.mapStars();
+    for (const m of MAP_LIST) if (DIFF_IDS.some(d => { const r = all[bestKey(m.id, d, 'endless')]; return r && r.wave >= m.waves.length + 10; })) n++;
+    return n + this.dailyWins().length + ACH.stars();
   },
   kills() { try { return +localStorage.getItem('jhsw-kills') || 0; } catch (e) { return 0; } },
   addKills(n) { try { localStorage.setItem('jhsw-kills', String(this.kills() + Math.max(0, n | 0))); } catch (e) { /* 无存储 */ } },
-  spent() { return TALENTS.reduce((a, t) => a + Math.min(t.max, this.tal[t.id] | 0), 0); },
+  // 天赋第 r 级要花 r 颗星（1 + 2 + 3）
+  spent() { return TALENTS.reduce((a, t) => { const r = Math.min(t.max, this.tal[t.id] | 0); return a + r * (r + 1) / 2; }, 0); },
   team() { const o = {}; for (const t of TALENTS) if (t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
   personal() { const o = {}; for (const t of TALENTS) if (!t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
 };
@@ -530,8 +571,54 @@ const mapWon = id => { const all = loadBest(); return ['normal', 'hard', 'hell']
 const UNLOCKS = {
   rail: { how: '通关「空间站·中枢」（任意难度）', ok: () => mapWon('station') },
   grinder: { how: '通关「三岔要塞」（任意难度）', ok: () => mapWon('fortress') },
-  mortar: { how: '成就「歼灭者」：累计击杀 800 只怪物', prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => PROG.kills() >= 800 },
+  mortar: { how: '成就「歼灭者」：累计击杀 800 只怪物', prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => PROG.kills() >= 800 || !!ACH.d.done.kill800 },
 };
+/* ---------- 成就：完成后永久记录，奖励星星（部分解锁新陷阱 / 改装） ---------- */
+const ACH = {
+  d: { c: {}, done: {} },
+  load() { try { const o = JSON.parse(localStorage.getItem('jhsw-ach') || '{}'); this.d = { c: o.c || {}, done: o.done || {} }; } catch (e) { this.d = { c: {}, done: {} }; } },
+  save() { try { localStorage.setItem('jhsw-ach', JSON.stringify(this.d)); } catch (e) { /* 无存储 */ } },
+  n(k) { return +this.d.c[k] || 0; },
+  add(k, v) { this.d.c[k] = this.n(k) + (v === undefined ? 1 : v); },
+  stars() { let n = 0; for (const a of ACHS) if (this.d.done[a.id]) n += a.star; return n; },
+  // 检查所有成就；run = 刚结束的一局（没有就只检查累计类），返回新完成的成就
+  check(run) {
+    const got = [];
+    for (const a of ACHS) {
+      if (this.d.done[a.id]) continue;
+      let ok = false;
+      try { ok = a.ok ? a.ok() : false; if (!ok && run && a.run) ok = a.run(run); } catch (e) { ok = false; }
+      if (ok) { this.d.done[a.id] = Date.now(); got.push(a); }
+    }
+    if (got.length) this.save();
+    return got;
+  },
+};
+const winsOn = d => MAP_LIST.filter(m => { const r = loadBest()[bestKey(m.id, d, 'std')]; return r && r.win; }).length;
+const ACHS = [
+  { id: 'tut', name: '初来乍到', desc: '完成新手引导', star: 1, ok: () => tutDone() },
+  { id: 'win1', name: '首战告捷', desc: '通关任意关卡', star: 1, ok: () => DIFF_IDS.some(d => winsOn(d) > 0) },
+  { id: 'perfect', name: '完美防线', desc: '任意关卡拿到三星（水晶无损通关）', star: 1, ok: () => MAP_LIST.some(m => DIFF_IDS.some(d => starsOf(loadBest()[bestKey(m.id, d, 'std')]) >= 3)) },
+  { id: 'normalAll', name: '全线告捷', desc: '所有关卡都在普通难度通关', star: 2, prog: () => [winsOn('normal'), MAP_LIST.length], ok: () => winsOn('normal') >= MAP_LIST.length },
+  { id: 'hardAll', name: '钢铁防线', desc: '所有关卡都在困难难度通关', star: 3, prog: () => [winsOn('hard'), MAP_LIST.length], ok: () => winsOn('hard') >= MAP_LIST.length },
+  { id: 'hell1', name: '炼狱行者', desc: '任意关卡在炼狱难度通关', star: 2, ok: () => winsOn('hell') > 0 },
+  { id: 'stars30', name: '星光闪耀', desc: '关卡评价累计获得 30 颗星', star: 2, prog: () => [Math.min(30, PROG.mapStars()), 30], ok: () => PROG.mapStars() >= 30 },
+  { id: 'kill800', name: '歼灭者', desc: '累计击杀 800 只怪物', star: 1, reward: '解锁等离子迫击炮', prog: () => [Math.min(800, PROG.kills()), 800], ok: () => PROG.kills() >= 800 },
+  { id: 'kill5000', name: '屠戮机器', desc: '累计击杀 5000 只怪物', star: 2, prog: () => [Math.min(5000, PROG.kills()), 5000], ok: () => PROG.kills() >= 5000 },
+  { id: 'boss1', name: '屠龙者', desc: '击败一次 BOSS', star: 1, ok: () => ACH.n('boss') >= 1 },
+  { id: 'boss10', name: 'BOSS 猎手', desc: '累计击败 10 次 BOSS', star: 2, prog: () => [Math.min(10, ACH.n('boss')), 10], ok: () => ACH.n('boss') >= 10 },
+  { id: 'trapOnly', name: '机关算尽', desc: '通关时陷阱输出占比 ≥ 95%', star: 1, run: r => r.win && r.trapPct >= 0.95 },
+  { id: 'gunner', name: '神枪手', desc: '通关时枪械输出占比 ≥ 50%', star: 1, run: r => r.win && r.gunPct >= 0.5 },
+  { id: 'wallOnly', name: '墙壁之王', desc: '只用墙壁陷阱通关（至少 3 个）', star: 2, run: r => r.win && r.cats.length === 1 && r.cats[0] === 'wall' && r.traps >= 3 },
+  { id: 'minimal', name: '极简主义', desc: '一局最多建造 8 个陷阱并通关', star: 2, run: r => r.win && r.built <= 8 },
+  { id: 'endless20', name: '无尽之路', desc: '无尽模式到达第 20 波', star: 1, prog: () => [Math.min(20, ACH.n('endlessBest')), 20], ok: () => ACH.n('endlessBest') >= 20 },
+  { id: 'endless35', name: '深渊凝视', desc: '无尽模式到达第 35 波', star: 2, prog: () => [Math.min(35, ACH.n('endlessBest')), 35], ok: () => ACH.n('endlessBest') >= 35 },
+  { id: 'daily3', name: '每日挑战者', desc: '赢下 3 次每日挑战', star: 1, prog: () => [Math.min(3, PROG.dailyWins().length), 3], ok: () => PROG.dailyWins().length >= 3 },
+  { id: 'coop', name: '并肩作战', desc: '和队友一起通关一次多人游戏', star: 1, ok: () => ACH.n('coopWin') >= 1 },
+  { id: 'mod1', name: '改装师', desc: '在军械库给武器做一次改装', star: 1, ok: () => ACH.n('mods') >= 1 },
+  { id: 'allCls', name: '全能战士', desc: '突击兵、工程师、支援兵、侦察兵各通关一次', star: 2, prog: () => [CLASSES.filter(c => ACH.n('cls_' + c.id)).length, CLASSES.length], ok: () => CLASSES.every(c => ACH.n('cls_' + c.id) > 0) },
+];
+ACH.load();
 const isUnlocked = id => !UNLOCKS[id] || !!window.__unlockAll || UNLOCKS[id].ok();
 const lockText = id => { const u = UNLOCKS[id]; return u ? `未解锁 · ${u.how}${u.prog ? `（${u.prog()}）` : ''}` : ''; };
 let selCls = 'assault';
@@ -848,6 +935,8 @@ const THEMES = {
 // 室外：沙岩山体 + 傍晚天光
 THEMES.outdoor = { lane: [0.33, 0.29, 0.24], floor: [0.4, 0.37, 0.33], pad: [0.42, 0.34, 0.22], base: [0.25, 0.31, 0.34], spawn: [0.38, 0.18, 0.14], wall: [0.5, 0.4, 0.31], cornice: [0.36, 0.28, 0.21], ceil: [0.2, 0.2, 0.22], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.62, 0.66, 0.74], fogD: 0.0058, sky: [0.92, 0.9, 0.95], ground: [0.45, 0.37, 0.29], sun: [1.05, 0.88, 0.68] };
 // 赤岩峡谷：红褐色岩壁、暖色的黄昏雾气
+// 冰封实验室：冷白墙面、冰蓝灯光
+THEMES.cryo = { lane: [0.24, 0.29, 0.34], floor: [0.31, 0.35, 0.4], pad: [0.3, 0.32, 0.36], base: [0.18, 0.27, 0.33], spawn: [0.3, 0.16, 0.2], wall: [0.4, 0.46, 0.52], cornice: [0.2, 0.25, 0.3], ceil: [0.12, 0.15, 0.19], trim: [0.35, 0.85, 1], upper: [0.6, 0.95, 1], lamp: [0.8, 0.93, 1], fog: [0.06, 0.085, 0.11], sky: [0.65, 0.75, 0.88], ground: [0.28, 0.32, 0.38], sun: [0.45, 0.5, 0.6] };
 THEMES.canyon = { lane: [0.42, 0.28, 0.21], floor: [0.5, 0.37, 0.29], pad: [0.48, 0.33, 0.2], base: [0.25, 0.3, 0.34], spawn: [0.45, 0.17, 0.12], wall: [0.68, 0.36, 0.23], cornice: [0.45, 0.25, 0.17], ceil: [0.2, 0.18, 0.18], trim: [1, 0.6, 0.2], upper: [0.4, 0.85, 1], lamp: [1, 0.9, 0.7], fog: [0.8, 0.62, 0.52], fogD: 0.0062, sky: [1.0, 0.86, 0.78], ground: [0.56, 0.35, 0.24], sun: [1.12, 0.8, 0.58] };
 const themeOf = S => THEMES[S.def.theme] || THEMES.station;
 function tileOf(S, x, z) { if (x < 0 || z < 0 || x >= S.W || z >= S.H) return TILE.WALL; return S.grid[z * S.W + x]; }
@@ -1196,11 +1285,25 @@ function project(x, y, z) {
 }
 // 自适应分辨率：帧时间过长时自动降低渲染分辨率
 const TOUCH = !!(window.__TOUCH || /[?&]touch=1/.test(location.search) || (matchMedia('(pointer: coarse)').matches && (navigator.maxTouchPoints || 0) > 0));
-const quality = { base: Math.min(window.devicePixelRatio || 1, TOUCH ? 1.5 : 1.25), scale: 0, acc: 0, n: 0, cool: 0 };
-quality.scale = TOUCH ? Math.min(quality.base, 1.0) : quality.base;   // 手机先从 1 倍起步，跑得动再慢慢升
+// 画质档位：渲染分辨率上限 / 材质精细度 / 远处小物件显示距离 / 动态光源数 / 调色锐化
+const DPR = window.devicePixelRatio || 1;
+const GFX = {
+  low:   { name: '流畅', res: 0.75, min: 0.5, det: 0.25, dist: 30, lights: 6, grade: 0, pix: 1.2e6 },
+  mid:   { name: '标准', res: 1.0, min: 0.6, det: 0.25, dist: 42, lights: 8, grade: 0, pix: 2.0e6 },
+  high:  { name: '高清', res: 1.5, min: 0.7, det: 1, dist: 64, lights: 12, grade: 0.7, pix: 3.0e6 },
+  ultra: { name: '极致', res: 2.0, min: 0.8, det: 1, dist: 120, lights: 12, grade: 1, pix: 4.5e6 },
+};
+if (!GFX[settings.gfx]) settings.gfx = 'high';   // 旧存档（只有材质高/低）一律升到「高清」
+const gfx = () => GFX[settings.gfx] || GFX.high;
+const quality = { base: 1, scale: 1, acc: 0, n: 0, cool: 0 };
+function applyGfx() {
+  quality.base = Math.min(Math.max(DPR, 1), gfx().res);
+  quality.scale = quality.base; quality.autoLow = false; quality.slow = 0; quality.cool = 3;
+  resize();
+}
 function resize() {
   let sc = window.__RES || quality.scale;
-  const maxPix = 2.4e6, pix = innerWidth * innerHeight * sc * sc;
+  const maxPix = gfx().pix, pix = innerWidth * innerHeight * sc * sc;
   if (pix > maxPix) sc *= Math.sqrt(maxPix / pix);
   canvas.width = Math.max(1, Math.floor(innerWidth * sc));
   canvas.height = Math.max(1, Math.floor(innerHeight * sc));
@@ -1211,7 +1314,7 @@ function fpsMeter(dt) {
   fpsM.t += dt; fpsM.n++; fpsM.worst = Math.max(fpsM.worst, dt);
   if (fpsM.t < 0.5) return;
   const st = E.stats();
-  $('fpsTag').textContent = `${Math.round(fpsM.n / fpsM.t)} FPS  最慢 ${Math.round(fpsM.worst * 1000)}ms\n分辨率 ${canvas.width}×${canvas.height}（×${(quality.scale || 1).toFixed(2)}）${quality.autoLow ? ' 低精细' : ''}\n绘制 ${st.draws} 批 · ${st.inst} 个物体`;
+  $('fpsTag').textContent = `${Math.round(fpsM.n / fpsM.t)} FPS  最慢 ${Math.round(fpsM.worst * 1000)}ms\n分辨率 ${canvas.width}×${canvas.height}（×${(quality.scale || 1).toFixed(2)}）${quality.autoLow ? ' 低精细' : ''} · ${gfx().name}\n绘制 ${st.draws} 批 · ${st.inst} 个物体`;
   fpsM.t = 0; fpsM.n = 0; fpsM.worst = 0;
 }
 function adaptQuality(dt) {
@@ -1220,15 +1323,17 @@ function adaptQuality(dt) {
   if (quality.acc < 1.5) return;
   const avg = quality.acc / quality.n; quality.acc = 0; quality.n = 0;
   if (quality.cool > 0) return;
-  if (avg > 0.028 && quality.scale > 0.5) { quality.scale = Math.max(0.5, quality.scale * 0.85); resize(); quality.cool = 2; quality.slow = 0; }
-  else if (avg > 0.03 && !quality.autoLow && settings.detail !== 'low' && ++quality.slow >= 2) {
+  // 掉到 38 帧以下先降分辨率（不低于本档下限），再不行才降材质；回到 52 帧以上再慢慢升回去
+  const lo = Math.min(quality.base, gfx().min);
+  if (avg > 0.026 && quality.scale > lo + 0.01) { quality.scale = Math.max(lo, quality.scale * 0.88); resize(); quality.cool = 2; quality.slow = 0; }
+  else if (avg > 0.03 && !quality.autoLow && gfx().det > 0.5 && ++quality.slow >= 2) {
     // 分辨率已经降到底还是卡：本局自动改用低材质精细度（不改玩家的设置）
     quality.autoLow = true; quality.cool = 4;
     if (mode === 'play') toast('画面较卡，已自动降低材质精细度（可在设置中调整）');
   }
-  else if (avg < 0.0135 && quality.scale < quality.base) { quality.scale = Math.min(quality.base, quality.scale * 1.08); resize(); quality.cool = 3; }
+  else if (avg < 0.0192 && quality.scale < quality.base) { quality.scale = Math.min(quality.base, quality.scale * 1.08); resize(); quality.cool = 3; }
 }
-addEventListener('resize', resize); resize();
+addEventListener('resize', resize); applyGfx();
 
 /* ============================================================
  * 怪物绘制
@@ -1330,9 +1435,9 @@ function drawMonster(m, a) {
       }
       top = 1.1; break;
     }
-    case 'stalker': case 'sapper': case 'gunner': {
+    case 'stalker': case 'sapper': case 'gunner': case 'jammer': {
       // 机器人底模 + 各自的配件
-      const sc = m.type === 'gunner' ? 1.05 : 0.92;
+      const sc = m.type === 'gunner' ? 1.05 : m.type === 'jammer' ? 1.0 : 0.92;
       if (m.aiming) { MX.yaw = Math.atan2(-m.ax, -m.az); MX.cy = Math.cos(MX.yaw); MX.sy = Math.sin(MX.yaw); }
       if (hasModel('robot')) {
         let clip = m.type === 'stalker' ? 'run' : 'walk', rate = def.spd / (m.type === 'stalker' ? 4.4 : 2.6);
@@ -1345,11 +1450,23 @@ function drawMonster(m, a) {
           E.push('robot', x, y, z, MX.yaw, sc * born, sc * born, sc * born, c(0.35, 0.7, 1, 0.13 + 0.07 * Math.sin(t * 7), 0.7, 0, true));
           E.anim(); ghost = true; top = 2.0; break;
         }
-        const tn = m.type === 'stalker' ? [0.34, 0.27, 0.5] : m.type === 'sapper' ? [1, 0.8, 0.32] : [0.95, 0.42, 0.38];
+        const tn = m.type === 'stalker' ? [0.34, 0.27, 0.5] : m.type === 'sapper' ? [1, 0.8, 0.32] : m.type === 'jammer' ? [0.45, 0.62, 1] : [0.95, 0.42, 0.38];
         E.push('robot', x, y, z, MX.yaw, sc * born, sc * born, sc * born, mc(tn[0], tn[1], tn[2], 0));
         E.anim();
       }
-      if (m.type === 'stalker') {
+      if (m.type === 'jammer') {
+        // 背负干扰器：天线 + 旋转碟形发射器 + 地面上的干扰范围圈
+        P('box', 0, 1.3, 0.32, 0.5, 0.6, 0.3, mc(0.2, 0.24, 0.32));
+        P('box', 0, 2.05, 0.36, 0.04, 0.9, 0.04, mc(0.3, 0.32, 0.36));
+        const pu = 0.5 + 0.5 * Math.sin(t * 5);
+        E.push('disc', LOCAL(0, 2.5, 0.36)[0], y + 2.5, LOCAL(0, 2.5, 0.36)[2], t * 3, 0.42, 1, 0.42, c(0.45, 0.7, 1, 0.9, 0.6 + pu * 0.4, TN.flash));
+        P('sphere', 0, 2.55, 0.36, 0.1, 0.1, 0.1, c(0.6, 0.85, 1, 1, 1));
+        if (m.stunT <= 0) {
+          const R = def.jam, gy0 = S_cur && S_cur.terrain ? S_cur.floorH(x, z) : 0;
+          E.push('ring', x, gy0 + 0.06, z, t * 0.6, R, 1, R, c(0.4, 0.65, 1, 0.3 + 0.2 * pu, 1, 0, true));
+          E.push('ring', x, gy0 + 0.07, z, -t, R * (0.3 + 0.7 * ((t * 0.8) % 1)), 1, R * (0.3 + 0.7 * ((t * 0.8) % 1)), c(0.5, 0.75, 1, 0.35 * (1 - (t * 0.8) % 1), 1, 0, true));
+        }
+      } else if (m.type === 'stalker') {
         for (const sd of [-1, 1]) PR('box', sd * 0.42, 0.95, -0.35, -0.4, 0, 0.04, 0.05, 0.85, c(0.8, 0.45, 1, 1, 1, TN.flash));
         P('box', 0, 1.68, -0.24, 0.26, 0.05, 0.03, c(0.85, 0.5, 1, 1, 1));
       } else if (m.type === 'sapper') {
@@ -1479,6 +1596,50 @@ function drawMonster(m, a) {
         E.pushBeam('box', knee[0], knee[1], knee[2], foot[0], foot[1], foot[2], 0.07, 0.07, lc);
       }
       top = 1.3; break;
+    }
+    case 'crawler': {
+      // 攀顶蛛：倒挂在天花板上爬行（所有部件按天花板往下画）
+      const cy0 = WALL_H;
+      MX.y = cy0;
+      const F = (lx, ly, lz) => LOCAL(lx, -ly, lz);
+      const pulse = 0.5 + 0.5 * Math.sin(t * 7);
+      P('sphere', 0, -0.55, 0.15, 0.85, 0.5, 1.0, mc(0.18, 0.22, 0.26));
+      P('sphere', 0, -0.62, 0.32, 0.55, 0.38, 0.6, mc(0.3, 0.55, 0.62));
+      P('sphere', 0, -0.5, -0.45, 0.42, 0.34, 0.42, mc(0.16, 0.18, 0.2));
+      for (const sd of [-1, 1]) P('sphere', sd * 0.13, -0.42, -0.72, 0.09, 0.09, 0.09, c(0.4, 1, 0.9, 1, 0.6 + pulse * 0.4, TN.flash));
+      for (let i = 0; i < 8; i++) {
+        const side = i < 4 ? -1 : 1, k = i % 4;
+        const lz = (k - 1.5) * 0.3, step = moving ? Math.sin(ph * 1.6 + i * 1.7) : 0;
+        const hip = F(side * 0.32, 0.55, lz), knee = F(side * 0.8, 0.95 + Math.max(0, step) * 0.12, lz + step * 0.1), foot = F(side * 1.1, 0.02, lz * 1.35 + step * 0.16);
+        const lc = mc(0.14, 0.16, 0.18);
+        E.pushBeam('box', hip[0], hip[1], hip[2], knee[0], knee[1], knee[2], 0.07, 0.07, lc);
+        E.pushBeam('box', knee[0], knee[1], knee[2], foot[0], foot[1], foot[2], 0.06, 0.06, lc);
+      }
+      // 吐丝：一条细线垂到半空，看起来更像在顶上爬
+      E.pushBeam('box', x, cy0 - 0.9, z, x, cy0 - 1.9, z, 0.015, 0.015, c(0.8, 0.95, 1, 0.35, 0.4, 0, true));
+      top = -0.6; break;
+    }
+    case 'beetle': {
+      // 反应甲虫：厚重的反应装甲背壳 + 发光缝隙
+      MX.y += moving ? Math.abs(Math.sin(ph * 2)) * 0.04 : 0;
+      const gl = 0.5 + 0.5 * Math.sin(t * 3);
+      P('sphere', 0, 0.78, 0.05, 1.45, 0.95, 1.75, mc(0.26, 0.24, 0.2));
+      for (let i = 0; i < 4; i++) P('box', 0, 1.18 - i * 0.06, 0.62 - i * 0.42, 1.1 - Math.abs(i - 1.5) * 0.18, 0.12, 0.36, mc(0.42, 0.36, 0.22));
+      P('box', 0, 1.24, 0.05, 0.06, 0.05, 1.5, c(1, 0.62, 0.2, 1, 0.5 + gl * 0.5, TN.flash));
+      P('sphere', 0, 0.62, -0.9, 0.62, 0.45, 0.5, mc(0.2, 0.18, 0.16));
+      for (const sd of [-1, 1]) {
+        PR('box', sd * 0.22, 0.55, -1.25, 0, sd * 0.4, 0.1, 0.1, 0.4, mc(0.5, 0.45, 0.35));
+        P('sphere', sd * 0.2, 0.72, -1.12, 0.08, 0.08, 0.08, c(1, 0.5, 0.15, 1, 1, TN.flash));
+      }
+      for (let i = 0; i < 6; i++) {
+        const side = i < 3 ? -1 : 1, k = i % 3;
+        const lz = (k - 1) * 0.55, step = moving ? Math.sin(ph * 1.4 + i * 2.1) : 0;
+        const hip = LOCAL(side * 0.6, 0.55, lz), knee = LOCAL(side * 1.05, 0.7 + Math.max(0, step) * 0.12, lz + step * 0.12), foot = LOCAL(side * 1.3, 0.02, lz * 1.2 + step * 0.18);
+        const lc = mc(0.18, 0.16, 0.14);
+        E.pushBeam('box', hip[0], hip[1], hip[2], knee[0], knee[1], knee[2], 0.11, 0.11, lc);
+        E.pushBeam('box', knee[0], knee[1], knee[2], foot[0], foot[1], foot[2], 0.09, 0.09, lc);
+      }
+      top = 1.6; break;
     }
     case 'elite': {
       const bob = moving ? Math.abs(Math.cos(ph)) * 0.1 : 0;
@@ -2386,7 +2547,7 @@ function drawOtherPlayers(S, a, dt) {
     E.push('ring', v.x, 0.05, v.z, timeNow, 0.6, 1, 0.6, c(tc3[0], tc3[1], tc3[2], 0.5, 1, 0, true));
     // 开火：按射速生成曳光与枪口火光（纯视觉）
     const firing = MP.role === 'client' ? p.fire : p.input.fire;
-    const PW = WPN[p.wpn] || WPN.rifle;
+    const PW = TD.pwOf(p, p.wpn);
     if (firing && mode !== 'menu') {
       v.fireAcc += dt * PW.rps;
       while (v.fireAcc >= 1) {
@@ -2477,7 +2638,7 @@ function drawViewmodel(dt) {
   E.setLayer(1);
   const ads = cam.ads, k = vm.kick, K = 0.8;
   const sw = vm.switchT > 0 ? vm.switchT / 0.25 : 0;
-  const W = WPN[p.wpn] || WPN.rifle;
+  const W = TD.pwOf(p, p.wpn);
   const reload = p.reloadT > 0 ? Math.sin(Math.min(1, (W.reload - p.reloadT) / W.reload) * Math.PI) : 0;
   { const mt = myMount(); if (mt) { if (mt.type === 'gatling') drawGatlingVM(p, mt, dt); E.setLayer(0); return; } }
   if (tool === 'gun' && W.id === 'sniper' && cam.ads > 0.85) { E.setLayer(0); vm.mz = [0, -0.05, -0.3]; return; }
@@ -2865,6 +3026,7 @@ function handleEvents(S) {
         const def = MON[e.mtype];
         const pal = { grunt: [0.36, 0.38, 0.32], runner: [0.42, 0.24, 0.2], brute: [0.36, 0.38, 0.43], flyer: [0.6, 0.35, 0.9], bomber: [1, 0.5, 0.1], elite: [0.3, 0.25, 0.3], boss: [0.4, 0.42, 0.48], burrower: [0.5, 0.36, 0.25], mite: [0.4, 0.2, 0.5], siege: [0.44, 0.42, 0.33], colossus: [0.3, 0.2, 0.15], brood: [0.4, 0.2, 0.45], broodling: [0.4, 0.2, 0.45] }[e.mtype] || [0.4, 0.4, 0.4];
         const hasCorpse = addCorpse(e);
+        if (def.boss && mode === 'play' && S === sim) { ACH.add('boss'); ACH.save(); }
         if (def.boss) { const bm = S._mById.get(e.id) || (S._gone && S._gone.get(e.id)); bossFx = { x: e.x, z: e.z, t: 0, next: 0, m: bm ? Object.assign({}, bm) : null }; slowmoT = 1.9; }
         if (e.mtype === 'flyer' || e.mtype === 'healer') explode(e.x, e.y, e.z, 1.6, true);
         if (def.elite) explode(e.x, 1.5, e.z, 4, false);
@@ -3065,6 +3227,7 @@ function handleEvents(S) {
         if (p0 && e.d === 0) { portalFlare[e.lane] = 1; flashLight(p0.x, 2.5, p0.z - 1, 9, [1, 0.3, 0.25], 1.6, 0.25); burst(p0.x, 2.2, p0.z - 0.8, 8, { c: [1, 0.35, 0.25], sp0: 1, sp1: 4, s0: 0.12, grav: 0 }); }
         break;
       }
+      case 'wmod': { const q = S.s.players[e.pid], M = (TD.WMODS[e.w] || []).find(x => x.id === e.m); if (q && M && e.pid !== PID) feed(`${q.name} 把 ${WPN[e.w].name} 改装成「${M.name}」`, 'good'); break; }
       case 'buy': { const q = S.s.players[e.pid]; if (q && WPN[e.w]) feed(`${e.pid === PID ? '你' : q.name} 购买了 ${WPN[e.w].name}（${WPN[e.w].cost} 金币）`, 'good'); Snd.play('buy'); break; }
       case 'wswitch': if (e.pid === PID) Snd.play('switch'); break;
       case 'throw': { const q = S.s.players[e.pid]; Snd.play('throw', q && e.pid !== PID ? q.x : undefined, q ? q.z : undefined); break; }
@@ -3380,6 +3543,9 @@ function monTags(k) {
   if (m.drop) tags.push('空投噬晶蛛');
   if (m.heavy) tags.push('重装单位，电磁炮优先锁定');
   if (k === 'mite') tags.push('体型小、速度快');
+  if (m.ceil) tags.push('倒挂在天花板上爬行：地面陷阱、阻挡、减速、迫击炮都碰不到它；粉碎锤伤害 ×2');
+  if (m.jam) tags.push(`周围 ${m.jam} 米内的陷阱全部失灵，被眩晕时干扰中断`);
+  if (m.trapRes) tags.push(`反应装甲：陷阱伤害 -${Math.round(m.trapRes * 100)}%，枪械伤害 +${Math.round((m.gunVuln - 1) * 100)}%`);
   return tags;
 }
 const MON_COUNTER = {
@@ -3394,6 +3560,9 @@ const MON_COUNTER = {
   sapper: '会骇入陷阱，用炮台在远处先打掉它。',
   gunner: '会停下来射击玩家，站在它视线外或者横向跑动躲光弹。',
   elite: '半血后狂暴提速，狙击枪和电磁炮最有效。',
+  crawler: '粉碎锤砸它伤害翻倍；激光、火焰等墙壁陷阱和炮台照常能打，枪也能打——抬头看。',
+  jammer: '它走到哪里，哪里的陷阱就失灵。用枪集火、用手雷或磁暴「电弧过载」眩晕它，或者让炮台在干扰圈外先打掉它。',
+  beetle: '陷阱只能打出一半伤害，但它怕子弹——留一把霰弹枪或穿甲步枪专门打它。',
 };
 const CODEX = {};
 function cdxItem(kind, it) { (CODEX[kind] || (CODEX[kind] = [])).push(it); }
@@ -3442,7 +3611,7 @@ function buildHelp() {
   }
   // —— 武器与职业 ——
   WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header><p>${w.desc}</p>
-      ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}` }));
+      ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}${(TD.WMODS[w.id] || []).length ? `<div class="cdxEvo"><h4>改装（买下后在军械库二选一，本局有效）</h4>${TD.WMODS[w.id].map(M => `<p><b>${M.name}</b>${M.desc} · ${M.cost} 金币</p>`).join('')}</div>` : ''}` }));
   cdxItem('wpn', { id: 'nade', grp: '技能', name: SKILL.nade.name, icon: svgIcon('nade'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('nade')}</span><h3>${SKILL.nade.name}</h3><span class="cdxMeta">按 C 投掷</span></header><p>抛物线投掷，${SKILL.nade.fuse} 秒后爆炸。</p>${dl([['伤害', SKILL.nade.dmg], ['范围', SKILL.nade.r + ' 米'], ['数量', `最多 ${SKILL.nade.max} 枚（突击兵 +1）`], ['充能', `每 ${SKILL.nade.recharge} 秒 1 枚`]])}` });
   cdxItem('wpn', { id: 'ult', grp: '技能', name: SKILL.ult.name, icon: svgIcon('ult'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('ult')}</span><h3>${SKILL.ult.name}</h3><span class="cdxMeta">能量满 100% 后按 Z</span></header><p>用枪造成伤害和击杀会积攒能量；满了以后对准地面呼叫，${SKILL.ult.delay} 秒后落下，大范围重创并眩晕敌人。</p>${dl([['伤害', SKILL.ult.dmg], ['范围', SKILL.ult.r + ' 米'], ['眩晕', SKILL.ult.stun + ' 秒']])}` });
   for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header><p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
@@ -3594,7 +3763,21 @@ function drawMinimap(S) {
 }
 
 const autoReady = { wave: -1, since: 0 };
+function netBanner() {
+  let t = '';
+  if (MP.role !== 'solo' && MP.game) {
+    const down = MP.game.downFor ? MP.game.downFor() : (MP.game.connected && !MP.game.connected() ? 1 : 0);
+    if (down > 1500) t = `网络中断，正在重连…（${Math.floor(down / 1000)} 秒）`;
+    else if (MP.role === 'client' && MP.hostAway) {
+      const w = performance.now() - MP.hostAway;
+      if (w > HOST_GRACE) { leaveRoom(true); mpNote('房主掉线太久，房间已解散', true); if (mode !== 'menu') toMenu(); return; }
+      t = `房主掉线，等待重连…（${Math.ceil((HOST_GRACE - w) / 1000)} 秒）`;
+    } else if (MP.role === 'host' && MP.away.size) t = `${MP.away.size} 名队友掉线，等待重连中`;
+  }
+  setText('netBanner', t); $('netBanner').hidden = !t;
+}
 function updateHUD(dt) {
+  netBanner();
   if (sim && mode === 'play') bossTremor(sim, dt);
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
@@ -3643,7 +3826,7 @@ function updateHUD(dt) {
     setStyle($('hpFill'), 'width', (p.hp / p.maxHp * 100).toFixed(1) + '%');
     setText('hpNum', String(Math.ceil(p.hp)));
     setText('ammoNum', p.reloadT > 0 ? '装填' : String(p.ammo));
-    const W = WPN[p.wpn] || WPN.rifle, mt = myMount();
+    const W = TD.pwOf(p, p.wpn), mt = myMount();
     if (mt && mt.type === 'mortar') {
       const left = mortarReady - timeNow;
       setText('ammoNum', left > 0 ? left.toFixed(1) + 's' : '就绪');
@@ -3897,6 +4080,7 @@ function onKey(code, e) {
     if (!$('help').hidden) { closeHelp(); return; }
     if (!$('talents').hidden) { show('talents', false); return; }
     if (!$('lb').hidden) { show('lb', false); return; }
+    if (!$('achv').hidden) { show('achv', false); return; }
   }
   if (e.repeat && !['KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(code)) { keys[code] = true; return; }
   keys[code] = true;
@@ -4456,18 +4640,41 @@ function toggleShop(on) {
 }
 function renderShop() {
   const p = me(); if (!p) return;
-  const key = p.guns.join() + p.wpn + sim.s.gold;
+  const key = p.guns.join() + p.wpn + sim.s.gold + JSON.stringify(p.mods || {});
   if (cache.shop === key) return;
   cache.shop = key;
   const list = $('shopList'); list.innerHTML = '';
-  WEAPONS.forEach((w, i) => {
+  WEAPONS.forEach((w0, i) => {
+    const w = TD.pwOf(p, w0.id);
     const own = p.guns.includes(w.id), cur = p.wpn === w.id, poor = !own && sim.s.gold < w.cost;
+    const row = document.createElement('div'); row.className = 'wrow';
     const b = document.createElement('button'); b.type = 'button';
     b.className = 'wcard' + (cur ? ' cur' : '') + (own ? ' own' : '') + (poor ? ' poor' : '');
     const dps = Math.round(w.dmg * (w.pellets || 1) * w.rps);
-    b.innerHTML = `<span class="kb">${i + 1}</span><span class="wi">${svgIcon(w.id)}</span><b>${w.name}</b><span class="ws">伤害 ${w.dmg}${w.pellets ? '×' + w.pellets : ''}${w.splash ? ' 范围' : ''} · 弹匣 ${w.mag} · 每秒 ${dps}</span><span class="wd">${w.desc}</span><em>${cur ? '装备中' : own ? '已拥有 · 装备' : w.cost + ' 金币'}</em>`;
+    b.innerHTML = `<span class="kb">${i + 1}</span><span class="wi">${svgIcon(w.id)}</span><b>${w.name}${w.modName ? `<small class="wmodTag">${w.modName}</small>` : ''}</b><span class="ws">伤害 ${w.dmg}${w.pellets ? '×' + w.pellets : ''}${w.splash ? ' 范围' : ''} · 弹匣 ${w.mag} · 每秒 ${dps}</span><span class="wd">${w.desc}</span><em>${cur ? '装备中' : own ? '已拥有 · 装备' : w.cost + ' 金币'}</em>`;
     b.addEventListener('click', () => buyWeapon(i));
-    list.appendChild(b);
+    row.appendChild(b);
+    // 改装：买下这把枪后可以二选一
+    const mods = TD.WMODS[w.id] || [], done = p.mods && p.mods[w.id];
+    if (own && mods.length && !done) {
+      const box = document.createElement('div'); box.className = 'wmods';
+      box.innerHTML = '<span>改装（二选一）</span>' + mods.map(M => `<button type="button" class="wmod${sim.s.gold < M.cost ? ' poor' : ''}" data-w="${w.id}" data-m="${M.id}"><b>${M.name}</b><small>${M.desc}</small><em>${M.cost} 金币</em></button>`).join('');
+      box.addEventListener('click', e => { const mb = e.target.closest('[data-m]'); if (mb) buyMod(mb.dataset.w, mb.dataset.m); });
+      row.appendChild(box);
+    }
+    list.appendChild(row);
+  });
+}
+function buyMod(w, mid) {
+  const M = (TD.WMODS[w] || []).find(x => x.id === mid), p = me();
+  if (!M || !p) return;
+  if (sim.s.gold < M.cost) { toast(`金币不足，需要 ${M.cost}`, true); Snd.play('deny'); return; }
+  netCmd({ t: 'wmod', w, m: mid }, r => {
+    if (!r.ok) { toast(r.reason || '无法改装', true); Snd.play('deny'); return; }
+    const q = me();
+    if (MP.role === 'client' && q) { q.mods = Object.assign({}, q.mods, { [w]: mid }); if (q.wpn === w) { q.mag = TD.pwOf(q, w).mag; q.ammo = q.mag; q.reloadT = 0; } }
+    ACH.add('mods'); ACH.save();
+    toast(`${WPN[w].name} 已改装：${M.name}`); Snd.play('upgrade'); cache.shop = '';
   });
 }
 function buyWeapon(i) {
@@ -4862,6 +5069,102 @@ function initTouchEditor() {
   addEventListener('resize', () => setTimeout(applyTouchLayout, 50));
   applyTouchLayout();
 }
+/* ---------- 存档：导出 / 导入 / 云存档 ---------- */
+const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings'];
+const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+const b64d = str => { const s = atob(str); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
+async function pipeBytes(u8, stream) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(stream)).arrayBuffer()); }
+async function exportSave() {
+  const d = {};
+  for (const k of SAVE_KEYS) { let v = null; try { v = localStorage.getItem(k); } catch (e) { v = null; } if (v !== null) d[k] = v; }
+  // 触屏按钮位置跟设备屏幕有关，不随存档走
+  if (d['jhsw-settings']) { try { const st = JSON.parse(d['jhsw-settings']); delete st.tb; d['jhsw-settings'] = JSON.stringify(st); } catch (e) { delete d['jhsw-settings']; } }
+  const raw = new TextEncoder().encode(JSON.stringify({ v: 1, t: Date.now(), d }));
+  if (typeof CompressionStream === 'function') { try { return 'JHSW1.' + b64e(await pipeBytes(raw, new CompressionStream('deflate-raw'))); } catch (e) { /* 退回不压缩 */ } }
+  return 'JHSW0.' + b64e(raw);
+}
+async function parseSave(code) {
+  code = String(code || '').replace(/\s+/g, '');
+  const m = /^JHSW([01])\.([A-Za-z0-9+/=]+)$/.exec(code);
+  if (!m) throw new Error('存档码格式不对');
+  let bytes = b64d(m[2]);
+  if (m[1] === '1') {
+    if (typeof DecompressionStream !== 'function') throw new Error('这个浏览器不支持解压存档码');
+    bytes = await pipeBytes(bytes, new DecompressionStream('deflate-raw'));
+  }
+  const o = JSON.parse(new TextDecoder().decode(bytes));
+  if (!o || o.v !== 1 || !o.d || typeof o.d !== 'object') throw new Error('存档内容不完整');
+  return o;
+}
+function saveSummary(o) {
+  const g = k => { try { return JSON.parse(o.d[k] || 'null'); } catch (e) { return null; } };
+  const best = g('jhsw-best2') || {}, ach = g('jhsw-ach') || {};
+  let st = 0; for (const k in best) if (/\|std$/.test(k)) st += starsOf(best[k]);
+  return `关卡星 ${st} · 成就 ${Object.keys(ach.done || {}).length} 个 · 累计击杀 ${+o.d['jhsw-kills'] || 0}${o.t ? ` · ${new Date(o.t).toLocaleString()}` : ''}`;
+}
+function applySave(o) {
+  const keepTb = settings.tb;
+  for (const k of SAVE_KEYS) { try { if (k in o.d) localStorage.setItem(k, String(o.d[k])); else localStorage.removeItem(k); } catch (e) { /* 无存储 */ } }
+  // 保留本机的触屏按钮布局
+  try { const st = JSON.parse(localStorage.getItem('jhsw-settings') || '{}'); st.tb = keepTb; localStorage.setItem('jhsw-settings', JSON.stringify(st)); } catch (e) { /* 忽略 */ }
+  setTimeout(() => location.reload(), 900);
+}
+function saveMsg(t, bad) { const el = $('saveMsg'); el.textContent = t; el.classList.toggle('bad', !!bad); }
+const cloudMine = () => { try { return JSON.parse(localStorage.getItem('jhsw-cloud') || 'null'); } catch (e) { return null; } };
+function renderCloud() {
+  const c = cloudMine();
+  $('cloudInfo').innerHTML = c ? `本机的提取码 <b>${c.code}</b><br>上次上传 ${new Date(c.t).toLocaleString()}` : '这台设备还没上传过';
+  $('cloudUp').textContent = c ? '更新云存档' : '上传到云端';
+}
+async function cloudUpload() {
+  const btn = $('cloudUp'); btn.disabled = true; saveMsg('正在上传…');
+  try {
+    const data = await exportSave(), mine = cloudMine();
+    let r = await fetch(lbBase() + '/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(mine ? { data, code: mine.code, key: mine.key } : { data }) });
+    if (r.status === 404 || r.status === 403) r = await fetch(lbBase() + '/save', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ data }) });   // 旧提取码失效：换一个新的
+    const j = await r.json();
+    if (!j.ok) throw new Error(j.error || r.status);
+    try { localStorage.setItem('jhsw-cloud', JSON.stringify({ code: j.code, key: j.key, t: j.t })); } catch (e) { /* 无存储 */ }
+    renderCloud(); saveMsg(`上传成功！提取码 ${j.code}，换设备时在「设置 → 存档」输入它`);
+  } catch (e) { saveMsg('上传失败：' + (e.message === 'Failed to fetch' ? '连不上服务器，检查网络' : e.message), true); }
+  btn.disabled = false;
+}
+let pendingSave = null;
+async function cloudDownload() {
+  const code = $('cloudCode').value.toUpperCase().replace(/[\s-]/g, '');
+  if (!/^[A-HJ-NP-Z2-9]{8}$/.test(code)) { saveMsg('提取码是 8 位字母和数字（没有 I、O、0、1）', true); return; }
+  saveMsg('正在取回…');
+  try {
+    const r = await fetch(lbBase() + '/save?code=' + code), j = await r.json();
+    if (!j.ok) throw new Error(j.error === 'missing' ? '没有这个提取码' : j.error || r.status);
+    await confirmImport(j.data, '云存档 ' + code);
+  } catch (e) { saveMsg('取回失败：' + (e.message === 'Failed to fetch' ? '连不上服务器，检查网络' : e.message), true); }
+}
+async function confirmImport(code, from) {
+  const o = await parseSave(code);
+  if (pendingSave === code) { saveMsg('正在导入，马上重新载入…'); applySave(o); return; }
+  pendingSave = code;
+  saveMsg(`找到${from}：${saveSummary(o)}。会覆盖这台设备上的进度，确认请再点一次`);
+}
+function initSaveUI() {
+  renderCloud();
+  $('cloudUp').addEventListener('click', cloudUpload);
+  $('cloudDown').addEventListener('click', () => cloudDownload());
+  $('cloudCode').addEventListener('input', () => { pendingSave = null; });
+  $('cloudCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') cloudDownload(); });
+  $('saveText').addEventListener('keydown', e => e.stopPropagation());
+  $('saveText').addEventListener('input', () => { pendingSave = null; });
+  $('saveExport').addEventListener('click', async () => {
+    const t = await exportSave(), ta = $('saveText');
+    ta.value = t; pendingSave = null;
+    let ok = false;
+    try { await navigator.clipboard.writeText(t); ok = true; } catch (e) { ta.focus(); ta.select(); try { ok = document.execCommand('copy'); } catch (e2) { ok = false; } }
+    saveMsg(ok ? `已复制存档码（${t.length} 个字符），粘贴到备忘录或发给自己保存` : '存档码已生成，长按上面的文字全选复制');
+  });
+  $('saveImport').addEventListener('click', async () => {
+    try { await confirmImport($('saveText').value, '存档码'); } catch (e) { saveMsg('导入失败：' + e.message, true); }
+  });
+}
 /* ---------- 无尽排行榜 ---------- */
 const LB_DM = { normal: 1, hard: 1.4, hell: 1.9 };
 function endlessScore(s) { const mut = (s.mut || []).reduce((a, id) => a + (MUT[id] ? MUT[id].w : 0), 1); return Math.round((s.wave * 1000 + s.stats.kills * 2 + Math.ceil(s.crystal.hp) * 5) * (LB_DM[s.diff] || 1) * mut); }
@@ -5010,11 +5313,27 @@ function showEnd() {
   const isNew = !best || score > best.score;
   if (isNew) { all[key] = { score, wave: s.wave, hp: Math.ceil(s.crystal.hp), win: win || (best && best.win) || false, grade }; try { localStorage.setItem('jhsw-best2', JSON.stringify(all)); } catch (e) { /* 无存储 */ } }
   if (s.daily && win) PROG.addDailyWin(s.daily);
+  // 成就：先记累计数据，再检查
+  const me = s.players[PID], cats = [...new Set(s.traps.map(t => TRAP[t.type] && TRAP[t.type].cat).filter(Boolean))];
+  if (!s._achDone) {
+    s._achDone = true;
+    if (s.endless) ACH.d.c.endlessBest = Math.max(ACH.n('endlessBest'), s.wave);
+    if (win && MP.role !== 'solo' && Object.keys(s.players).length > 1) ACH.add('coopWin');
+    if (win && me) ACH.add('cls_' + me.cls);
+    ACH.save();
+  }
+  const newAch = ACH.check({ win: win && !s.endless, trapPct: s.stats.dmgTrap / total, gunPct: s.stats.dmgGun / total, cats, traps: s.traps.length, built: s.stats.built });
   const gained = PROG.stars() - stars0;
-  $('endStar').hidden = gained <= 0;
-  if (gained > 0) $('endStar').textContent = `获得 ★ ×${gained} · 可用星星 ${PROG.stars() - PROG.spent()}，到主菜单「天赋」里加点`;
+  // 本局三星评价（标准模式）
+  const runStars = win && !s.endless && !s.daily ? starsOf({ win, grade }) : 0;
+  $('endStars').hidden = s.endless || !!s.daily;
+  $('endStars').innerHTML = STAR_RULES.map((t, i) => `<li class="${i < runStars ? 'on' : ''}"><i>★</i><span>${t}</span></li>`).join('');
+  const msg = [];
+  if (gained > 0) msg.push(`获得 ★ ×${gained} · 可用星星 ${PROG.stars() - PROG.spent()}，到主菜单「天赋」里加点`);
+  if (newAch.length) msg.push(`达成成就：${newAch.map(a => `「${a.name}」`).join('')}`);
   const newly = locked0.filter(id => UNLOCKS[id].ok());
-  if (newly.length) { $('endStar').hidden = false; $('endStar').textContent = (gained > 0 ? $('endStar').textContent + ' · ' : '') + `解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`; buildHotbar(); }
+  if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`); buildHotbar(); }
+  $('endStar').hidden = !msg.length; $('endStar').textContent = msg.join(' · ');
   $('endGrade').textContent = grade;
   $('endGrade').className = 'grade g' + grade;
   $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 水晶 ${best.hp} · 评级 ${best.grade}`;
@@ -5279,8 +5598,8 @@ function frame(now) {
   const sc3 = (a, k) => [a[0] * k, a[1] * k, a[2] * k];
   E.flush({
     vp: VP, eye: [cam.x, cam.y, cam.z], sky: dark ? sc3(TH.sky, 0.35) : TH.sky, ground: dark ? sc3(TH.ground, 0.35) : TH.ground, sunDir: [0.45, -0.74, 0.5], sunCol: dark ? sc3(TH.sun, 0.3) : TH.sun,
-    fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : (TH.fogD || 0.0105), lights: LIGHTS.slice(0, 12),
-    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: settings.detail === 'low' || quality.autoLow ? 0.25 : 1, detailDist: settings.detail === 'low' || quality.autoLow ? 36 : 64,
+    fog: dark ? sc3(TH.fog, 0.4) : TH.fog, fogD: dark ? 0.03 : (TH.fogD || 0.0105), lights: LIGHTS.slice(0, gfx().lights),
+    bloom: 0.85, bloomThr: 0.92, vig: 0.85, detail: quality.autoLow ? 0.25 : gfx().det, detailDist: quality.autoLow ? 36 : gfx().dist, grade: gfx().grade,
     tint: mode !== 'menu' && cf < 0.3 ? [0.6, 0.02, 0.05, 0.22 * (0.5 + 0.5 * Math.sin(timeNow * 5))] : (timeScale < 1 ? [0.9, 0.6, 0.3, 0.15] : null),
   }, SK.static ? [] : statics);
 
@@ -5292,14 +5611,16 @@ function frame(now) {
  * ============================================================ */
 function bestKey(map, d, md) { return `${map}|${d}|${md === true ? 'endless' : md === false || !md ? 'std' : md}`; }
 function loadBest() { try { return JSON.parse(localStorage.getItem('jhsw-best2') || '{}'); } catch (e) { return {}; } }
-function bestText(r, endless) { return r ? (endless ? `最佳 第 ${r.wave} 波 · ${r.grade}` : (r.win ? `已通关 · ${r.grade}` : `最佳 第 ${r.wave} 波`)) : ''; }
+function bestText(r, endless) { return r ? (endless ? `最佳 第 ${r.wave} 波 · ${r.grade}` : (r.win ? `${starStr(starsOf(r))} 已通关` : `最佳 第 ${r.wave} 波`)) : ''; }
 function showBest() {
   const all = loadBest(), md = selMode === 'endless' ? 'endless' : 'std', en = selMode === 'endless';
   document.querySelectorAll('[data-diff]').forEach(b => { const el = b.querySelector('em'); if (el) el.textContent = selMode === 'daily' ? '' : bestText(all[bestKey(selMap, b.dataset.diff, md)], en); });
   document.querySelectorAll('.mapCard').forEach(b => { const el = b.querySelector('.mc-b'); if (el) el.textContent = selMode === 'daily' ? '' : (bestText(all[bestKey(b.dataset.map, diff, md)], en) || '未挑战'); });
   const d = dailySpec(todayStr()), dr = all[bestKey(d.map, d.diff, 'daily:' + d.date)];
   $('dailyBest').textContent = PROG.dailyWins().includes(d.date) ? '今日已通关 ★' : dr ? `今日最佳 第 ${dr.wave} 波` : '';
+  ACH.check(null);
   $('starTag').textContent = `★ ${PROG.stars() - PROG.spent()}`;
+  setText('achTag', `${Object.keys(ACH.d.done).filter(id => ACHS.some(a => a.id === id)).length} / ${ACHS.length}`);
 }
 function drawThumb(cv, def) {
   const S = new Sim({ map: def.id }), k = 3;
@@ -5369,7 +5690,7 @@ function setupMenuNav() {
   });
   goScreen('home');
 }
-function anyFullPage() { return ['settings', 'help', 'talents', 'lb'].some(id => $(id) && !$(id).hidden); }
+function anyFullPage() { return ['settings', 'help', 'talents', 'lb', 'achv'].some(id => $(id) && !$(id).hidden); }
 function updateMenuSum() {
   const room = MP.role !== 'solo' ? ` · 房间 ${MP.code.toUpperCase()}` : '';
   const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 标准'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
@@ -5422,6 +5743,16 @@ function renderMutChips(locked) {
   $('mutScore').textContent = selMut.length ? `难度系数 ×${sc.toFixed(2)} · ${selMut.map(id => MUT[id].desc).join('；')}` : '不选也可以';
 }
 // 天赋面板
+function renderAch() {
+  ACH.check(null);
+  const all = loadBest(), done = ACHS.filter(a => ACH.d.done[a.id]).length;
+  $('achSum').textContent = `已完成 ${done} / ${ACHS.length} · 关卡星 ${PROG.mapStars()} / ${MAP_LIST.length * 9}`;
+  $('achMapList').innerHTML = MAP_LIST.map(m => `<div class="achMap"><b>${m.name}</b>${DIFF_IDS.map(d => { const n = starsOf(all[bestKey(m.id, d, 'std')]); return `<div>${DIFFS[d].name}<span class="${n ? 'has' : ''}">${starStr(n)}</span></div>`; }).join('')}</div>`).join('');
+  $('achList').innerHTML = ACHS.map(a => {
+    const ok = !!ACH.d.done[a.id], pr = !ok && a.prog ? a.prog() : null;
+    return `<div class="achCard${ok ? ' done' : ''}"><span class="md">${ok ? '✓' : '★'}</span><b>${a.name}</b><em>★×${a.star}</em><p>${a.desc}${a.reward ? ` · 奖励：${a.reward}` : ''}${pr ? ` · ${pr[0]} / ${pr[1]}` : ''}</p>${pr ? `<span class="bar"><i style="width:${(pr[0] / pr[1] * 100).toFixed(1)}%"></i></span>` : ''}</div>`;
+  }).join('');
+}
 function renderTalents() {
   const total = PROG.stars(), left = total - PROG.spent();
   $('talStars').textContent = `★ 可用 ${left} / 共获得 ${total}`;
@@ -5430,12 +5761,12 @@ function renderTalents() {
     const r = Math.min(t.max, PROG.tal[t.id] | 0);
     const row = document.createElement('div'); row.className = 'talRow' + (r ? ' has' : '');
     const nm = document.createElement('b'); nm.textContent = (t.team ? '◆ ' : '') + t.name;
-    const ds = document.createElement('span'); ds.className = 'td'; ds.textContent = r ? t.desc(r) : `每级：${t.desc(1)}`;
+    const ds = document.createElement('span'); ds.className = 'td'; ds.textContent = (r ? t.desc(r) : `每级：${t.desc(1)}`) + (r < t.max ? ` · 下一级 ★${r + 1}` : ' · 已满级');
     const pips = document.createElement('span'); pips.className = 'pips';
     for (let i = 0; i < t.max; i++) { const pi = document.createElement('i'); if (i < r) pi.className = 'on'; pips.appendChild(pi); }
     const bt = document.createElement('span'); bt.className = 'bt';
     const minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.disabled = r <= 0; minus.setAttribute('aria-label', '降低 ' + t.name);
-    const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.disabled = r >= t.max || left <= 0; plus.setAttribute('aria-label', '提升 ' + t.name);
+    const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.disabled = r >= t.max || left < r + 1; if (r < t.max) plus.title = `升到 ${r + 1} 级需要 ★${r + 1}`; plus.setAttribute('aria-label', '提升 ' + t.name);
     minus.addEventListener('click', () => { PROG.tal[t.id] = r - 1; PROG.save(); renderTalents(); showBest(); });
     plus.addEventListener('click', () => { PROG.tal[t.id] = r + 1; PROG.save(); renderTalents(); showBest(); });
     bt.append(minus, plus);
@@ -5549,6 +5880,9 @@ function bindUI() {
     selMode = m; refreshSel();
   }));
   $('talentBtn').addEventListener('click', () => { renderTalents(); show('talents', true); });
+  $('achBtn').addEventListener('click', () => { renderAch(); show('achv', true); });
+  initSaveUI();
+  $('achClose').addEventListener('click', () => { show('achv', false); showBest(); });
   const cb = $('clsSeg');
   for (const c of CLASSES) {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.cls = c.id;
@@ -5636,11 +5970,11 @@ function bindUI() {
   const syncFps = () => { fpsBtn.setAttribute('aria-pressed', settings.showFps ? 'true' : 'false'); fpsBtn.textContent = settings.showFps ? '开' : '关'; $('fpsTag').hidden = !settings.showFps; };
   syncFps();
   fpsBtn.addEventListener('click', () => { settings.showFps = !settings.showFps; syncFps(); saveSettings(); });
-  const detBtn = $('detailBtn');
-  if (!settings.detail) settings.detail = TOUCH ? 'low' : 'high';
-  const syncDet = () => { const hi = settings.detail !== 'low'; detBtn.setAttribute('aria-pressed', hi ? 'true' : 'false'); detBtn.textContent = hi ? '高' : '低'; };
-  syncDet();
-  detBtn.addEventListener('click', () => { settings.detail = settings.detail === 'low' ? 'high' : 'low'; syncDet(); saveSettings(); });
+  const gfxSeg = $('gfxSeg');
+  gfxSeg.innerHTML = Object.entries(GFX).map(([k, g]) => `<button type="button" data-gfx="${k}"><b>${g.name}</b></button>`).join('');
+  const syncGfx = () => gfxSeg.querySelectorAll('[data-gfx]').forEach(b => b.setAttribute('aria-pressed', b.dataset.gfx === settings.gfx ? 'true' : 'false'));
+  syncGfx();
+  gfxSeg.addEventListener('click', e => { const b = e.target.closest('[data-gfx]'); if (!b) return; settings.gfx = b.dataset.gfx; syncGfx(); applyGfx(); saveSettings(); });
   syncBloom();
   const sens = $('sens'), vol = $('vol');
   sens.value = settings.sens; vol.value = settings.vol;
@@ -5769,6 +6103,7 @@ window.__back = () => {
   }
   if (!$('help').hidden) { show('help', false); return true; }
   if (!$('lb').hidden) { show('lb', false); return true; }
+  if (!$('achv').hidden) { show('achv', false); return true; }
   if (!$('talents').hidden) { show('talents', false); return true; }
   if (mode === 'pause') { resumeGame(); return true; }
   if (mode === 'end') { toMenu(); return true; }
@@ -5816,7 +6151,7 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom() };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();

@@ -21,7 +21,7 @@ const accepted = [];
 const store = new Map();
 const ctx = { acceptWebSocket: ws => accepted.push(ws), getWebSockets: () => accepted.filter(w => w.readyState !== 3 || true), setWebSocketAutoResponse() {}, storage: { get: async k => store.get(k), put: async (k, v) => { store.set(k, JSON.parse(JSON.stringify(v))); } } };
 // 载入 worker.js（替换 cloudflare:workers 导入）
-const src = fs.readFileSync(path.join(DIR, '../worker.js'), 'utf8').replace("import { DurableObject } from 'cloudflare:workers';", 'const DurableObject = globalThis.__DO;').replace("'./room-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../room-core.js')).href)).replace("'./board-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../board-core.js')).href));
+const src = fs.readFileSync(path.join(DIR, '../worker.js'), 'utf8').replace("import { DurableObject } from 'cloudflare:workers';", 'const DurableObject = globalThis.__DO;').replace("'./room-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../room-core.js')).href)).replace("'./board-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../board-core.js')).href)).replace("'./save-core.js'", JSON.stringify(pathToFileURL(path.join(DIR, '../save-core.js')).href));
 globalThis.__DO = DurableObject;
 const tmp = path.join(DIR, '_worker_tmp.mjs'); fs.writeFileSync(tmp, src);
 const { Room } = await import(pathToFileURL(tmp).href);
@@ -93,4 +93,24 @@ console.log(fails ? fails + ' 项失败' : '密码测试通过');
   const g = JSON.parse((await DO.fetch({ url: 'https://x/lb?map=station', method: 'GET' })).body);
   ok(g.list.length === 2 && g.list[0].name === '甲', 'lb get');
   console.log(fails ? fails + ' 项失败' : '排行榜测试通过');
+}
+// 云存档（一个提取码一个实例）
+{
+  store.clear(); DO = new Room(ctx, {});
+  const call = (q, o) => DO.fetch({ url: 'https://save/save?' + q, method: o ? 'POST' : 'GET', text: async () => JSON.stringify(o) }).then(r => ({ st: r.status, j: JSON.parse(r.body) }));
+  const up = await call('code=ABCD2345&fresh=1', { data: 'JHSW1.abcDEF+/=' });
+  ok(up.st === 200 && up.j.code === 'ABCD2345' && up.j.key.length === 24, 'save upload');
+  const taken = await call('code=ABCD2345&fresh=1', { data: 'JHSW1.zzz' });
+  ok(taken.st === 409, 'save fresh code taken');
+  const g = await call('code=ABCD2345');
+  ok(g.st === 200 && g.j.data === 'JHSW1.abcDEF+/=', 'save get');
+  const wrong = await call('code=ABCD2345&fresh=0', { data: 'JHSW1.new', key: 'x'.repeat(24) });
+  ok(wrong.st === 403, 'save wrong key');
+  const upd = await call('code=ABCD2345&fresh=0', { data: 'JHSW1.new', key: up.j.key });
+  ok(upd.st === 200 && (await call('code=ABCD2345')).j.data === 'JHSW1.new', 'save overwrite with key');
+  const bad = await call('code=ABCD2345&fresh=0', { data: '<script>', key: up.j.key });
+  ok(bad.st === 400, 'save rejects junk');
+  store.clear();
+  ok((await call('code=ZZZZ2222')).st === 404, 'save missing');
+  console.log(fails ? fails + ' 项失败' : '云存档测试通过');
 }

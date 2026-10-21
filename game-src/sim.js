@@ -46,6 +46,10 @@ const MON = {
   tank: { name: '铁蹄坦克', hp: 2500, spd: 1.9, armor: 0.4, core: 12, bounty: 130, dps: 150, r: 1.15, knockRes: 1, slowRes: 0.3, stunRes: 0.6, heavy: true, cannon: { range: 15, every: 5.5, dmg: 380, dis: 4 }, body: [0.9, 1.15], head: [1.75, 0.42, 0.65] },
   blinker: { name: '相位行者', hp: 520, spd: 3.3, core: 4, bounty: 40, dps: 35, melee: 12, r: 0.45, blink: { every: 6.5, dist: 6 }, body: [0.78, 0.38], head: [1.47, 0.46] },
   gunship: { name: '天穹炮艇', hp: 2000, spd: 2.4, armor: 0.2, core: 10, bounty: 110, fly: true, heavy: true, r: 1.2, ranged: { range: 20, dmg: 9, rate: 1.2, acc: 0.6, speed: 15 }, drop: { type: 'mite', n: 2, every: 9 }, body: [0, 1.1], head: [0.3, 0.45, 1.15] },
+  // —— 克制型敌人（第三批）——
+  crawler: { name: '攀顶蛛', hp: 380, spd: 3.7, core: 6, bounty: 30, r: 0.55, ceil: true, body: [0.55, 0.55], head: [0.7, 0.25, 0.55] },
+  jammer: { name: '电磁干扰兵', hp: 680, spd: 2.5, armor: 0.1, core: 6, bounty: 48, dps: 30, melee: 10, r: 0.5, jam: 5.5, body: [0.8, 0.4], head: [1.5, 0.46] },
+  beetle: { name: '反应甲虫', hp: 950, spd: 2.5, core: 8, bounty: 50, dps: 70, melee: 14, r: 0.8, knockRes: 0.5, trapRes: 0.5, gunVuln: 1.35, body: [0.62, 0.78], head: [0.7, 0.36, 0.95] },
   broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
 };
 const BOSS_TIP = {
@@ -132,6 +136,8 @@ const TALENTS = [
   { id: 'vitality', name: '战地急救', max: 2, desc: r => `生命上限 +${20 * r}` },
   { id: 'energy', name: '能量回路', max: 2, desc: r => `轨道打击充能速度 +${20 * r}%` },
   { id: 'grenade', name: '弹药扩容', max: 1, desc: r => `手雷上限 +${r}` },
+  { id: 'trapDmg', name: '陷阱强化', max: 3, team: true, desc: r => `所有陷阱伤害 +${4 * r}%` },
+  { id: 'armor', name: '战术护甲', max: 3, desc: r => `受到的伤害 -${5 * r}%` },
 ];
 const tl = (t, id) => Math.max(0, Math.min((TALENTS.find(x => x.id === id) || { max: 0 }).max, (t && t[id]) | 0));
 // 职业（每名玩家各选一个）
@@ -199,6 +205,39 @@ const WEAPONS = [
     desc: '火箭弹范围爆炸，地面和空中目标都能炸' },
 ];
 const WPN = {}; WEAPONS.forEach(w => { WPN[w.id] = w; w.maxHit = w.dmg * (w.head || 1) * (w.pellets || 1); });
+// 武器改装：每把枪二选一（本局有效，在军械库用金币购买）
+const WMODS = {
+  rifle: [{ id: 'a', name: '扩容弹匣', cost: 350, desc: '弹匣 30 → 45，换弹快 15%', mag: 45, reload: 0.85 },
+    { id: 'b', name: '穿甲弹芯', cost: 450, desc: '伤害 +12%，无视目标一半护甲', dmg: 1.12, ap: 0.5 }],
+  shotgun: [{ id: 'a', name: '龙息弹', cost: 500, desc: '弹丸点燃敌人，持续灼烧（每秒 18）', burn: 18 },
+    { id: 'b', name: '收束枪管', cost: 450, desc: '散布 -40%，有效射程 +50%', spread: 0.6, range: 1.5 }],
+  sniper: [{ id: 'a', name: '过载线圈', cost: 600, desc: '伤害 +25%，一枪贯穿 3 → 6 个目标', dmg: 1.25, pierce: 6 },
+    { id: 'b', name: '快速栓动', cost: 550, desc: '射速 +45%，弹匣 5 → 7', rps: 1.45, mag: 7 }],
+  rocket: [{ id: 'a', name: '高爆装药', cost: 700, desc: '爆炸范围 +40%，伤害 +15%', splash: 1.4, dmg: 1.15 },
+    { id: 'b', name: '速装弹舱', cost: 650, desc: '弹匣 3 → 5，换弹快 30%', mag: 5, reload: 0.7 }],
+};
+const WMOD_CACHE = {};
+function modW(w, mid) {
+  const k = w + ':' + mid;
+  if (WMOD_CACHE[k]) return WMOD_CACHE[k];
+  const B = WPN[w], M = (WMODS[w] || []).find(x => x.id === mid);
+  if (!B || !M) return B;
+  const W = Object.assign({}, B, { mod: M.id, modName: M.name });
+  if (M.mag) W.mag = M.mag;
+  if (M.reload) W.reload = B.reload * M.reload;
+  if (M.dmg) W.dmg = Math.round(B.dmg * M.dmg);
+  if (M.ap) W.ap = M.ap;
+  if (M.burn) W.burn = M.burn;
+  if (M.spread) { W.spread = B.spread * M.spread; }
+  if (M.range) { W.near = B.near * M.range; W.far = B.far * M.range; }
+  if (M.pierce) W.pierce = M.pierce;
+  if (M.rps) W.rps = B.rps * M.rps;
+  if (M.splash) W.splash = B.splash * M.splash;
+  W.maxHit = W.dmg * (W.head || 1) * (W.pellets || 1);
+  return (WMOD_CACHE[k] = W);
+}
+// 玩家手里某把枪（含改装）
+const pwOf = (p, w) => { const md = p && p.mods && p.mods[w]; return md ? modW(w, md) : (WPN[w] || WPN.rifle); };
 // 坐上加特林炮塔时使用的“武器”（不在军械库里出售）；伤害随炮塔等级变化
 const GATLING_W = {};
 function gatlingW(lv, br) {
@@ -228,6 +267,7 @@ const g = (t, n, lane, gap, at) => ({ t, n, lane, gap, at });
  */
 const ST_M = [[18, 16], [18, 21], [8, 21], [8, 27], [20, 27]];
 const FT_M = [[20, 17], [20, 21], [13, 21], [13, 26], [20, 26], [20, 30]];
+const CL_M = [[20, 16], [16, 16], [16, 10], [11, 10], [11, 23], [6, 23], [6, 17]];
 const MAPS = {
   station: {
     id: 'station', order: 1, name: '空间站·中枢', sub: '双路汇合', w: 37, h: 32, gold: 1100, theme: 'station',
@@ -403,6 +443,39 @@ const MAPS = {
       { name: '高地之王', boss: true, tip: '攻城机甲「破城者」从西北高地压下来，会炮击远处的炮台；东北有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'A', 0, 12), g('tank', 3, '*', 8, 20), g('shield', 4, '*', 5, 14), g('gunship', 3, '*', 8, 26), g('elite', 1, 'B', 0, 40)] },
     ],
   },
+  cryolab: {
+    id: 'cryolab', order: 7, name: '冰封实验室', sub: '三路汇流 · 低温回廊', w: 44, h: 34, gold: 1600, goldMul: 1.2, bossMul: 0.8, theme: 'cryo',
+    desc: '北、南两路沿实验室外环绕行，在中央十字汇合后进入长长的低温回廊，绕两道弯才抵达西侧水晶；东侧冷却管道中途开启。回廊有天花板，攀顶蛛会从顶上爬过地面陷阱。',
+    lanes: {
+      A: [[40, 2], [40, 8], [30, 8], [30, 3], [20, 3]].concat(CL_M),
+      B: [[40, 31], [40, 25], [30, 25], [30, 30], [20, 30]].concat(CL_M),
+      C: [[42, 16], [26, 16]].concat(CL_M),
+    },
+    laneFrom: { C: 5 },
+    laneNames: { A: '北环', B: '南环', C: '东侧管道' },
+    rooms: [[2, 2, 13, 6, TILE.FLOOR], [12, 7, 12, 8, TILE.FLOOR]],
+    base: [2, 13, 8, 20], doors: [],
+    pads: [[18, 12], [18, 14], [14, 13], [14, 15], [13, 22], [13, 18], [13, 20], [9, 12], [9, 21], [8, 25], [10, 25], [22, 6], [22, 10], [22, 13], [25, 5], [28, 6], [35, 6], [35, 10],
+      [22, 20], [22, 26], [25, 28], [28, 27], [35, 23], [35, 27], [24, 14], [24, 18], [33, 14], [33, 18]],
+    spawns: [[3, 14], [4, 14], [3, 19], [4, 19]], focus: [17.5, 15.5], foci: [[17.5, 14.5], [11.5, 18.5]],
+    devices: [{ type: 'cryo', lever: [18, 14], area: [15, 10, 21, 17], tag: '十字' }, { type: 'cryo', lever: [9, 21], area: [5, 21, 12, 24], tag: '回廊' }],
+    platforms: [],
+    labs: [{ holo: [9.5, 4.5], term: [7, 2, 3], sup: [2, 4, 2], racks: [[3, 6, 1], [4, 6, 1], [5, 6, 1], [6, 6, 1], [7, 6, 1]] }],
+    waves: [
+      { name: '寒流先锋', groups: [g('grunt', 8, 'A', 1.4, 0), g('grunt', 8, 'B', 1.4, 3)] },
+      { name: '顶上有东西', tip: '攀顶蛛沿天花板爬行：地面陷阱和阻挡碰不到它，粉碎锤砸它伤害翻倍，墙壁陷阱、炮台和枪都能打', groups: [g('grunt', 10, 'AB', 1.2, 0), g('crawler', 8, 'AB', 1.2, 6)] },
+      { name: '重装来袭', groups: [g('grunt', 12, 'AB', 1, 0), g('brute', 4, 'AB', 4, 6), g('flyer', 8, 'AB', 1.2, 10)] },
+      { name: '电磁干扰', tip: '电磁干扰兵周围 5 米内的陷阱全部失灵——用枪集火它，或者在它走进陷阱区之前击杀', groups: [g('grunt', 14, 'AB', 1, 0), g('jammer', 3, 'AB', 6, 6), g('runner', 10, 'AB', 0.7, 10)] },
+      { name: '管道开启', tip: '东侧冷却管道开启，第三路怪物直接冲进中央十字', groups: [g('runner', 16, '*', 0.6, 0), g('crawler', 10, '*', 1, 4), g('blinker', 5, '*', 2, 8), g('shield', 2, '*', 6, 6)] },
+      { name: '甲虫潮', tip: '反应甲虫的外壳让陷阱伤害减半，但怕子弹（枪械伤害 +35%）——亲手打它', groups: [g('grunt', 14, '*', 1, 0), g('beetle', 6, '*', 3, 4), g('flyer', 10, '*', 1, 10), g('healer', 2, '*', 4, 12)] },
+      { name: '骇入', groups: [g('grunt', 16, '*', 0.9, 0), g('sapper', 3, '*', 4, 6), g('jammer', 3, '*', 5, 10), g('tank', 2, 'AB', 8, 8), g('crawler', 10, '*', 1, 4)] },
+      { name: '冰封苍穹', groups: [g('flyer', 16, '*', 0.8, 0), g('gunship', 3, '*', 6, 6), g('crawler', 14, '*', 0.8, 4), g('beetle', 4, '*', 3, 10)] },
+      { name: '狂猩破冰', tip: '狂猩从北环冲出，甲虫和干扰兵掩护它', groups: [g('grunt', 18, '*', 0.8, 0), g('elite', 1, 'A', 0, 14), g('beetle', 6, '*', 3, 6), g('jammer', 3, '*', 6, 8), g('shield', 3, '*', 5, 4)] },
+      { name: '蛛群', groups: [g('crawler', 24, '*', 0.5, 0), g('mite', 24, '*', 0.3, 4), g('bomber', 10, '*', 1.2, 8), g('stalker', 6, '*', 2, 10)] },
+      { name: '最后的寒夜', groups: [g('grunt', 22, '*', 0.7, 0), g('beetle', 8, '*', 2.5, 4), g('jammer', 4, '*', 5, 8), g('tank', 3, '*', 6, 10), g('gunship', 3, '*', 6, 12), g('crawler', 16, '*', 0.8, 6)] },
+      { name: '冰封泰坦', boss: true, tip: '泰坦从南环压进来，会释放 EMP、召唤援军；随后干扰兵从北环赶来让陷阱失灵——先清掉干扰兵', groups: [g('grunt', 16, '*', 1, 0), g('boss', 1, 'B', 0, 10), g('jammer', 3, 'A', 8, 26), g('beetle', 4, '*', 4, 8), g('crawler', 10, '*', 1.2, 6), g('gunship', 2, '*', 8, 20), g('shield', 2, '*', 5, 14)] },
+    ],
+  },
   canyon: {
     id: 'canyon', order: 6, name: '赤岩峡谷', sub: '峡谷 · 崖顶狙击', w: 46, h: 36, gold: 1600, goldMul: 1.15, bossMul: 0.75, theme: 'canyon', outdoor: true,
     desc: '怪物沿着深谷谷底蜿蜒前进，玩家站在两侧 4 米高的崖顶居高临下；四座二层桥横跨峡谷，把各个崖顶连起来，桥底下可以挂天花板陷阱。东侧裂谷中途开启。',
@@ -466,6 +539,9 @@ function genWave(n, lanes) {
   if (k % 2 === 1) gr.push(g('tank', 1 + Math.floor(k / 4), '*', 7, 14));
   if (k % 3 === 0) gr.push(g('gunship', 2 + Math.floor(k / 4), '*', 6, 16));
   if (k % 3 === 1) gr.push(g('blinker', 4 + k, '*', 1.6, 4));
+  if (k >= 3 && k % 3 === 0) gr.push(g('crawler', 4 + k, '*', 1.2, 6));
+  if (k >= 4 && k % 3 === 1) gr.push(g('jammer', 1 + Math.floor(k / 4), '*', 5, 10));
+  if (k >= 5 && k % 3 === 2) gr.push(g('beetle', 2 + Math.floor(k / 3), '*', 3.5, 8));
   const boss = k % 5 === 0;
   const BT = ['boss', 'siege', 'colossus', 'brood'];
   if (boss) gr.push(g(BT[Math.floor(k / 5) % 4], 1 + Math.floor(k / 15), '*', 25, 12));
@@ -593,7 +669,7 @@ class Sim {
     const T0 = tal || {}, cmax = 100 + 10 * tl(T0, 'crystal');
     return {
       tick: 0, time: 0, phase: 'build', timer: 45 + 15 * tl(T0, 'prep'), wave: 0, diff, map, endless,
-      mut: (mut || []).filter(id => MUT[id]), tal: { startGold: tl(T0, 'startGold'), engineer: tl(T0, 'engineer'), crystal: tl(T0, 'crystal'), prep: tl(T0, 'prep') }, daily: daily || null,
+      mut: (mut || []).filter(id => MUT[id]), tal: { startGold: tl(T0, 'startGold'), engineer: tl(T0, 'engineer'), crystal: tl(T0, 'crystal'), prep: tl(T0, 'prep'), trapDmg: tl(T0, 'trapDmg') }, daily: daily || null,
       gold: this.def.gold + 80 * tl(T0, 'startGold'), crystal: { hp: cmax, max: cmax },
       players: {}, monsters: [], traps: [], proj: [], spawnQ: [], strikes: [], shells: [], lava: {},
       devices: (this.def.devices || []).map(() => ({ cd: 0, act: 0 })),
@@ -792,7 +868,7 @@ class Sim {
         if (dv.type === 'cryo' && !md.fly) {
           m.slowAmt = Math.max(m.slowAmt, 0.7); m.slowT = Math.max(m.slowT, 0.5);
           if (!md.boss) { m.stunT = Math.max(m.stunT, 0.15); m.frozenT = 0.3; }
-        } else if (dv.type === 'vent' && !md.fly && pulse) {
+        } else if (dv.type === 'vent' && !md.fly && !md.ceil && pulse) {
           this._src = 'device'; this.damage(m, 45, 'trap'); this._src = null;
           if (!md.burnImmune) { m.burnDps = Math.max(m.burnT > 0 ? m.burnDps : 0, 30); m.burnT = 3; m.burnBy = 'device'; }
         } else if (dv.type === 'gravity') {
@@ -954,7 +1030,7 @@ class Sim {
       x: (sp[0] + 0.5) * T, y: this.tileH(sp[0], sp[1]), z: (sp[1] + 0.5) * T, vx: 0, vy: 0, vz: 0, ox: 0, oy: 0, oz: 0,
       yaw: 0, pitch: 0, hp: 100, maxHp: 100, dead: false, respawnT: 0, ground: true,
       ammo: 30, mag: 30, reloadT: 0, fireCd: 0, bloom: 0, lastHurt: -99, kills: 0, dmg: 0,
-      wpn: 'rifle', guns: ['rifle'], ammoBy: { rifle: 30 }, nades: SKILL.nade.max, nadeT: 0, energy: 0, supT: 0,
+      wpn: 'rifle', guns: ['rifle'], ammoBy: { rifle: 30 }, mods: {}, nades: SKILL.nade.max, nadeT: 0, energy: 0, supT: 0,
       input: { mx: 0, mz: 0, jump: false, sprint: false, fire: false, reload: false, ads: false, yaw: 0, pitch: 0 },
     };
     p.hp = 0;
@@ -967,7 +1043,7 @@ class Sim {
   }
   setTalents(p, tal) {
     const T0 = tal || {};
-    p.tal = { gunDmg: tl(T0, 'gunDmg'), vitality: tl(T0, 'vitality'), energy: tl(T0, 'energy'), grenade: tl(T0, 'grenade') };
+    p.tal = { gunDmg: tl(T0, 'gunDmg'), vitality: tl(T0, 'vitality'), energy: tl(T0, 'energy'), grenade: tl(T0, 'grenade'), armor: tl(T0, 'armor') };
     p.maxHp = Math.round((100 + 20 * p.tal.vitality) * (this.hasMut('glass') ? 0.5 : 1)); p.hp = Math.min(p.hp, p.maxHp);
     if (!p.dead && p.hp <= 0) p.hp = p.maxHp;
     p.nadeMax = SKILL.nade.max + p.tal.grenade + (p.cls === 'assault' ? 1 : 0);
@@ -1001,7 +1077,7 @@ class Sim {
   }
   wpnOf(p) {
     const tr = p.mount ? this.mountOf(p) : null;
-    return tr && tr.type === 'gatling' ? gatlingW(tr.lv, tr.br) : (WPN[p.wpn] || WPN.rifle);
+    return tr && tr.type === 'gatling' ? gatlingW(tr.lv, tr.br) : pwOf(p, p.wpn);
   }
   gunMul(p) { return (1 + 0.08 * ((p.tal && p.tal.gunDmg) || 0)) * (1 + 0.12 * this.techLv('ammo')) *(this.hasMut('glass') ? 2 : 1) * (p.cls === 'assault' ? 1.2 : 1) * (p.cls === 'scout' && p.wpn === 'sniper' ? 1.25 : 1); }
   setClass(p, cls) { if (!CLS[cls] || p.cls === cls) return; p.cls = cls; this.setTalents(p, p.tal); }
@@ -1018,12 +1094,13 @@ class Sim {
     p.vx = p.vy = p.vz = 0; p.hp = p.maxHp; p.dead = false; p.ammo = p.mag; p.reloadT = 0; p.life++;
     p.invT = 10;   // 复活后 10 秒无敌
     p.mount = 0; p.heat = 0; p.overheat = false;
-    for (const g of p.guns) p.ammoBy[g] = WPN[g].mag;
+    for (const g of p.guns) p.ammoBy[g] = pwOf(p, g).mag;
     this.ev('respawn', { pid: p.id });
   }
   hurtPlayer(p, dmg, src, sx, sz) {
     if (p.dead || this.s.phase === 'victory' || this.s.phase === 'defeat') return;
     if (p.invT > 0) return;
+    dmg *= 1 - 0.05 * ((p.tal && p.tal.armor) || 0);
     p.hp -= dmg; p.lastHurt = this.s.time;
     this.ev('phurt', { pid: p.id, dmg, src, sx, sz });
     if (p.hp <= 0) { p.hp = 0; p.dead = true; p.respawnT = 5; this.ev('pdead', { pid: p.id }); }
@@ -1081,7 +1158,7 @@ class Sim {
         p.supT = SUPPLY_CD;
         p.hp = p.maxHp; p.nades = p.nadeMax || SKILL.nade.max; p.nadeT = 0;
         p.energy = Math.min(100, p.energy + 25);
-        for (const g of p.guns) p.ammoBy[g] = WPN[g].mag;
+        for (const g of p.guns) p.ammoBy[g] = pwOf(p, g).mag;
         p.ammo = p.mag; p.reloadT = 0;
         this.ev('resupply', { pid: p.id });
         return { ok: true };
@@ -1089,6 +1166,21 @@ class Sim {
       case 'wpn': {
         if (!p || !p.guns.includes(cmd.w)) return { ok: false };
         this.switchWeapon(p, cmd.w);
+        return { ok: true };
+      }
+      case 'wmod': {
+        const M = WMODS[cmd.w] && WMODS[cmd.w].find(x => x.id === cmd.m);
+        if (!p || !M) return { ok: false, reason: '未知改装' };
+        if (!p.guns.includes(cmd.w)) return { ok: false, reason: '先买下这把枪' };
+        if (p.mods && p.mods[cmd.w]) return { ok: false, reason: '这把枪已经改装过了' };
+        if (s.phase !== 'build' && s.phase !== 'wave') return { ok: false };
+        if (s.gold < M.cost) return { ok: false, reason: '金币不足' };
+        s.gold -= M.cost; s.stats.spent += M.cost;
+        p.mods = Object.assign({}, p.mods, { [cmd.w]: M.id });
+        const W = pwOf(p, cmd.w);
+        p.ammoBy[cmd.w] = W.mag;
+        if (p.wpn === cmd.w) { p.mag = W.mag; p.ammo = W.mag; p.reloadT = 0; }
+        this.ev('wmod', { pid: p.id, w: cmd.w, m: M.id });
         return { ok: true };
       }
       case 'buy': {
@@ -1290,6 +1382,7 @@ class Sim {
   }
 
   _spawn(type, lane, d) {
+    if (MON[type] && MON[type].ceil && this.def.outdoor) type = 'runner';   // 露天地图没有天花板可爬
     const def = MON[type], s = this.s, tmp = this._tmp;
     const extra = s.wave > this.waves.length ? Math.pow(1.06, s.wave - this.waves.length) : 1;
     const DF = DIFFS[s.diff] || DIFFS.normal;
@@ -1326,15 +1419,21 @@ class Sim {
     if (m.dead || amt <= 0 || m.burrow) return 0;
     const def = MON[m.type];
     if (def.stealth) m.revealT = Math.max(m.revealT, 1.2);
-    const armor = Math.min(0.6, (def.armor || 0) + (this.hasMut('armored') ? 0.2 : 0));
+    const gp = src === 'gun' && pid ? this.s.players[pid] : null, GW = gp && !gp.mount ? this.wpnOf(gp) : null;
+    const armor = Math.min(0.6, (def.armor || 0) + (this.hasMut('armored') ? 0.2 : 0)) * (GW && GW.ap ? 1 - GW.ap : 1);
     let a = amt * (pierce ? 1 : 1 - armor);
+    // 反应甲虫：陷阱伤害减半、枪械伤害加成
+    if (def.trapRes && src === 'trap') a *= 1 - def.trapRes;
+    if (def.gunVuln && src === 'gun') a *= def.gunVuln;
+    // 龙息弹：命中点燃（持续伤害算枪械输出）
+    if (GW && GW.burn && !pierce && !def.burnImmune) { m.burnT = Math.max(m.burnT || 0, 2.5); m.burnDps = Math.max(m.burnBy === 'gun' ? m.burnDps || 0 : 0, GW.burn); m.burnBy = 'gun'; m.burnPid = pid; }
     m.lastHitT = this.s.time;
     // 空中连击：被弹板击飞时受到的陷阱伤害 +40%
     if (src === 'trap' && m.launchT > 0 && !def.fly) {
       a *= 1.4;
       if (!(m.airFx > this.s.time)) { m.airFx = this.s.time + 0.8; this.ev('combo', { k: 'air', x: m.x, y: m.y + def.body[0], z: m.z }); }
     }
-    if (src === 'trap') a *= 1 + 0.08 * this.techLv('overclock');
+    if (src === 'trap') a *= (1 + 0.08 * this.techLv('overclock')) * (1 + 0.04 * ((this.s.tal && this.s.tal.trapDmg) || 0));
     m.hitT = 0.12;
     // 能量护盾：先吸收伤害
     if (m.shield > 0) {
@@ -1396,7 +1495,7 @@ class Sim {
   }
   _ground(idx, out) {
     const a = this._bk.get(idx); if (!a) return out;
-    for (const m of a) if (!m.dead && (!MON[m.type].fly || m.pullT > 0) && m.launchT <= 0 && !m.burrow) out.push(m);
+    for (const m of a) if (!m.dead && (!MON[m.type].fly || m.pullT > 0) && !MON[m.type].ceil && m.launchT <= 0 && !m.burrow) out.push(m);
     return out;
   }
   _all(idx, out) {
@@ -1597,7 +1696,10 @@ class Sim {
           if (tr.cd > 0) break;
           for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
             if (this.solid(tr.x + dx, tr.z + dz)) continue;
-            this._ground((tr.z + dz) * this.W + tr.x + dx, list);
+            const ii = (tr.z + dz) * this.W + tr.x + dx;
+            this._ground(ii, list);
+            // 攀顶蛛就趴在天花板上，粉碎锤正好砸到它
+            const bk = this._bk.get(ii); if (bk) for (const m of bk) if (!m.dead && MON[m.type].ceil) list.push(m);
           }
           if (!list.length) { tr.cd = 0; break; }
           let shat = false;
@@ -1605,7 +1707,7 @@ class Sim {
             // 碎冰：减速或冻住的敌人受到双倍伤害
             const ice = m.slowAmt > 0 || m.frozenT > 0;
             if (ice) shat = true;
-            this.damage(m, def.dmg[lv - 1] * (br === 'a' ? 1.5 : 1) * (ice ? 2 : 1), 'trap');
+            this.damage(m, def.dmg[lv - 1] * (br === 'a' ? 1.5 : 1) * (ice ? 2 : 1) * (MON[m.type].ceil ? 2 : 1), 'trap');
             m.stunT = Math.max(m.stunT, br === 'a' ? 1.6 : def.stun);
           }
           if (shat) this.ev('combo', { k: 'shatter', x: tr.wx, y: 1, z: tr.wz });
@@ -1732,7 +1834,7 @@ class Sim {
       if (hitT <= step || p.life <= 0) {
         const t = Math.min(hitT, step);
         p.x += p.vx / sp * t; p.y += p.vy / sp * t; p.z += p.vz / sp * t;
-        const W = WPN.rocket, ow = s.players[p.owner];
+        const ow = s.players[p.owner], W = pwOf(ow, 'rocket');
         this._blast(p.x, p.y, p.z, W.splash, W.dmg * (ow ? this.gunMul(ow) : 1), p.owner);
         this.ev('boom', { x: p.x, y: p.y, z: p.z, r: W.splash, small: false });
         return false;
@@ -1885,7 +1987,7 @@ class Sim {
       m.hitT = Math.max(0, m.hitT - dt);
       if (m.frozenT > 0) m.frozenT -= dt;
       if (m.poisonT > 0) { m.poisonT -= dt; this._src = 'spike'; this.damage(m, m.poisonDps * dt, 'trap', null, true); }
-      if (m.burnT > 0) { m.burnT -= dt; this._src = m.burnBy || 'flame'; this.damage(m, m.burnDps * dt, 'trap', null, true); }
+      if (m.burnT > 0) { m.burnT -= dt; if (m.burnBy === 'gun') this.damage(m, m.burnDps * dt, 'gun', m.burnPid, true); else { this._src = m.burnBy || 'flame'; this.damage(m, m.burnDps * dt, 'trap', null, true); } }
       this._src = null;
       if (m.dead) continue;
       if (m.slowT > 0) { m.slowT -= dt; if (m.slowT <= 0) m.slowAmt = 0; }
@@ -1985,6 +2087,11 @@ class Sim {
           }
         }
       }
+      // 电磁干扰：周围的陷阱持续瘫痪（击杀或眩晕它才能解除）
+      if (def.jam && m.stunT <= 0) {
+        const R = def.jam;
+        for (const tr of s.traps) if (Math.abs(tr.wx - m.x) < R && Math.abs(tr.wz - m.z) < R && Math.hypot(tr.wx - m.x, tr.wz - m.z) < R) tr.disT = Math.max(tr.disT, 0.25);
+      }
       // 骇客：在附近陷阱旁引导 2.2 秒，使其瘫痪 10 秒
       if (def.hack) {
         if (m.hackT > 0) {
@@ -2038,7 +2145,7 @@ class Sim {
         m.broodT -= dt;
         if (m.broodT <= 0) { m.broodT = 6; for (let i = 0; i < 2; i++) this._spawn('mite', m.lane, Math.max(0, m.d - 1 - i)); }
       }
-      if (!def.fly && m.launchT <= 0) {
+      if (!def.fly && !def.ceil && m.launchT <= 0) {
         const blk = this._blockerAhead(m, def, path);
         if (blk) {
           m.state = 'block';
@@ -2068,6 +2175,7 @@ class Sim {
         if (m.pullT > 0) { m.pullT -= dt; m.y += (gy + 0.7 - m.y) * Math.min(1, dt * 6); }
         else m.y += (gy + FLY_Y + Math.sin(s.time * 2 + m.seed) * 0.25 - m.y) * Math.min(1, dt * 4);
       }
+      else if (def.ceil) m.y = WALL_H - 1.1;
       else if (m.launchT > 0) m.y = gy + Math.sin((1 - m.launchT / (m.launchMax || 0.6)) * Math.PI) * 2.2;
       else m.y = gy;
 
@@ -2167,7 +2275,7 @@ class Sim {
       if (sh.k === 'm') {   // 等离子迫击炮
         const hit = (x, z, dmg, r) => {
           for (const m of s.monsters) {
-            if (m.dead || m.burrow || (MON[m.type].fly && !(m.pullT > 0))) continue;
+            if (m.dead || m.burrow || MON[m.type].ceil || (MON[m.type].fly && !(m.pullT > 0))) continue;
             const d = Math.hypot(m.x - x, m.z - z) - MON[m.type].r * 0.5;
             if (d > r) continue;
             this._src = 'mortar'; this.damage(m, dmg * (1 - 0.45 * Math.max(0, d) / r), 'trap'); this._src = null;
@@ -2301,7 +2409,7 @@ class Sim {
   switchWeapon(p, w) {
     if (p.wpn === w || !WPN[w]) return;
     p.ammoBy[p.wpn] = p.ammo;
-    p.wpn = w; p.mag = WPN[w].mag;
+    p.wpn = w; p.mag = pwOf(p, w).mag;
     p.ammo = p.ammoBy[w] === undefined ? p.mag : p.ammoBy[w];
     p.reloadT = 0; p.fireCd = Math.max(p.fireCd, 0.35); p.bloom = 0;
     this.ev('wswitch', { pid: p.id, w });
@@ -2401,7 +2509,7 @@ class Sim {
   weapon(p, dt) {
     const mt = p.mount ? this.mountOf(p) : null;
     if (mt) { if (mt.type === 'gatling') return this._gatlingFire(p, mt, dt); p.fireCd = Math.max(0, p.fireCd - dt); return false; }
-    const inp = p.input, W = WPN[p.wpn] || WPN.rifle;
+    const inp = p.input, W = pwOf(p, p.wpn);
     let fired = false;
     p.fireCd -= dt; p.bloom = Math.max(0, p.bloom - dt * 2.5);
     if (p.reloadT > 0) {
@@ -2524,7 +2632,7 @@ class Sim {
 
 }
 
-const api = { MOUNTABLE, MORTAR_MAN, TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
+const api = { WMODS, modW, pwOf, MOUNTABLE, MORTAR_MAN, TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.TD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

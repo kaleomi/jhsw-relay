@@ -282,12 +282,26 @@ void main(){
 const P_COMP = `#version 300 es
 precision highp float;
 in vec2 vUv; uniform sampler2D uScene; uniform sampler2D uB1; uniform sampler2D uB2;
-uniform float uBloom; uniform float uVig; uniform vec3 uTint; uniform float uTintA; out vec4 o;
+uniform float uBloom; uniform float uVig; uniform vec3 uTint; uniform float uTintA; uniform float uGrade; uniform vec2 uTx; out vec4 o;
 void main(){
   vec3 c = texture(uScene, vUv).rgb;
+  if (uGrade > 0.0) {
+    // 轻度锐化：抵消 MSAA / 缩放带来的发糊
+    vec3 nb = texture(uScene, vUv + vec2(uTx.x, 0.0)).rgb + texture(uScene, vUv - vec2(uTx.x, 0.0)).rgb
+            + texture(uScene, vUv + vec2(0.0, uTx.y)).rgb + texture(uScene, vUv - vec2(0.0, uTx.y)).rgb;
+    c = max(c + (c - nb * 0.25) * 0.45 * uGrade, 0.0);
+  }
   c += (texture(uB1, vUv).rgb * 0.75 + texture(uB2, vUv).rgb * 1.1) * uBloom;
   vec3 k = 0.82 + 0.18 * (1.0 - exp(-(c - 0.82) / 0.18));
   c = mix(c, k, step(0.82, c));
+  if (uGrade > 0.0) {
+    // 调色：略增饱和度 + S 曲线对比度，暗部微微偏冷、亮部偏暖
+    float l = dot(c, vec3(0.299, 0.587, 0.114));
+    c = mix(vec3(l), c, 1.0 + 0.14 * uGrade);
+    vec3 cc = clamp(c, 0.0, 1.0);
+    c = mix(c, cc * cc * (3.0 - 2.0 * cc), 0.22 * uGrade);
+    c *= mix(vec3(0.97, 0.99, 1.04), vec3(1.03, 1.0, 0.96), smoothstep(0.15, 0.75, l)) * uGrade + (1.0 - uGrade);
+  }
   vec2 q = vUv - 0.5;
   c *= 1.0 - dot(q, q) * uVig;
   c = mix(c, uTint, uTintA * smoothstep(0.15, 0.75, length(q)));
@@ -323,7 +337,7 @@ function create(canvas) {
     post = {
       bright: program(gl, PVS, P_BRIGHT, ['uTex', 'uTx', 'uThr']),
       blur: program(gl, PVS, P_BLUR, ['uTex', 'uDir']),
-      comp: program(gl, PVS, P_COMP, ['uScene', 'uB1', 'uB2', 'uBloom', 'uVig', 'uTint', 'uTintA']),
+      comp: program(gl, PVS, P_COMP, ['uScene', 'uB1', 'uB2', 'uBloom', 'uVig', 'uTint', 'uTintA', 'uGrade', 'uTx']),
       vao: gl.createVertexArray(), w: 0, h: 0,
     };
   } catch (e) { console.warn('后期着色器不可用', e); post = null; }
@@ -651,6 +665,7 @@ function create(canvas) {
         gl.uniform1f(U2.uBloom, cam.bloom === undefined ? 0.9 : cam.bloom); gl.uniform1f(U2.uVig, cam.vig === undefined ? 0.9 : cam.vig);
         const tn = cam.tint || [0, 0, 0, 0];
         gl.uniform3f(U2.uTint, tn[0], tn[1], tn[2]); gl.uniform1f(U2.uTintA, tn[3]);
+        gl.uniform1f(U2.uGrade, cam.grade || 0); gl.uniform2f(U2.uTx, 1 / w, 1 / h);
       });
       gl.activeTexture(gl.TEXTURE0);
       gl.bindVertexArray(null);

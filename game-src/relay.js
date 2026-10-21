@@ -14,7 +14,9 @@ function openRoom(base, name, me, opts) {
   const persistent = !!opts.persistent;   // 大厅：断线后一直重连；对局房间：重连失败即报错
   const topicL = new Map(), peerL = new Set(), connL = new Set(), errL = new Set();
   const peers = new Map();   // peer → { presence, updatedAt }
-  let ws = null, isOpen = false, closed = false, myPres = {}, snap = [], tries = 0, pingT = 0, retryT = 0, firstHello = null;
+  let ws = null, isOpen = false, closed = false, myPres = {}, snap = [], tries = 0, pingT = 0, retryT = 0, firstHello = null, downAt = 0;
+  // 对局房间断线后最多重连这么久（切到后台、换网络都够用），之后才算真的掉线
+  const GRACE = opts.grace || 90000;
   const fail = code => { const err = { code }; for (const fn of errL) { try { fn(err); } catch (e) { /* 忽略 */ } } };
   const mkPeer = (peer, v) => Object.freeze({ peer, by: null, isMe: peer === me, sameTab: peer === me, kind: 'viewer', guest: false, presence: Object.freeze(v.presence || {}), updatedAt: v.updatedAt || 0 });
   const rebuild = (joined, left, updated) => {
@@ -30,7 +32,7 @@ function openRoom(base, name, me, opts) {
     ws.onmessage = ev => {
       let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
       if (m.t === 'hello') {
-        tries = 0;
+        tries = 0; downAt = 0;
         const before = new Set(peers.keys()), now = new Set();
         const joined = [], updated = [];
         for (const p of m.peers || []) {
@@ -65,6 +67,7 @@ function openRoom(base, name, me, opts) {
     };
     ws.onclose = () => {
       ws = null; setConn(false);
+      if (!downAt) downAt = Date.now();
       if (closed) return;
       scheduleRetry();
     };
@@ -72,14 +75,18 @@ function openRoom(base, name, me, opts) {
   }
   function scheduleRetry() {
     tries++;
-    if (!persistent && tries > 4) {
+    // 还没进过房间：试 5 次就放弃；进过房间后断线：在宽限时间内一直重连
+    if (!persistent && (firstHello ? tries > 4 : Date.now() - downAt > GRACE)) {
       closed = true;
       if (firstHello) { firstHello.reject({ code: 'unavailable' }); firstHello = null; }
       fail('disconnected'); return;
     }
     clearTimeout(retryT);
-    retryT = setTimeout(connect, Math.min(10000, 600 * Math.pow(1.8, tries)));
+    retryT = setTimeout(connect, Math.min(persistent ? 10000 : 4000, 600 * Math.pow(1.8, tries)));
   }
+  // 从后台切回来 / 网络恢复时立刻重连，不用等退避计时
+  const kick = () => { if (!closed && !ws && (typeof document === 'undefined' || !document.hidden)) { clearTimeout(retryT); connect(); } };
+  if (typeof addEventListener === 'function') { addEventListener('online', kick); if (typeof document !== 'undefined') document.addEventListener('visibilitychange', kick); }
   pingT = setInterval(() => { if (ws && ws.readyState === 1) ws.send('{"t":"ping"}'); }, 20000);
   peers.set(me, { presence: {}, updatedAt: Date.now() });
   snap = Object.freeze([mkPeer(me, peers.get(me))]);
@@ -126,6 +133,8 @@ function openRoom(base, name, me, opts) {
       return Promise.resolve();
     },
     get closed() { return closed; },
+    downFor() { return downAt ? Date.now() - downAt : 0; },
+    _drop() { if (ws) { try { ws.close(4000); } catch (e) { /* 测试用：模拟网络中断 */ } } },
   };
   return room;
 }

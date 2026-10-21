@@ -5,6 +5,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { RoomCore, validPeer, validRoom, validPw } from './room-core.js';
 import { sanitize, insert, MAPS, CORS } from './board-core.js';
+import { newCode, normCode, validCode, handleUpload, SAVE_MAX } from './save-core.js';
 
 export default {
   async fetch(req, env) {
@@ -20,6 +21,29 @@ export default {
     if (url.pathname === '/lb') {
       if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
       return env.ROOMS.get(env.ROOMS.idFromName('__leaderboard__')).fetch(req);
+    }
+    // 云存档：每个提取码一个 Durable Object 实例
+    if (url.pathname === '/save') {
+      if (req.method === 'OPTIONS') return new Response(null, { headers: CORS });
+      const json = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...CORS } });
+      if (req.method === 'POST') {
+        const text = await req.text();
+        if (text.length > SAVE_MAX + 200) return json({ ok: false, error: 'big' }, 413);
+        let body = null; try { body = JSON.parse(text); } catch (e) { body = null; }
+        if (!body) return json({ ok: false, error: 'bad' }, 400);
+        let code = body.code ? normCode(body.code) : '';
+        if (code && !validCode(code)) return json({ ok: false, error: 'code' }, 400);
+        // 新上传：随机挑一个没人用的提取码
+        for (let i = 0; i < 6; i++) {
+          const c = code || newCode();
+          const r = await env.ROOMS.get(env.ROOMS.idFromName('__save__' + c)).fetch(new Request(`https://save/save?code=${c}&fresh=${code ? 0 : 1}`, { method: 'POST', body: JSON.stringify(body) }));
+          if (r.status !== 409 || code) return r;
+        }
+        return json({ ok: false, error: 'busy' }, 503);
+      }
+      const code = normCode(url.searchParams.get('code'));
+      if (!validCode(code)) return json({ ok: false, error: 'code' }, 400);
+      return env.ROOMS.get(env.ROOMS.idFromName('__save__' + code)).fetch(new Request(`https://save/save?code=${code}`));
     }
     return env.ASSETS.fetch(req);
   },
@@ -55,6 +79,7 @@ export class Room extends DurableObject {
   async fetch(req) {
     const url = new URL(req.url);
     if (url.pathname === '/lb') return this.board(req, url);
+    if (url.pathname === '/save') return this.cloud(req, url);
     this.core.name = url.searchParams.get('room') || 'lobby';
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -77,6 +102,19 @@ export class Room extends DurableObject {
     const all = {};
     for (const m of MAPS) all[m] = ((await this.ctx.storage.get('lb:' + m)) || []).slice(0, 10);
     return json({ ok: true, maps: all });
+  }
+  async cloud(req, url) {
+    const json = (o, st) => new Response(JSON.stringify(o), { status: st || 200, headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...CORS } });
+    const code = url.searchParams.get('code'), old = await this.ctx.storage.get('save');
+    if (req.method === 'POST') {
+      if (old && url.searchParams.get('fresh') === '1') return json({ ok: false, error: 'taken' }, 409);
+      let body = null; try { body = JSON.parse(await req.text()); } catch (e) { body = null; }
+      const r = handleUpload(old, body, code);
+      if (r.rec) await this.ctx.storage.put('save', r.rec);
+      return json(r.body, r.st);
+    }
+    if (!old) return json({ ok: false, error: 'missing' }, 404);
+    return json({ ok: true, code, data: old.data, t: old.t });
   }
   async webSocketMessage(ws, msg) { this.core.message(ws, msg); }
   async webSocketClose(ws, code) {

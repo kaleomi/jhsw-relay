@@ -11,6 +11,7 @@ import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { RoomCore, validPeer, validRoom, validPw, LIMITS } from './room-core.js';
 import { sanitize, insert, MAPS, CORS } from './board-core.js';
+import { newCode, normCode, validCode, handleUpload, SAVE_MAX } from './save-core.js';
 
 const DIR = path.dirname(fileURLToPath(import.meta.url));
 const PORT = +(process.argv[2] || process.env.PORT || 8080);
@@ -111,10 +112,42 @@ function handleBoard(req, res, url) {
   send({ ok: true, maps: all });
 }
 
+/* ---------- 云存档（保存在 server.js 同目录的 saves.json） ---------- */
+const SAVE_FILE = path.join(DIR, 'saves.json');
+let saves = {};
+try { saves = JSON.parse(fs.readFileSync(SAVE_FILE, 'utf8')) || {}; } catch (e) { saves = {}; }
+let saveT2 = null;
+const saveSaves = () => { clearTimeout(saveT2); saveT2 = setTimeout(() => { try { fs.writeFileSync(SAVE_FILE, JSON.stringify(saves)); } catch (e) { /* 只读目录时只保存在内存 */ } }, 500); };
+function handleSave(req, res, url) {
+  const send = (o, st) => { res.writeHead(st || 200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', ...CORS }); res.end(JSON.stringify(o)); };
+  if (req.method === 'OPTIONS') { res.writeHead(204, CORS); res.end(); return; }
+  if (req.method === 'POST') {
+    let body = '';
+    req.on('data', d => { body += d; if (body.length > SAVE_MAX + 200) req.destroy(); });
+    req.on('end', () => {
+      let o = null; try { o = JSON.parse(body); } catch (e) { o = null; }
+      if (!o) { send({ ok: false, error: 'bad' }, 400); return; }
+      let code = o.code ? normCode(o.code) : '';
+      if (code && !validCode(code)) { send({ ok: false, error: 'code' }, 400); return; }
+      if (!code) { do code = newCode(); while (saves[code]); }
+      const r = handleUpload(saves[code], o, code);
+      if (r.rec) { saves[code] = r.rec; saveSaves(); }
+      send(r.body, r.st);
+    });
+    return;
+  }
+  const code = normCode(url.searchParams.get('code'));
+  if (!validCode(code)) { send({ ok: false, error: 'code' }, 400); return; }
+  const rec = saves[code];
+  if (!rec) { send({ ok: false, error: 'missing' }, 404); return; }
+  send({ ok: true, code, data: rec.data, t: rec.t });
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   if (url.pathname === '/health') { res.writeHead(200, { 'content-type': 'text/plain' }); res.end('ok'); return; }
   if (url.pathname === '/lb') { handleBoard(req, res, url); return; }
+  if (url.pathname === '/save') { handleSave(req, res, url); return; }
   if (url.pathname === '/' || url.pathname === '/index.html') {
     let pg; try { pg = page(); } catch (e) { res.writeHead(404); res.end('public/index.html 不存在'); return; }
     const gz = /\bgzip\b/.test(req.headers['accept-encoding'] || '');
