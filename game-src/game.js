@@ -471,10 +471,11 @@ function clientShoot(lp) {
     const b = MP.dmgBuf.get(h.m.id) || [0, 0]; b[0] += h.dmg; b[1]++; MP.dmgBuf.set(h.m.id, b);
     h.m.hitT = 0.12;
     const a = agg.get(h.m) || { dmg: 0, head: false, x: h.x, y: h.y, z: h.z };
-    a.dmg += h.dmg * (1 - (MON[h.m.type].armor || 0)); a.head = a.head || h.head; agg.set(h.m, a);
+    a.dmg += h.dmg * (1 - (MON[h.m.type].armor || 0)) * (W.elem ? elemOf(MON[h.m.type], W.elem) : 1); a.head = a.head || h.head; agg.set(h.m, a);
   }
   for (const [m, a] of agg) sim.events.push({ type: 'hit', pid: PID, id: m.id, mtype: m.type, x: a.x, y: a.y, z: a.z, dmg: Math.round(a.dmg), head: a.head, kill: false, w: W.id });
   for (const e of r.ends) sim.events.push({ type: 'shot', pid: PID, w: W.id, x: e.ex, y: e.ey, z: e.ez, hit: !!e.best, wall: !!e.wall, hk: e.wall ? e.wall.kind : '', dir: e.wall && e.wall.kind === 'wall' ? e.wall.dir : -1, mtype: e.best ? e.best.type : '' });
+  if (r.ends[0] && r.ends[0].links) sim.events.push({ type: 'chain', pid: PID, l: r.ends[0].links });
 }
 function clientPresence(force) {
   if (MP.role !== 'client' || !MP.game) return;
@@ -579,7 +580,7 @@ const mapWon = id => { const all = loadBest(); return ['normal', 'hard', 'hell']
 // 打通主线章节后老钳陆续送来新装备。打通更靠后的章节也算（任意难度）。
 const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八'];
 const wonFrom = i => MAP_LIST.slice(i - 1).some(m => mapWon(m.id));
-const CH_UNLOCK = [[1, ['push', 'aa', 'rail']], [2, ['flame', 'grinder']], [3, ['gatling']]];
+const CH_UNLOCK = [[1, ['push', 'aa', 'rail']], [2, ['flame', 'grinder', 'frost']], [3, ['gatling', 'acid']], [4, ['arc']]];
 const UNLOCKS = {};
 for (const [i, ids] of CH_UNLOCK) for (const id of ids) UNLOCKS[id] = { ch: i, how: `通关主线第${CN_NUM[i]}章「${MAP_LIST[i - 1].name}」`, ok: () => wonFrom(i) };
 UNLOCKS.mortar = { ch: 4, how: `通关主线第四章「${MAP_LIST[3].name}」，或累计击杀 800 只怪物`, prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => wonFrom(4) || PROG.kills() >= 800 || !!ACH.d.done.kill800 };
@@ -600,7 +601,7 @@ const NEWT = {
 /* ---------- 出战配置：每局最多带 8 种陷阱 ---------- */
 const LOAD_MAX = 8;
 // 没手动配置过时的默认顺序（先带基础和对付 BOSS 的）
-const LOAD_PRI = ['slow', 'spike', 'tesla', 'laser', 'crusher', 'sentry', 'rail', 'push', 'flame', 'aa', 'grinder', 'gatling', 'mortar'];
+const LOAD_PRI = ['slow', 'spike', 'tesla', 'laser', 'crusher', 'sentry', 'rail', 'push', 'flame', 'aa', 'frost', 'grinder', 'acid', 'arc', 'gatling', 'mortar'];
 const LOAD = {
   d: null,   // { sel: 玩家选的, known: 保存时已经解锁的 }；没配置过为 null
   load() { try { const o = JSON.parse(localStorage.getItem('jhsw-load') || 'null'); this.d = o && Array.isArray(o.sel) ? { sel: o.sel.filter(id => TRAP[id]), known: Array.isArray(o.known) ? o.known : [] } : null; } catch (e) { this.d = null; } },
@@ -771,7 +772,7 @@ const Snd = {
   play(name, x, z, opt) {
     if (!this.ctx || mode === 'menu') return;
     const now = performance.now();
-    const gap = { mshot: 60, hack: 200, burrow: 150, shot2: 45, shotgun: 120, sniper: 150, rocketFire: 120, strike: 100, tick: 35, laser: 120, flame: 160, tesla: 90, spike: 70, tshot: 55, step: 120, kill: 40, gold: 60, heart: 300 }[name] || 25;
+    const gap = { flamer: 140, cryo: 110, arcgun: 120, frost: 200, acid: 300, arc: 150, splat: 120, clank: 160, mshot: 60, hack: 200, burrow: 150, shot2: 45, shotgun: 120, sniper: 150, rocketFire: 120, strike: 100, tick: 35, laser: 120, flame: 160, tesla: 90, spike: 70, tshot: 55, step: 120, kill: 40, gold: 60, heart: 300 }[name] || 25;
     if (this.last[name] && now - this.last[name] < gap) return;
     this.last[name] = now;
     const sp = this.spatial(x, z, opt && opt.range);
@@ -828,6 +829,14 @@ const Snd = {
       case 'aa': this.hiss(0.5, 'bandpass', 600, 2400, 2, 0.22 * v, p); break;
       case 'laser': this.tone('sawtooth', 880, 860, 0.18, 0.06 * v, p); this.tone('sine', 1760, 1700, 0.18, 0.05 * v, p); break;
       case 'flame': this.hiss(0.35, 'lowpass', 900, 500, 0.7, 0.2 * v, p); break;
+      case 'flamer': this.hiss(0.22, 'lowpass', 1100, 600, 0.6, 0.3 * v, p); this.hiss(0.12, 'bandpass', 300, 200, 1, 0.12 * v, p); break;
+      case 'cryo': this.hiss(0.16, 'highpass', 5000, 7000, 2, 0.12 * v, p); this.tone('sine', 1900, 2100, 0.12, 0.04 * v, p); break;
+      case 'arcgun': this.hiss(0.18, 'bandpass', 4200, 1200, 5, 0.32 * v, p); this.tone('sawtooth', 220, 80, 0.16, 0.12 * v, p); this.tone('square', 1400, 600, 0.06, 0.05 * v, p, 0.02); break;
+      case 'frost': this.hiss(0.6, 'highpass', 3000, 6500, 1.2, 0.3 * v, p); this.tone('sine', 900, 600, 0.3, 0.04 * v, p); break;
+      case 'acid': this.hiss(0.4, 'bandpass', 900, 1400, 6, 0.1 * v, p); break;
+      case 'arc': this.hiss(0.14, 'bandpass', 4800, 1600, 5, 0.22 * v, p); this.tone('sawtooth', 100, 80, 0.14, 0.07 * v, p); break;
+      case 'splat': this.hiss(0.25, 'lowpass', 1200, 200, 1, 0.3 * v, p); this.tone('sine', 220, 90, 0.2, 0.15 * v, p); break;
+      case 'clank': this.tone('triangle', 1800, 1500, 0.08, 0.12 * v, p); this.tone('square', 700, 650, 0.05, 0.05 * v, p, 0.01); break;
       case 'crusher': this.tone('sine', 90, 35, 0.4, 0.6 * v, p); this.hiss(0.3, 'lowpass', 1200, 200, 1, 0.35 * v, p); break;
       case 'boom': this.tone('sine', 120, 30, 0.6, 0.6 * v, p); this.hiss(0.7, 'lowpass', 2000, 100, 0.8, 0.5 * v, p); break;
       case 'boomS': this.hiss(0.3, 'lowpass', 2400, 300, 0.8, 0.25 * v, p); break;
@@ -1333,6 +1342,18 @@ function coinFly(x, y, z, n) {
     a.onfinish = () => { el.hidden = true; coinPool.push(el); coinsLive--; const g = $('gold'); g.classList.remove('bump'); void g.offsetWidth; g.classList.add('bump'); Snd.play('coin'); };
   }
 }
+// 伤害类型 × 体质（BOSS 只算一半，和主机一致）
+function elemOf(def, el) { const em = TD.elemMul(def.cls, el); return def.boss && em > 0 ? 1 + (em - 1) * 0.5 : em; }
+const counterTagT = new Map();
+// 打不动的时候：棱镜提醒一次该用什么（每种怪每局一次）
+const counterSaid = new Set();
+function counterHint(mtype, el) {
+  if (counterSaid.has(mtype) || mode !== 'play' || Tut.on) return;
+  const def = MON[mtype], A = def && TD.ARMOR[def.cls]; if (!A) return;
+  counterSaid.add(mtype);
+  const good = Object.keys(A.mul).filter(k => A.mul[k] > 1).map(k => TD.ELEM[k].name);
+  say('prism', `${def.name}是${A.name}体质，${TD.ELEM[el].name}伤害打它${A.mul[el] === 0 ? '完全无效' : '效果差'}。${good.length ? `换${good.join('或')}伤害的武器或陷阱。` : ''}`, { pri: 1 });
+}
 function floatNum(x, y, z, text, cls) {
   let el = null;
   for (const n of nums) if (!n.on) { el = n; break; }
@@ -1424,11 +1445,12 @@ addEventListener('resize', resize); applyGfx();
  * 怪物绘制
  * ============================================================ */
 const MX = { x: 0, y: 0, z: 0, yaw: 0, cy: 1, sy: 0, s: 1 };
-const TN = { slow: 0, poison: 0, burn: 0, flash: 0, enr: 0, champ: false };
+const TN = { slow: 0, poison: 0, burn: 0, flash: 0, enr: 0, champ: false, acid: false };
 function mc(r, g, b, emit, a) {
   let R = r, G = g, B = b, em = emit || 0;
   if (TN.slow > 0) { const k = Math.min(0.85, 0.45 * TN.slow); R = lerp(R, 0.55, k); G = lerp(G, 0.78, k); B = lerp(B, 1.0, k); }
   if (TN.poison) { R = lerp(R, 0.35, 0.3); G = lerp(G, 0.85, 0.3); B = lerp(B, 0.3, 0.3); }
+  if (TN.acid) { R = lerp(R, 0.62, 0.38); G = lerp(G, 0.95, 0.38); B = lerp(B, 0.2, 0.38); em = Math.max(em, 0.12); }
   if (TN.burn) { R = lerp(R, 1.0, 0.35); G = lerp(G, 0.45, 0.35); B = lerp(B, 0.15, 0.35); em = Math.max(em, 0.25 + Math.random() * 0.2); }
   if (TN.champ && !emit) { R = lerp(R, 1, 0.35); G = lerp(G, 0.78, 0.35); B = lerp(B, 0.25, 0.35); em = Math.max(em, 0.12); }
   if (TN.enr && !emit) { R = lerp(R, 0.9, 0.35); G = lerp(G, 0.15, 0.35); B = lerp(B, 0.1, 0.35); em = Math.max(em, 0.2); }
@@ -1489,7 +1511,7 @@ function drawMonster(m, a) {
     yaw += k * 9;
   }
   MX.x = x; MX.y = y; MX.z = z; MX.yaw = yaw; MX.cy = Math.cos(yaw); MX.sy = Math.sin(yaw); MX.s = 1;
-  TN.slow = m.frozenT > 0 ? 2 : m.slowAmt > 0 ? 1 : 0; TN.poison = m.poisonT > 0; TN.burn = m.burnT > 0; TN.flash = m.hitT > 0 ? 0.55 : 0; TN.enr = m.enraged; TN.champ = !!m.champ;
+  TN.slow = m.frozenT > 0 ? 2 : m.slowAmt > 0 ? 1 : 0; TN.poison = m.poisonT > 0; TN.burn = m.burnT > 0; TN.flash = m.hitT > 0 ? 0.55 : 0; TN.enr = m.enraged; TN.champ = !!m.champ; TN.acid = m.acidT > 0;
   const moving = m.state === 'move' && m.stunT <= 0;
   const ph = timeNow * def.spd * 2.1 * (1 - m.slowAmt * 0.55) + m.seed;
   const sw = moving ? Math.sin(ph) : 0;
@@ -1825,6 +1847,117 @@ function drawMonster(m, a) {
       if (m.aiming) E.pushBeam('box', g1[0], g1[1], g1[2], g1[0] + m.ax * 14, g1[1] - 2.2, g1[2] + m.az * 14, 0.02, 0.02, c(1, 0.3, 0.2, 0.5, 1, 0, true));
       if (Math.random() < 0.4) particle({ x: x + rnd(-0.3, 0.3), y: y - 0.4, z: z + rnd(-0.3, 0.3), vy: -2, life: 0.3, s0: 0.15, s1: 0, c: [1, 0.5, 0.2] });
       top = 1.0; break;
+    }
+    case 'frostguard': case 'mirror': {
+      // 程序化的骑士：冰甲（淡蓝 + 冰晶）/ 镜甲（银白 + 镜盾）。机器人底模是黄色顶点色，压不出冷色
+      const ice = m.type === 'frostguard', sc = ice ? 1.05 : 1.0;
+      MX.s = sc * born; MX.y += moving ? Math.abs(Math.cos(ph)) * 0.05 : 0;
+      const A = ice ? () => mc(0.62, 0.82, 0.98, 0.18) : () => mc(0.8, 0.84, 0.9, 0.12 + 0.1 * Math.max(0, Math.sin(t * 2.3)));
+      const D = ice ? () => mc(0.24, 0.34, 0.48) : () => mc(0.3, 0.32, 0.36);
+      const G = ice ? c(0.65, 0.92, 1, 1, 0.9, TN.flash) : c(0.9, 0.95, 1, 1, 1, TN.flash);
+      LIMB('box', -0.2, 0.95, 0, 0.95, 0.22, 0.26, sw * 0.55, D());
+      LIMB('box', 0.2, 0.95, 0, 0.95, 0.22, 0.26, -sw * 0.55, D());
+      for (const sd of [-1, 1]) P('box', sd * 0.2, 0.1, -0.05 - sd * sw * 0.2, 0.26, 0.16, 0.38, A());
+      P('box', 0, 1.05, 0, 0.58, 0.26, 0.36, D());
+      P('box', 0, 1.42, 0, 0.66, 0.6, 0.42, A());
+      P('box', 0, 1.46, -0.22, 0.44, 0.38, 0.04, ice ? c(0.55, 0.85, 1, 0.9, 0.5, TN.flash) : mc(0.95, 0.97, 1, 0.35));
+      for (const sd of [-1, 1]) P('box', sd * 0.42, 1.7, 0, 0.3, 0.2, 0.42, A());
+      P('box', 0, 1.9, -0.02, 0.34, 0.34, 0.36, A());
+      P('box', 0, 1.9, -0.21, 0.26, 0.06, 0.03, G);
+      const arm = atk ? -0.9 + atk * 1.1 : -sw * 0.5;
+      LIMB('box', -0.45, 1.68, -0.02, 0.85, 0.18, 0.2, arm, D());
+      LIMB('box', 0.45, 1.68, -0.02, 0.85, 0.18, 0.2, atk ? -0.4 : sw * 0.5, D());
+      if (ice) {
+        // 肩上、头顶的冰晶，脚下一圈寒气（光环范围）
+        for (const sd of [-1, 1]) { P('oct', sd * 0.45, 1.98, 0.05, 0.16, 0.5, 0.16, c(0.82, 0.96, 1, 0.92, 0.75, TN.flash), sd * 0.4); P('oct', sd * 0.55, 1.86, 0.15, 0.1, 0.3, 0.1, c(0.82, 0.96, 1, 0.92, 0.75, TN.flash), -sd * 0.3); }
+        P('oct', 0, 2.2, 0.02, 0.1, 0.32, 0.1, c(0.85, 0.97, 1, 0.92, 0.85, TN.flash));
+        // 冰矛
+        const hd = LOCAL(-0.45, 1.68 - 0.8 * Math.cos(arm), -0.02 - 0.8 * Math.sin(arm)), tip = LOCAL(-0.45, 1.68 - 0.8 * Math.cos(arm) + 0.2, -1.2 - 0.8 * Math.sin(arm));
+        E.pushBeam('box', hd[0], hd[1], hd[2], tip[0], tip[1], tip[2], 0.06, 0.06, c(0.7, 0.92, 1, 0.95, 0.8, TN.flash));
+        const gy0 = S_cur && S_cur.terrain ? S_cur.floorH(x, z) : 0, R = def.thaw ? def.thaw.r : 6;
+        E.push('ring', x, gy0 + 0.06, z, t * 0.4, R, 1, R, c(0.6, 0.85, 1, 0.16, 1, 0, true));
+        if (Math.random() < 0.35) particle({ x: x + rnd(-0.5, 0.5), y: y + rnd(0.3, 1.8), z: z + rnd(-0.5, 0.5), vy: rnd(-0.2, 0.3), life: 1, s0: 0.14, s1: 0.3, c: [0.85, 0.95, 1], a0: 0.22, add: false });
+        top = 2.45;
+      } else {
+        // 左臂挂一面镜盾，表面一道反光来回扫
+        const sw2 = (t * 0.7) % 1;
+        P('box', 0.58, 1.25, -0.32, 0.07, 1.15, 0.72, mc(0.9, 0.93, 1, 0.5), 0.35);
+        P('box', 0.58, 0.75 + sw2 * 0.95, -0.34, 0.08, 0.08, 0.7, c(1, 1, 1, 0.9, 1, TN.flash, true), 0.35);
+        P('cone', 0, 2.2, 0, 0.1, 0.32, 0.1, mc(0.9, 0.93, 1, 0.3));
+        top = 2.3;
+      }
+      MX.s = 1;
+      break;
+    }
+    case 'magma': case 'juggernaut': {
+      // 机器人底模 + 各自的外甲（克制型敌人）
+      const sc = { magma: 1.25, juggernaut: 1.45 }[m.type];
+      if (hasModel('robot')) {
+        let clip = 'walk', rate = def.spd / (2.6 * sc);
+        if (m.state === 'block' && m.stunT <= 0) { clip = 'punch'; rate = 1.15; }
+        else if (m.stunT > 0 || m.state === 'queue') { clip = 'idle'; rate = 1; }
+        else if (m.launchT > 0) { clip = 'run'; rate = 1.6; }
+        rate *= 1 - m.slowAmt * 0.55;
+        animClip('robot', clip, clip === 'punch' && SW >= 0 ? SW * PUNCH_DUR() : timeNow * rate + m.seed);
+        const tn = m.type === 'magma' ? [0.42, 0.2, 0.14] : [0.5, 0.45, 0.36];
+        E.push('robot', x, y, z, yaw, sc * born, sc * born, sc * born, mc(tn[0], tn[1], tn[2], m.type === 'magma' ? 0.08 : 0));
+        E.anim();
+      }
+      MX.s = sc;
+      if (m.type === 'magma') {
+        // 熔岩裂纹 + 飘出的火星
+        const gw = 0.7 + 0.3 * Math.sin(t * 3.1), L = a => c(1, 0.45, 0.08, a || 1, gw, TN.flash);
+        P('box', 0, 1.25, -0.3, 0.42, 0.5, 0.04, L()); P('box', 0, 1.25, -0.31, 0.08, 0.7, 0.03, L());
+        for (const sd of [-1, 1]) { P('box', sd * 0.34, 1.5, 0.05, 0.2, 0.2, 0.45, mc(0.24, 0.15, 0.12)); P('box', sd * 0.36, 1.62, 0.05, 0.14, 0.04, 0.32, L()); }
+        P('box', 0, 1.62, -0.25, 0.22, 0.05, 0.03, c(1, 0.75, 0.3, 1, 1, TN.flash));
+        if (Math.random() < 0.5) particle({ x: x + rnd(-0.4, 0.4), y: y + rnd(0.8, 2), z: z + rnd(-0.4, 0.4), vy: rnd(0.6, 1.6), life: rnd(0.5, 1), s0: 0.07, s1: 0, c: [1, 0.55, 0.15], grav: -0.6 });
+        top = 2.5;
+      } else {
+        // 重盾推土者：正面一面巨大的推土铲盾，被打时擦出火花
+        P('box', 0, 0.95, -0.62, 1.55, 1.5, 0.12, mc(0.34, 0.32, 0.28));
+        for (const oy of [0.45, 0.95, 1.45]) P('box', 0, oy, -0.69, 1.5, 0.08, 0.03, c(1, 0.62, 0.15, 1, 0.5, TN.flash));
+        for (const sd of [-1, 1]) { P('box', sd * 0.72, 0.95, -0.66, 0.1, 1.6, 0.16, mc(0.22, 0.21, 0.2)); P('box', sd * 0.4, 0.95, -0.45, 0.08, 0.08, 0.4, mc(0.2, 0.2, 0.2)); }
+        P('box', 0, 1.55, -0.5, 0.3, 0.06, 0.03, c(1, 0.35, 0.2, 1, 1, TN.flash));
+        top = 1.95 * sc + 0.1;
+      }
+      MX.s = 1;
+      break;
+    }
+    case 'swarm': {
+      // 蜂群无人机：小号无人机 + 振翅
+      if (hasModel('drone')) {
+        animStatic('drone');
+        const k = 0.5 * born, wob = Math.sin(t * 9) * 0.15;
+        E.pushR('drone', x, y - 0.25 + wob * 0.3, z, yaw, Math.sin(t * 3) * 0.2, wob, k, k, k, mc(1, 0.78, 0.35, 0));
+        E.anim();
+      }
+      for (const sd of [-1, 1]) E.push('disc', x + MX.cy * sd * 0.32, y + 0.05, z - MX.sy * sd * 0.32, t * 40 * sd, 0.42, 1, 0.42, c(1, 0.85, 0.5, 0.25, 0.6, 0, true));
+      E.push('sphere', x - MX.sy * 0.25, y - 0.05, z - MX.cy * 0.25, 0, 0.09, 0.09, 0.09, c(1, 0.4, 0.15, 1, 1, TN.flash));
+      top = 0.45; break;
+    }
+    case 'sporer': case 'spore': {
+      // 孢子巨兽：菌团躯体 + 鼓胀的孢子囊；孢子：一颗会蹦的小菌球
+      const big = m.type === 'sporer';
+      MX.s = big ? 1 : 0.42;
+      const pul = 1 + 0.07 * Math.sin(t * (big ? 2.4 : 7));
+      if (!big) MX.y += moving ? Math.abs(Math.sin(ph * 2)) * 0.35 : 0;
+      P('sphere', 0, 0.95, 0.15, 1.75 * pul, 1.25 * pul, 2.0 * pul, mc(0.36, 0.3, 0.22));
+      P('sphere', 0, 1.05, 0.2, 1.45 * pul, 1.0 * pul, 1.65 * pul, mc(0.5, 0.42, 0.3));
+      const sacs = big ? [[-0.55, 1.75, 0.35], [0.5, 1.8, 0.1], [0, 2.0, 0.6], [-0.2, 1.6, -0.35], [0.65, 1.45, 0.7]] : [[0, 1.85, 0.2]];
+      sacs.forEach(([sx, sy, sz], i) => { const k = 0.75 + 0.25 * Math.sin(t * 3 + i * 1.7); P('sphere', sx, sy, sz, 0.42 * k, 0.42 * k, 0.42 * k, c(0.75, 1, 0.35, 1, 0.45 + 0.4 * k, TN.flash)); });
+      P('sphere', 0, 0.8, -0.95, 0.7, 0.55, 0.6, mc(0.3, 0.25, 0.2));
+      for (const sd of [-1, 1]) P('sphere', sd * 0.22, 0.95, -1.3, 0.1, 0.1, 0.1, c(1, 0.85, 0.3, 1, 1, TN.flash));
+      if (big) {
+        for (let i = 0; i < 6; i++) {
+          const side = i < 3 ? -1 : 1, k = i % 3, lz = (k - 1) * 0.65, step = moving ? Math.sin(ph * 1.2 + i * 2.1) : 0;
+          const hip = LOCAL(side * 0.75, 0.6, lz), knee = LOCAL(side * 1.25, 0.8 + Math.max(0, step) * 0.15, lz + step * 0.15), foot = LOCAL(side * 1.5, 0.02, lz * 1.2 + step * 0.2);
+          E.pushBeam('box', hip[0], hip[1], hip[2], knee[0], knee[1], knee[2], 0.14, 0.14, mc(0.28, 0.23, 0.18));
+          E.pushBeam('box', knee[0], knee[1], knee[2], foot[0], foot[1], foot[2], 0.11, 0.11, mc(0.28, 0.23, 0.18));
+        }
+        if (Math.random() < 0.3) particle({ x: x + rnd(-0.6, 0.6), y: y + 2, z: z + rnd(-0.6, 0.6), vy: rnd(0.3, 0.8), life: 1.4, s0: 0.1, s1: 0.22, c: [0.75, 1, 0.4], a0: 0.35, grav: -0.2 });
+      }
+      MX.s = 1;
+      top = big ? 2.4 : 1.0; break;
     }
     case 'colossus': case 'boss': {
       MX.s = 1;
@@ -2218,6 +2351,43 @@ function drawTrap(S, tr, ghost) {
       void tip;
       break;
     }
+    case 'frost': {
+      // 急冻喷口：底板中央的液氮喷嘴 + 四个冷却罐，喷射后结霜
+      plate();
+      const fr = clamp(1 - since / 1.2, 0, 1), on = !GHOST && since < 0.35;
+      Q('cyl', 0, 0.22, 0, 0.9, 0.2, 0.9, tc(0.3, 0.33, 0.38));
+      Q('cyl', 0, 0.36, 0, 0.48, 0.12, 0.48, tc(0.55, 0.85, 1, on ? 1 : 0.55));
+      for (const [ox, oz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) {
+        Q('cyl', ox * T * 0.31, 0.32, oz * T * 0.31, 0.34, 0.5, 0.34, tc(0.78, 0.82, 0.86));
+        Q('ring', ox * T * 0.31, 0.58, oz * T * 0.31, 0.2, 1, 0.2, tc(0.5, 0.85, 1, 1));
+      }
+      if (!GHOST && fr > 0) Q('disc', 0, 0.14, 0, T * (0.6 + 0.4 * fr), 1, T * (0.6 + 0.4 * fr), c(0.8, 0.95, 1, 0.22 * fr, 0.6, 0, true));
+      lvPips(lv, 0, 0.15, T * 0.4, true);
+      break;
+    }
+    case 'acid': {
+      // 酸蚀池：凹进去的酸液池，冒泡
+      plate();
+      const pul = 0.5 + 0.5 * Math.sin(timeNow * 2.2 + tr.x);
+      Q('box', 0, 0.13, 0, T * 0.72, 0.02, T * 0.72, tc(0.1, 0.12, 0.1));
+      Q('disc', 0, 0.145, 0, T * 0.66, 1, T * 0.66, tc(0.45 + pul * 0.1, 0.9, 0.18, 1));
+      for (const [ox, oz] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) Q('box', ox * T * 0.4, 0.2, oz * T * 0.4, ox ? 0.12 : T * 0.8, 0.14, oz ? 0.12 : T * 0.8, tc(0.3, 0.32, 0.28));
+      if (!GHOST && !TDIS) for (let i = 0; i < 3; i++) { const ph = (timeNow * 0.8 + i / 3 + tr.x * 0.13) % 1; Q('sphere', Math.sin(i * 2.4 + tr.z) * 0.6, 0.15 + ph * 0.12, Math.cos(i * 1.7 + tr.x) * 0.6, 0.16 * (1 - ph), 0.16 * (1 - ph), 0.16 * (1 - ph), c(0.7, 1, 0.3, 0.8, 0.8, 0, true)); }
+      lvPips(lv, 0, 0.21, T * 0.42, true);
+      break;
+    }
+    case 'arc': {
+      // 电弧网：墙上两根放电极，通电时整条通道上一张跳动的电网
+      Q('box', 0, 0, 0.12, 0.9, 1.2, 0.3, tc(0.24, 0.25, 0.3));
+      for (const oy of [-0.38, 0.38]) { QR('cyl', 0, oy, -0.12, 0, Math.PI / 2, 0, 0.18, 0.4, 0.18, tc(0.3, 0.3, 0.34)); Q('sphere', 0, oy, -0.34, 0.2, 0.2, 0.2, tc(0.72, 0.5, 1, tr.activeT > 0 && !GHOST ? 1 : 0.55)); }
+      if (tr.activeT > 0 && !GHOST && tr.line && Math.random() < 0.8) {
+        const len = tr.line.length * T - 0.1, d = DIRS[tr.dir];
+        for (const hy of [tr.wy - 0.38, tr.wy + 0.38, 1.0]) zap(tr.wx - d[0] * 0.35, hy, tr.wz - d[1] * 0.35, tr.wx - d[0] * len, hy + rnd(-0.3, 0.3), tr.wz - d[1] * len, [0.7, 0.5, 1], 0.05);
+        if (tr.targets && tr.targets.length) for (const id of tr.targets) { const m = S._mById && S._mById.get(id); if (m) zap(tr.wx - d[0] * len * 0.5, 1.2, tr.wz - d[1] * len * 0.5, m.x, m.y + MON[m.type].body[0], m.z, [0.8, 0.6, 1], 0.05); }
+      }
+      lvPips(lv, 0, -0.75, 0.02);
+      break;
+    }
     case 'rail': {
       // 轨道电磁炮：八角底座 + 旋转炮塔 + 双导轨，充能线圈随冷却逐渐点亮
       Q('cyl', 0, 0.3, 0, 3.7, 0.6, 3.7, tc(0.19, 0.2, 0.23));
@@ -2333,6 +2503,7 @@ const EVO_COL = {
   sentry: { a: [1, 0.6, 0.2], b: [1, 0.25, 0.3] }, aa: { a: [1, 0.8, 0.3], b: [1, 0.45, 0.15] },
   laser: { a: [1, 0.9, 0.8], b: [0.7, 0.5, 1] }, flame: { a: [1, 0.55, 0.12], b: [0.35, 0.6, 1] },
   crusher: { a: [1, 0.75, 0.25], b: [0.3, 0.95, 1] },
+  frost: { a: [0.8, 0.95, 1], b: [0.45, 0.8, 1] }, arc: { a: [1, 0.85, 0.3], b: [0.75, 0.5, 1] }, acid: { a: [0.85, 1, 0.2], b: [0.5, 1, 0.6] },
 };
 function evoFx(S, tr, since) {
   const br = TBR, col = (EVO_COL[tr.type] || {})[br] || [1, 0.8, 0.3], t = timeNow + tr.x * 0.37 + tr.z * 0.61;
@@ -2649,14 +2820,15 @@ function drawOtherPlayers(S, a, dt) {
         v.fireAcc -= 1;
         const mz = gp;
         flashLight(mz[0], mz[1], mz[2], PW.id === 'rifle' ? 5 : 9, [1, 0.75, 0.4], PW.id === 'rifle' ? 1.1 : 2, 0.06);
-        Snd.play(PW.id === 'rifle' ? 'shot2' : PW.id === 'shotgun' ? 'shotgun' : PW.id === 'sniper' ? 'sniper' : 'rocketFire', v.x, v.z);
+        Snd.play(PW.id === 'rifle' ? 'shot2' : PW.id === 'shotgun' ? 'shotgun' : PW.id === 'sniper' ? 'sniper' : ELEM_W[PW.id] ? PW.id : 'rocketFire', v.x, v.z);
         if (PW.proj) continue;   // 火箭弹由快照里的弹体显示
-        const n = PW.pellets ? 5 : 1, spr = PW.pellets ? 0.07 : 0.01;
+        const n = PW.pellets ? (ELEM_W[PW.id] ? 2 : 5) : 1, spr = PW.pellets ? 0.07 : 0.01;
         for (let j = 0; j < n; j++) {
           const yaw = v.yaw + rnd(-spr, spr), pitch = v.pitch + rnd(-spr, spr), cp = Math.cos(pitch);
           const fx = -Math.sin(yaw) * cp, fy = Math.sin(pitch), fz = -Math.cos(yaw) * cp;
           const h = S.raycast(v.x, v.y + 1.62, v.z, fx, fy, fz, 120);
-          const L = h ? h.t : 120, ex = v.x + fx * L, ey = v.y + 1.62 + fy * L, ez = v.z + fz * L;
+          const L = Math.min(h ? h.t : 120, PW.maxR || 120), ex = v.x + fx * L, ey = v.y + 1.62 + fy * L, ez = v.z + fz * L;
+          if (elemShot(PW.id, mz, ex, ey, ez, false)) continue;
           if (PW.id === 'sniper') tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: ex, y2: ey, z2: ez, t: 0, life: 0.35, c: [0.45, 0.9, 1], w: 3 });
           else tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: ex, y2: ey, z2: ez, t: 0, life: 0.07, c: [1, 0.82, 0.55] });
           if (h) burst(ex, ey, ez, 3, { c: [1, 0.8, 0.45], sp0: 1.5, sp1: 4, l0: 0.1, l1: 0.25, s0: 0.04, grav: 12 });
@@ -2781,6 +2953,37 @@ function drawViewmodel(dt) {
     for (let i = 0; i < 3; i++) G3('box', 0, 0.012, -0.3 - i * 0.12, 0.05, 0.05, 0.015, CY);
     vm.mz = off(0, 0.012, -0.88); vm.ej = off(0.07, 0.03, -0.02);
     flashFx();
+  } else if (tool === 'gun' && W.id === 'flamer') {
+    // 烈焰喷枪：背挂燃料罐 + 粗喷管，喷嘴常亮引燃火
+    const G = VMC2.B, D = VMC2.D, R = col(0.75, 0.22, 0.12), F = c(1, 0.55, 0.12, 1, 0.9);
+    G3('box', 0, 0, 0.0, 0.1, 0.11, 0.42, G);
+    G3('box', 0, 0.015, -0.4, 0.07, 0.07, 0.42, D);
+    G3('box', 0, 0.015, -0.63, 0.1, 0.1, 0.06, D);
+    G3('box', 0.085, 0.05, 0.05, 0.08, 0.15, 0.08, R); G3('box', 0.085, 0.14, 0.05, 0.05, 0.03, 0.05, D);
+    G3('box', 0, -0.1 - reload * 0.1, 0.1, 0.05, 0.12, 0.07, D);
+    G3('box', 0, -0.045, -0.62, 0.025, 0.025, 0.04, F);
+    vm.mz = off(0, 0.015, -0.68); vm.ej = off(0.05, 0.03, 0);
+    if (Math.random() < 0.5) { const o = vm.mz; V('sphere', o[0], o[1] - 0.04, o[2], 0.02, 0.02, 0.03, c(1, 0.6, 0.2, 0.9, 1, 0, true)); }
+  } else if (tool === 'gun' && W.id === 'cryo') {
+    // 冰霜射线：白色枪身 + 三段冷却环 + 冰蓝发射晶体
+    const G = col(0.82, 0.86, 0.9), D = VMC2.D, I = c(0.6, 0.92, 1, 1, 0.8 + 0.2 * Math.sin(timeNow * 6));
+    G3('box', 0, 0, 0.02, 0.09, 0.11, 0.44, G);
+    G3('box', 0, 0.015, -0.36, 0.05, 0.05, 0.4, D);
+    for (let i = 0; i < 3; i++) G3('box', 0, 0.015, -0.24 - i * 0.11, 0.075, 0.075, 0.025, I);
+    G3('oct', 0, 0.015, -0.6, 0.05, 0.05, 0.08, I);
+    G3('box', 0, 0.08, -0.05, 0.045, 0.04, 0.18, I);
+    G3('box', 0, -0.1 - reload * 0.1, 0.08, 0.05, 0.12, 0.07, D);
+    vm.mz = off(0, 0.015, -0.66); vm.ej = off(0.05, 0.03, 0);
+  } else if (tool === 'gun' && W.id === 'arcgun') {
+    // 电弧枪：双叉发射极 + 中间跳动的电弧
+    const G = VMC2.B, D = VMC2.D, P2 = c(0.72, 0.5, 1, 1, 0.9);
+    G3('box', 0, 0, 0.02, 0.11, 0.12, 0.4, G);
+    G3('box', 0, 0.06, -0.08, 0.13, 0.04, 0.26, D);
+    for (const sd of [-1, 1]) { G3('box', sd * 0.035, 0.02, -0.38, 0.022, 0.03, 0.36, D); G3('box', sd * 0.035, 0.02, -0.57, 0.03, 0.04, 0.03, P2); }
+    G3('box', 0, 0.02, -0.12, 0.06, 0.06, 0.08, P2);
+    G3('box', 0, -0.1 - reload * 0.1, 0.06, 0.05, 0.12, 0.07, D);
+    vm.mz = off(0, 0.02, -0.6); vm.ej = off(0.05, 0.03, 0);
+    if (Math.random() < 0.6) { const a = off(-0.035, 0.02, -0.57), b = off(0.035, 0.02 + rnd(-0.02, 0.02), -0.57); V('box', (a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2, 0.06, 0.006, 0.006, c(0.9, 0.85, 1, 1, 1, 0, true), pk, rl + rnd(-0.5, 0.5)); }
   } else if (tool === 'gun' && W.id === 'rocket') {
     const G = VMC2.O, A = VMC2.A, D = VMC2.D, CY = VMC2.CY;
     G3('box', 0.03, 0.05, -0.18, 0.13, 0.13, 0.66, G);
@@ -2921,6 +3124,43 @@ function muzzleWorld() {
   return [cam.x + cam.rx * o[0] + cam.ux * o[1] - cam.fx * o[2], cam.y + cam.uy * o[1] - cam.fy * o[2], cam.z + cam.rz * o[0] + cam.uz * o[1] - cam.fz * o[2]];
 }
 const tracers = [];
+// 折线闪电（电弧枪、跳跃电弧）：每帧重新抖动
+const zaps = [];
+function zap(x1, y1, z1, x2, y2, z2, col, life) { if (zaps.length < 60) zaps.push({ x1, y1, z1, x2, y2, z2, c: col || [0.8, 0.6, 1], t: 0, life: life || 0.14 }); }
+function drawZaps(dt) {
+  for (let i = zaps.length - 1; i >= 0; i--) {
+    const z = zaps[i]; z.t += dt;
+    if (z.t > z.life) { zaps.splice(i, 1); continue; }
+    const k = 1 - z.t / z.life, L = Math.hypot(z.x2 - z.x1, z.y2 - z.y1, z.z2 - z.z1), n = Math.max(3, Math.min(10, Math.round(L / 1.2))), j = Math.min(0.45, L * 0.06);
+    let x0 = z.x1, y0 = z.y1, z0 = z.z1;
+    for (let s = 1; s <= n; s++) {
+      const f = s / n, q = s < n ? j : 0;
+      const xn = lerp(z.x1, z.x2, f) + rnd(-q, q), yn = lerp(z.y1, z.y2, f) + rnd(-q, q), zn = lerp(z.z1, z.z2, f) + rnd(-q, q);
+      E.pushBeam('box', x0, y0, z0, xn, yn, zn, 0.05, 0.05, c(0.92, 0.88, 1, k, 1, 0, true));
+      E.pushBeam('box', x0, y0, z0, xn, yn, zn, 0.2, 0.2, c(z.c[0], z.c[1], z.c[2], 0.3 * k, 1, 0, true));
+      x0 = xn; y0 = yn; z0 = zn;
+    }
+  }
+}
+// 元素武器的弹道外观：喷火是火焰粒子流、冰霜是冷光束、电弧是闪电
+const ELEM_W = { flamer: 1, cryo: 1, arcgun: 1 };
+function elemShot(id, mz, ex, ey, ez, hit) {
+  if (!ELEM_W[id]) return false;
+  const dx = ex - mz[0], dy = ey - mz[1], dz = ez - mz[2], L = Math.hypot(dx, dy, dz) || 1;
+  if (id === 'flamer') {
+    const sp = rnd(11, 15);
+    particle({ x: mz[0], y: mz[1], z: mz[2], vx: dx / L * sp + rnd(-0.8, 0.8), vy: dy / L * sp + rnd(-0.4, 0.9), vz: dz / L * sp + rnd(-0.8, 0.8), life: Math.min(0.6, L / sp + 0.1), s0: 0.1, s1: 0.95, c: [1, rnd(0.32, 0.62), 0.08], drag: 1.3, a0: 0.8 });
+    if (Math.random() < 0.25) particle({ x: ex, y: ey, z: ez, vy: rnd(0.5, 1.5), life: 0.6, s0: 0.3, s1: 0.9, c: [0.25, 0.22, 0.2], add: false, a0: 0.25 });
+  } else if (id === 'cryo') {
+    tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: ex, y2: ey, z2: ez, t: 0, life: 0.09, c: [0.6, 0.92, 1], w: 2 });
+    if (Math.random() < 0.5) particle({ x: ex, y: ey, z: ez, vx: rnd(-0.6, 0.6), vy: rnd(-0.2, 0.6), vz: rnd(-0.6, 0.6), life: 0.5, s0: 0.15, s1: 0.4, c: [0.85, 0.96, 1], a0: 0.5 });
+  } else {
+    zap(mz[0], mz[1], mz[2], ex, ey, ez, [0.72, 0.52, 1], 0.12);
+    burst(ex, ey, ez, hit ? 4 : 2, { c: [0.8, 0.65, 1], sp0: 1, sp1: 4, s0: 0.05, l0: 0.08, l1: 0.2 });
+    flashLight(ex, ey, ez, 5, [0.7, 0.5, 1], 1, 0.06);
+  }
+  return true;
+}
 const strikeFx = [];
 const shellFx = [];
 function drawLava(S) {
@@ -3165,7 +3405,7 @@ function flingOf(S, e) {
 }
 function addCorpse(e, fl) {
   const yaw = Math.atan2(-(e.fx || 0), -(e.fz === undefined ? 1 : e.fz));
-  const RT = { grunt: [1, [0.85, 0.85, 0.85]], brute: [1.45, [0.5, 0.56, 0.72]], stalker: [0.92, [0.34, 0.27, 0.5]], sapper: [0.92, [1, 0.8, 0.32]], gunner: [1.05, [0.95, 0.42, 0.38]] }[e.mtype];
+  const RT = { grunt: [1, [0.85, 0.85, 0.85]], brute: [1.45, [0.5, 0.56, 0.72]], stalker: [0.92, [0.34, 0.27, 0.5]], sapper: [0.92, [1, 0.8, 0.32]], gunner: [1.05, [0.95, 0.42, 0.38]], magma: [1.25, [0.42, 0.2, 0.14]], juggernaut: [1.45, [0.46, 0.43, 0.37]] }[e.mtype];
   const gy = S_cur && S_cur.terrain ? S_cur.floorH(e.x, e.z) : 0;
   const phys = { y: Math.max(gy, e.y || 0), gy, vx: fl.vx, vy: fl.vy, vz: fl.vz, spin: rnd(-1, 1) * (2 + Math.hypot(fl.vx, fl.vz)), roll: 0, rollV: rnd(4, 9) * (Math.random() < 0.5 ? -1 : 1) };
   if (RT && hasModel('robot')) {
@@ -3269,14 +3509,15 @@ function handleEvents(S) {
             vm.kick = Math.min(1, vm.kick + 0.4 * W.kick + (W.id !== 'rifle' && W.id !== 'gatling' ? 0.5 : 0)); vm.flash = W.id === 'rifle' || W.id === 'gatling' ? 0.045 : 0.08;
             cam.pitch = clamp(cam.pitch + kick * (1 - cam.ads * 0.5), -1.5, 1.5); cam.yaw += rnd(-0.0015, 0.0015) * (W.id === 'rifle' ? 1 : W.id === 'gatling' ? 2 : 6);
             flashLight(mz[0], mz[1], mz[2], W.id === 'rifle' || W.id === 'gatling' ? 7 : 11, [1, 0.75, 0.4], W.id === 'gatling' ? 0.7 : W.id === 'rifle' ? 1.4 : 2.4, 0.06);
-            Snd.play(W.id === 'gatling' ? 'gatling' : W.id === 'rifle' ? 'shot' : W.id === 'shotgun' ? 'shotgun' : W.id === 'sniper' ? 'sniper' : 'rocketFire');
+            Snd.play(W.id === 'gatling' ? 'gatling' : W.id === 'rifle' ? 'shot' : W.id === 'shotgun' ? 'shotgun' : W.id === 'sniper' ? 'sniper' : W.elem && W.id !== 'rocket' && ELEM_W[W.id] ? W.id : 'rocketFire');
             if (W.id === 'gatling') shake(0.035); else if (W.id !== 'rifle') shake(W.id === 'shotgun' ? 0.12 : 0.18);
             if (W.id === 'rocket') for (let i = 0; i < 10; i++) particle({ x: mz[0], y: mz[1], z: mz[2], vx: -cam.fx * rnd(1, 4) + rnd(-1, 1), vy: rnd(0, 1.5), vz: -cam.fz * rnd(1, 4) + rnd(-1, 1), life: rnd(0.5, 1), s0: 0.2, s1: 0.9, c: [0.6, 0.6, 0.62], add: false, a0: 0.4 });
           }
-          if (W.id === 'sniper') tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: e.x, y2: e.y, z2: e.z, t: 0, life: 0.35, c: [0.45, 0.9, 1], w: 3 });
+          if (elemShot(W.id, mz, e.x, e.y, e.z, !!e.hit)) { /* 元素武器自己的弹道 */ }
+          else if (W.id === 'sniper') tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: e.x, y2: e.y, z2: e.z, t: 0, life: 0.35, c: [0.45, 0.9, 1], w: 3 });
           else if (W.id !== 'rocket') tracers.push({ x1: mz[0], y1: mz[1], z1: mz[2], x2: e.x, y2: e.y, z2: e.z, t: 0, life: W.id === 'shotgun' ? 0.09 : 0.07 });
         }
-        if (e.pid === PID && W.id !== 'rocket' && (W.id !== 'gatling' || (vm.ejN = (vm.ejN || 0) + 1) % 4 === 0)) {
+        if (e.pid === PID && W.id !== 'rocket' && !ELEM_W[W.id] && (W.id !== 'gatling' || (vm.ejN = (vm.ejN || 0) + 1) % 4 === 0)) {
           const ej = camLocal(W.id === 'gatling' ? [0.3, -0.42, -0.7] : vm.ej || [0.26, -0.18, -0.5]);
           particle({ x: ej[0], y: ej[1], z: ej[2], vx: cam.rx * rnd(1.6, 2.6) + rnd(-0.3, 0.3), vy: rnd(1.4, 2.4), vz: cam.rz * rnd(1.6, 2.6) + rnd(-0.3, 0.3), life: 1.0, s0: 0.035, s1: 0.035, c: [0.95, 0.7, 0.28], g: 'box', add: false, grav: 13, bounce: true, drag: 0.2 });
         }
@@ -3285,9 +3526,12 @@ function handleEvents(S) {
       }
       case 'hit': {
         if (e.pid !== PID) break;
-        const hc = { grunt: [1, 0.7, 0.25], brute: [1, 0.6, 0.2], runner: [1, 0.3, 0.25], flyer: [0.8, 0.5, 1], healer: [0.4, 1, 0.5], bomber: [1, 0.55, 0.1], elite: [1, 0.35, 0.3], boss: [0.5, 0.9, 1], stalker: [0.8, 0.5, 1], burrower: [0.85, 0.6, 0.3], sapper: [1, 0.8, 0.3], gunner: [1, 0.4, 0.3], mite: [0.9, 0.4, 1], siege: [1, 0.7, 0.3], colossus: [1, 0.5, 0.1], brood: [0.95, 0.4, 1], broodling: [0.95, 0.4, 1] }[e.mtype] || [0.3, 1, 0.85];
+        const hc = { grunt: [1, 0.7, 0.25], brute: [1, 0.6, 0.2], runner: [1, 0.3, 0.25], flyer: [0.8, 0.5, 1], healer: [0.4, 1, 0.5], bomber: [1, 0.55, 0.1], elite: [1, 0.35, 0.3], boss: [0.5, 0.9, 1], stalker: [0.8, 0.5, 1], burrower: [0.85, 0.6, 0.3], sapper: [1, 0.8, 0.3], gunner: [1, 0.4, 0.3], mite: [0.9, 0.4, 1], siege: [1, 0.7, 0.3], colossus: [1, 0.5, 0.1], brood: [0.95, 0.4, 1], broodling: [0.95, 0.4, 1], magma: [1, 0.45, 0.1], frostguard: [0.7, 0.9, 1], mirror: [0.9, 0.95, 1], swarm: [1, 0.75, 0.3], juggernaut: [1, 0.6, 0.2], sporer: [0.7, 1, 0.35], spore: [0.7, 1, 0.35] }[e.mtype] || [0.3, 1, 0.85];
         burst(e.x, e.y, e.z, e.head ? 9 : 5, { c: e.head ? [1, 0.9, 0.4] : hc, sp0: 1.5, sp1: 6, l0: 0.15, l1: 0.35, s0: 0.07, grav: 10 });
-        floatNum(e.x, e.y + 0.2, e.z, String(e.dmg), e.head ? 'head' : '');
+        // 克制 / 抵抗：伤害数字变色，同一只怪 1.5 秒内只提示一次文字
+        const ew = WPN[e.w], em = ew && ew.elem && MON[e.mtype] ? elemOf(MON[e.mtype], ew.elem) : 1, ek = em > 1.01 ? 'weak' : em < 0.99 ? 'resist' : '';
+        floatNum(e.x, e.y + 0.2, e.z, String(e.dmg), (e.head ? 'head ' : '') + ek);
+        if (ek && !(counterTagT.get(e.id) > timeNow)) { counterTagT.set(e.id, timeNow + 1.5); floatNum(e.x, e.y + 0.75, e.z, ek === 'weak' ? `克制 ×${em.toFixed(2).replace(/0$/, '')}` : `抵抗 ×${em.toFixed(2).replace(/0$/, '')}`, 'tag ' + ek); if (ek === 'resist') counterHint(e.mtype, ew.elem); }
         hitMarker(e.kill ? 'kill' : (e.head ? 'head' : ''));
         Snd.play(e.head ? 'head' : 'tick');
         break;
@@ -3375,7 +3619,8 @@ function handleEvents(S) {
       case 'shock': if (S === sim && e.pid !== PID) shockFx(e.x, e.y, e.z, e.yaw, e.cls, false); break;
       case 'combo': {
         if (e.k === 'napalm') { fireFx.push({ x: e.x, z: e.z, t: 0 }); break; }
-        const C = { shatter: ['碎冰 ×2', [0.6, 0.9, 1]], ignite: ['爆燃！', [1, 0.5, 0.15]], air: ['空中连击', [1, 0.8, 0.3]], spread: ['毒素扩散', [0.4, 1, 0.4]] }[e.k];
+        const C = { shatter: ['碎冰 ×2', [0.6, 0.9, 1]], ignite: ['爆燃！', [1, 0.5, 0.15]], air: ['空中连击', [1, 0.8, 0.3]], spread: ['毒素扩散', [0.4, 1, 0.4]], burnt: ['烧尽', [1, 0.55, 0.2]] }[e.k];
+        if (e.k === 'burnt') { burst(e.x, e.y, e.z, 14, { c: [1, 0.5, 0.15], sp0: 1, sp1: 4, s0: 0.15, s1: 0.02, l0: 0.4, l1: 0.8, grav: -2 }); }
         if (!C) break;
         floatNum(e.x, e.y + 0.8, e.z, C[0], 'combo');
         if (e.k === 'ignite') { explode(e.x, e.y, e.z, 2.4, true); rings.push({ x: e.x, z: e.z, y: 0.2, r0: 0.4, r1: 2.6, t: 0, life: 0.35, c: [1, 0.55, 0.2] }); }
@@ -3390,6 +3635,13 @@ function handleEvents(S) {
           case 'spike': burst(e.x, 0.4, e.z, 5, { c: [0.35, 1, 0.4], sp0: 0.5, sp1: 2, s0: 0.25, s1: 0.5, l0: 0.4, l1: 0.8, grav: -0.5, a0: 0.3 }); break;
           case 'push': burst(e.x, 0.3, e.z, 8, { c: [1, 0.7, 0.3], sp0: 2, sp1: 5, s0: 0.1 }); break;
           case 'tesla': flashLight(e.x, 2.8, e.z, 8, [0.7, 0.45, 1], 1.6, 0.12); break;
+          case 'frost': {
+            for (let i = 0; i < 26; i++) { const a = rnd(0, Math.PI * 2), sp = rnd(2, 6); particle({ x: e.x, y: 0.3, z: e.z, vx: Math.cos(a) * sp, vy: rnd(0.4, 2.2), vz: Math.sin(a) * sp, life: rnd(0.5, 0.9), s0: rnd(0.3, 0.5), s1: rnd(0.8, 1.3), c: [0.85, 0.95, 1], add: false, a0: 0.4, drag: 2.2 }); }
+            rings.push({ x: e.x, z: e.z, y: 0.12, r0: 0.4, r1: T * 1.5, t: 0, life: 0.45, c: [0.7, 0.92, 1] });
+            break;
+          }
+          case 'acid': burst(e.x, 0.25, e.z, 6, { c: [0.65, 1, 0.25], sp0: 0.3, sp1: 1.2, s0: 0.15, s1: 0.3, l0: 0.5, l1: 1, grav: -0.4, a0: 0.35, add: false }); break;
+          case 'arc': flashLight(e.x, e.y, e.z, 7, [0.7, 0.55, 1], 1.2, 0.08); break;
           case 'aa': burst(e.x, 2.2, e.z, 6, { c: [0.7, 0.7, 0.7], sp0: 0.5, sp1: 2, s0: 0.3, s1: 0.8, add: false, a0: 0.4, grav: -1 }); break;
           case 'crusher': {
             burst(e.x, 0.3, e.z, 16, { c: [0.6, 0.58, 0.55], sp0: 3, sp1: 7, s0: 0.25, s1: 0.6, add: false, a0: 0.45, grav: 2, l0: 0.4, l1: 0.9 });
@@ -3473,7 +3725,26 @@ function handleEvents(S) {
         Snd.play('flame', e.x, e.z, { range: 80 }); Snd.play('roar', e.x, e.z, { range: 80 });
         break;
       }
-      case 'split': explode(e.x, 2, e.z, 4, false); feed('深渊母巢分裂成两只母巢裂体！', 'bad'); Snd.play('roar', e.x, e.z, { range: 100 }); break;
+      case 'split':
+        if (e.k === 'spore') { burst(e.x, 1.2, e.z, 18, { c: [0.7, 1, 0.35], sp0: 1, sp1: 4, s0: 0.2, s1: 0.5, l0: 0.5, l1: 1, grav: -0.5, a0: 0.5, add: false }); Snd.play('splat', e.x, e.z); if (!RUN.sporeSaid && S === sim) { RUN.sporeSaid = true; feed('孢子巨兽裂成了孢子——用火把它烧死就不会裂', 'bad'); } break; }
+        explode(e.x, 2, e.z, 4, false); feed('深渊母巢分裂成两只母巢裂体！', 'bad'); Snd.play('roar', e.x, e.z, { range: 100 }); break;
+      case 'immune': floatNum(e.x, e.y + 0.3, e.z, '免疫', 'tag immune'); if (S === sim) { const ub = S.s.players[PID]; void ub; } break;
+      case 'freeze': {
+        for (let i = 0; i < 10; i++) particle({ x: e.x + rnd(-0.6, 0.6), y: e.y + rnd(-0.5, 0.8), z: e.z + rnd(-0.6, 0.6), vx: rnd(-1, 1), vy: rnd(0.3, 1.5), vz: rnd(-1, 1), life: 0.7, s0: 0.1, s1: 0, c: [0.75, 0.95, 1], g: 'oct', grav: 3 });
+        floatNum(e.x, e.y + 0.9, e.z, '冻结', 'tag freeze'); Snd.play('freeze', e.x, e.z);
+        break;
+      }
+      case 'deflect': {
+        burst(e.x, e.y, e.z, 7, { c: [1, 0.8, 0.4], sp0: 2, sp1: 6, s0: 0.05, l0: 0.1, l1: 0.25, grav: 10 });
+        if (!(counterTagT.get('d' + e.id) > timeNow)) { counterTagT.set('d' + e.id, timeNow + 2); floatNum(e.x, e.y + 0.6, e.z, '正面格挡', 'tag resist'); Snd.play('clank', e.x, e.z); }
+        if (!RUN.deflSaid && S === sim && mode === 'play') { RUN.deflSaid = true; say('prism', '推土者的盾挡住了正面的子弹。绕到它侧面或者背后打，或者交给陷阱。', { pri: 1 }); }
+        break;
+      }
+      case 'chain': {
+        // 电弧枪：在命中点之间画折线闪电
+        for (const l of e.l || []) { zap(l[0], l[1], l[2], l[3], l[4], l[5], [0.75, 0.55, 1]); burst(l[3], l[4], l[5], 3, { c: [0.8, 0.6, 1], sp0: 1, sp1: 3, s0: 0.05, l0: 0.1, l1: 0.2 }); }
+        break;
+      }
       case 'laneOpen': {
         for (const l of e.lanes) portalFlare[l] = 3;
         feed(`新出怪口开启：${e.names.join('、')}`, 'bad'); Snd.play('emp'); shake(0.3);
@@ -3746,6 +4017,7 @@ function storyBegin() {
   if (!STORY.briefSeen(sim.def.id)) { sayLines(ch.brief, 3); STORY.markBrief(sim.def.id); RUN.lastStory = performance.now(); }
   if (sim.pitTiles && sim.pitTiles.length && !STORY.hintSeen('pit')) { STORY.markHint('pit'); sayPool('pitHint', { pri: 1 }); }
   { const nw = NEWT.list(); if (nw.length) { const out = nw.filter(id => !inLoad(id)), inn = nw.filter(inLoad); say('qian', `新装备到货：${nw.map(id => TRAP[id].name).join('、')}。` + (inn.length ? `陷阱栏里带「新」字的就是，${TOUCH ? '点「陷阱」' : '按 Tab '}看说明，拿去试试！` : '') + (out.length ? `${out.map(id => TRAP[id].name).join('、')}这局没带上——一次最多带 ${LOAD_MAX} 种，第一波开始前${TOUCH ? '点「陷阱」' : '按 Tab '}打开陷阱一览，点「调整出战陷阱」就能换。` : ''), { pri: 2 }); } }
+  { const ch = MP.role === 'solo' || MP.role === 'host' || MP.role === 'client' ? counterLoadHint(sim.def.id) : ''; if (ch) say('qian', `${ch}。第一波开始前${TOUCH ? '点「陷阱」' : '按 Tab '}打开陷阱一览，点「调整出战陷阱」换上。`, { pri: 2 }); }
 }
 function storyWave(e) {
   if (Tut.on) return;
@@ -3824,7 +4096,7 @@ function openBrief(id) {
   $('brIntel').innerHTML = [['地图', def.name], ['出怪口', `${lanes} 个${late ? `（${late} 个中途开启）` : ''}`], ['波次', `${def.waves.length} 波`], ['终局 BOSS', bosses.join(' + ') || '—'], ['难度', DIFFS[diff] ? DIFFS[diff].name : '普通']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   const foes = newFoesOf(id).filter(t => !MON[t].boss);
   const ci = MAP_LIST.findIndex(m => m.id === id) + 1, rew = Object.keys(UNLOCKS).filter(t => UNLOCKS[t].ch === ci && !isUnlocked(t));
-  $('brNew').innerHTML = (foes.length ? `<span class="lbl">本章新敌人</span>` + foes.map(t => `<span>${MON[t].name}</span>`).join('') : '') + (rew.length ? `<span class="lbl">通关奖励</span>` + rew.map(t => `<span class="rew">${TRAP[t].name}</span>`).join('') : '');
+  $('brNew').innerHTML = (foes.length ? `<span class="lbl">本章新敌人</span>` + foes.map(t => { const A = TD.ARMOR[MON[t].cls], wk = A ? Object.keys(A.mul).filter(e => A.mul[e] > 1).map(e => TD.ELEM[e].name) : []; return `<span title="${A ? A.desc : ''}">${MON[t].name}${wk.length ? `<small> · 怕${wk.join('、')}</small>` : ''}</span>`; }).join('') : '') + (rew.length ? `<span class="lbl">通关奖励</span>` + rew.map(t => `<span class="rew">${TRAP[t].name}</span>`).join('') : '');
   $('brLog').innerHTML = '';
   renderBriefLoad();
   show('brief', true);
@@ -3910,6 +4182,12 @@ const ICONS = {
   mortar: '<path d="M3 21h18M6 21l2-5h8l2 5M9 16l3-8 3 8M12 8a6 6 0 0 1 8-3M18 3l3 2-2 2"/>',
   gatling: '<path d="M4 20h10M7 20v-4h4v4"/><rect x="6" y="9" width="7" height="5" rx="1"/><path d="M13 10h8M13 11.5h8M13 13h8M3 11h3"/>',
   grinder: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="3"/><circle cx="15.5" cy="15.5" r="3"/><path d="M8.5 4v2M8.5 11v2M4 8.5h2M11 8.5h2M15.5 11v2M15.5 18v2M11 15.5h2M18 15.5h2"/>',
+  frost: '<path d="M3 20h18M7 20v-3h10v3M12 17V9M12 9l-3-3M12 9l3-3M12 6V3M8 12l-3 1M16 12l3 1"/>',
+  arc: '<path d="M2 6v12M2 9h3v6H2M6 12l3-4 2 6 3-5 2 4 3-3 3 2"/>',
+  acid: '<path d="M3 20h18M5 20c0-3 2-4 7-4s7 1 7 4M9 13a2 2 0 1 0 0-.1M14 10a1.5 1.5 0 1 0 0-.1M12 5a1 1 0 1 0 0-.1"/>',
+  flamer: '<path d="M2 11h11v3H2zM13 12h4M5 11V8h4v3M17 12c2-2 4-1 5 0-1 1-3 2-5 0"/>',
+  cryo: '<path d="M2 11h12v3H2zM14 12.5h3M17 12.5l2-2M17 12.5l2 2M19 10.5l2 2-2 2M5 11V9h3v2"/>',
+  arcgun: '<path d="M2 10h11v4H2zM13 11h3M13 13h3M16 12l2-2 1 3 2-2M5 10V8h3v2"/>',
   rifle: '<path d="M2 10h14l2-2h4v4h-3l-1 2h-5l-1 4H8l1-4H2z"/>',
   shotgun: '<path d="M2 9h16v3H2zM2 13h12M18 10.5h4M14 12l1 6h3l-1-6"/>',
   sniper: '<path d="M1 12h22M8 12v3h5l1 4h3l-1-4M10 8h6v3h-6zM5 12l-1 3"/>',
@@ -3922,8 +4200,8 @@ function svgIcon(id) { return `<svg viewBox="0 0 24 24" fill="none" stroke="curr
  * 每组只显示一个格子（上次选过的陷阱）；点一下选中它并展开同组的其他陷阱，再点一次收起。
  * 数字键 1-5 打开分组，再按数字选组内第几个；Tab 打开陷阱一览。 */
 const TRAP_GROUPS = [
-  { id: 'floor', name: '地面', cat: 'floor', traps: ['slow', 'spike', 'push', 'tesla'] },
-  { id: 'wall', name: '墙壁', cat: 'wall', traps: ['laser', 'flame'] },
+  { id: 'floor', name: '地面', cat: 'floor', traps: ['slow', 'spike', 'push', 'tesla', 'frost', 'acid'] },
+  { id: 'wall', name: '墙壁', cat: 'wall', traps: ['laser', 'flame', 'arc'] },
   { id: 'ceil', name: '天花板', cat: 'ceil', traps: ['crusher'] },
   { id: 'pad', name: '炮台', cat: 'pad', traps: ['sentry', 'aa', 'gatling'] },
   { id: 'heavy', name: '重型', cat: 'heavy', traps: ['rail', 'mortar', 'grinder'] },
@@ -3997,13 +4275,15 @@ function trapStats(t) {
   if (t.splash) L.push(['溅射半径', t.splash + ' 米']);
   if (t.push) L.push(['击退', arr(t.push, v => v + ' 米')]);
   if (t.stun) L.push(['眩晕', t.stun + ' 秒']);
+  if (t.chill) L.push(['冰冻值', arr(t.chill, v => Math.round(v * 100) + '%') + '（每次喷射，满 100% 冻住）']);
+  if (t.acid) L.push(['腐蚀增伤', arr(t.acid, v => '+' + Math.round(v * 100) + '%') + '（4 秒，护甲减半）']);
   if (TD.LANE_HP[t.id]) L.push(['通道上耐久', TD.LANE_HP[t.id].join(' / ')]);
   return L;
 }
 function renderBook() {
   // 左边按分组排的陷阱格子，右边详情（和图鉴同一套）；点格子看详情，点「选用」或双击直接拿在手上
   buildHelp();
-  const rl = canReload(); $('bookLoad').hidden = !rl; $('bookLoad').classList.toggle('hot', rl && loadHint(sim.def.id));
+  const rl = canReload(); $('bookLoad').hidden = !rl; $('bookLoad').classList.toggle('hot', rl && (loadHint(sim.def.id) || !!counterLoadHint(sim.def.id)));
   const box = $('bookList'); box.className = 'cdx bookCdx';
   box.innerHTML = '<div class="cdxList" id="bkL"></div><article class="cdxDetail" id="bkD"></article>';
   const L = $('bkL'), gold = sim ? sim.s.gold : 0;
@@ -4096,6 +4376,10 @@ function monTags(k) {
   if (m.ceil) tags.push('倒挂在天花板上爬行：地面陷阱、阻挡、减速、迫击炮都碰不到它；粉碎锤伤害 ×2');
   if (m.jam) tags.push(`周围 ${m.jam} 米内的陷阱全部失灵，被眩晕时干扰中断`);
   if (m.trapRes) tags.push(`反应装甲：陷阱伤害 -${Math.round(m.trapRes * 100)}%，枪械伤害 +${Math.round((m.gunVuln - 1) * 100)}%`);
+  if (m.iceImmune) tags.push('不会被减速、冻住');
+  if (m.thaw) tags.push(`周围 ${m.thaw.r} 米内的同伴受到的减速和冰冻减半`);
+  if (m.spores) tags.push(`死后裂成 ${m.spores.n} 个孢子——被烧死（灼烧中或火焰致命一击）就不会裂`);
+  if (m.frontShield) tags.push(`正面的盾挡住 ${Math.round((1 - m.frontShield) * 100)}% 的枪械伤害，侧面和背后没有盾`);
   return tags;
 }
 const MON_COUNTER = {
@@ -4113,7 +4397,21 @@ const MON_COUNTER = {
   crawler: '粉碎锤砸它伤害翻倍；激光、火焰等墙壁陷阱和炮台照常能打，枪也能打——抬头看。',
   jammer: '它走到哪里，哪里的陷阱就失灵。用枪集火、用手雷或磁暴「电弧过载」眩晕它，或者让炮台在干扰圈外先打掉它。',
   beetle: '陷阱只能打出一半伤害，但它怕子弹——留一把霰弹枪或穿甲步枪专门打它。',
+  magma: '火焰对它完全无效。急冻喷口、冰霜射线的寒冰伤害翻倍；减速后用粉碎锤砸还能触发碎冰。',
+  frostguard: '寒冰对它无效、也冻不住，还会护住身边的同伴。火焰伤害 ×1.75：火焰发射器、烈焰喷枪优先招呼它。',
+  sporer: '别用枪慢慢磨：死后会裂成一群孢子。先让它烧起来（火焰发射器、烈焰喷枪、龙息弹）再打死，就不会裂。',
+  spore: '孢子很脆但很快，激光、火焰这类横线陷阱一扫一片。',
+  mirror: '镜甲反射激光和电磁炮（只剩 35%）。用粉碎锤、机枪、碎骨绞盘和你的步枪、霰弹枪——动能伤害 ×1.5。',
+  swarm: '成群的小型机械无人机：磁暴塔、电弧网、电弧枪的电击 ×1.5，电弧网和墙壁陷阱一次能扫一片。',
+  juggernaut: '正面的盾挡住大部分子弹——绕到侧面或背后打。它是重甲：激光、电磁炮的能量伤害和酸蚀池的腐蚀 ×1.5，尖刺和重锤效果差。',
 };
+// 伤害类型 / 体质的小标签
+const elemChip = el => el && TD.ELEM[el] ? `<span class="elChip" style="--ec:${TD.ELEM[el].col}">${TD.ELEM[el].name}</span>` : '';
+function armorLine(cls) {
+  const A = TD.ARMOR[cls]; if (!A) return '';
+  const weak = Object.keys(A.mul).filter(k => A.mul[k] > 1), res = Object.keys(A.mul).filter(k => A.mul[k] < 1);
+  return `${A.name}体质 · ${weak.length ? '怕' + weak.map(k => elemChip(k) + '×' + A.mul[k]).join(' ') : ''}${res.length ? ' · 抗' + res.map(k => elemChip(k) + (A.mul[k] === 0 ? '免疫' : '×' + A.mul[k])).join(' ') : ''}`;
+}
 const CODEX = {};
 function cdxItem(kind, it) { (CODEX[kind] || (CODEX[kind] = [])).push(it); }
 function dl(rows) { return `<dl class="cdxStats">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`; }
@@ -4128,6 +4426,9 @@ const CAT_RULE = {
 const TRAP_NOTE = {
   gatling: '按 F 坐上去亲手扫射：先转管预热，之后每秒 20 发，对地对空都能打；连续开火约 5 秒会过热。F / 空格离开。',
   mortar: '按 F 站上观测台，用准星在地上选落点开炮：冷却 ×0.55、伤害 ×1.15。',
+  frost: '和粉碎锤是绝配：冻住或减速的敌人被锤中伤害 ×2（碎冰）。寒霜卫兵附近冻不住。',
+  acid: '腐蚀期间护甲减半、受到的所有伤害提高：铺在主力输出陷阱的前面。',
+  arc: '能电到空中的敌人。机械体质（无人机、蜂群、自爆蜘蛛、机甲）受到 1.5 倍伤害并短路僵直。',
 };
 function buildHelp() {
   for (const k in CODEX) delete CODEX[k];
@@ -4136,7 +4437,7 @@ function buildHelp() {
     const t = TRAP[id];
     cdxItem('trap', { id, grp: `${gi + 1} · ${g.name}`, name: t.name, icon: svgIcon(id), cat: t.cat, locked: () => !isUnlocked(id), detail: () => {
       const ev = EVO[id], desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
-      return `<header><span class="ic">${svgIcon(id)}</span><h3>${t.name}</h3><span class="cdxMeta">${CAT_NAME[t.cat]} · ${t.cost} 金币 · 按 <span class="kb">${keyCombo(id)}</span></span></header>
+      return `<header><span class="ic">${svgIcon(id)}</span><h3>${t.name}</h3><span class="cdxMeta">${elemChip(t.elem)} ${CAT_NAME[t.cat]} · ${t.cost} 金币 · 按 <span class="kb">${keyCombo(id)}</span></span></header>
         ${ST.TRAP_LORE[id] ? `<p class="cdxLore">${ST.TRAP_LORE[id]}</p>` : ''}
         <div class="cdxCols"><div>
         ${isUnlocked(id) ? '' : `<p class="cdxLock">${lockText(id)}</p>`}${PROG.mastLv(id) ? `<p class="cdxFoot">陷阱精通 Lv${PROG.mastLv(id)}：你建造的${t.name}伤害 +${PROG.mastLv(id) * 5}%${PROG.mastLv(id) >= 3 ? '，建造便宜 10%' : ''}</p>` : ''}
@@ -4155,15 +4456,15 @@ function buildHelp() {
       return `<header><h3>${m.name}</h3><span class="cdxMeta">${grp}</span></header>
         ${ST.MON_LORE[k] ? `<p class="cdxLore">${ST.MON_LORE[k]}</p>` : ''}
         <div class="cdxCols"><div>
-        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['击杀奖励', m.bounty + ' 金币'], ['漏到晶核', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 晶核生命']])}
+        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['体质', m.cls ? armorLine(m.cls) + (m.boss ? '（BOSS 只算一半）' : '') : '普通（所有伤害类型都正常）'], ['击杀奖励', m.bounty + ' 金币'], ['漏到晶核', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 晶核生命']])}
         ${tags.length ? `<ul class="cdxTags">${tags.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p>基础单位，没有特殊能力。</p>'}</div><div>
         ${TD.BOSS_TIP && TD.BOSS_TIP[k] ? `<p class="cdxNote">${TD.BOSS_TIP[k]}</p>` : ''}
         ${MON_COUNTER[k] ? `<div class="cdxEvo"><h4>怎么对付</h4><p>${MON_COUNTER[k]}</p></div>` : ''}</div></div>`;
     } });
   }
   // —— 武器与职业 ——
-  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header>${ST.WPN_LORE[w.id] ? `<p class="cdxLore">${ST.WPN_LORE[w.id]}</p>` : ''}<p>${w.desc}</p>
-      ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}${(TD.WMODS[w.id] || []).length ? `<div class="cdxEvo"><h4>改装（买下后在军械库二选一，本局有效）</h4>${TD.WMODS[w.id].map(M => `<p><b>${M.name}</b>${M.desc} · ${M.cost} 金币</p>`).join('')}</div>` : ''}` }));
+  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${elemChip(w.elem)} ${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header>${ST.WPN_LORE[w.id] ? `<p class="cdxLore">${ST.WPN_LORE[w.id]}</p>` : ''}<p>${w.desc}</p>
+      ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []).concat(w.maxR ? [['射程', w.maxR + ' 米']] : []).concat(w.chain ? [['跳跃', `${w.chain.n} 次 · ${w.chain.r} 米内 · 每跳 ×${w.chain.mul}`]] : []).concat(w.burn ? [['灼烧', w.burn + ' / 秒']] : []))}${(TD.WMODS[w.id] || []).length ? `<div class="cdxEvo"><h4>改装（买下后在军械库二选一，本局有效）</h4>${TD.WMODS[w.id].map(M => `<p><b>${M.name}</b>${M.desc} · ${M.cost} 金币</p>`).join('')}</div>` : ''}` }));
   cdxItem('wpn', { id: 'nade', grp: '技能', name: SKILL.nade.name, icon: svgIcon('nade'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('nade')}</span><h3>${SKILL.nade.name}</h3><span class="cdxMeta">按 C 投掷</span></header><p>抛物线投掷，${SKILL.nade.fuse} 秒后爆炸。</p>${dl([['伤害', SKILL.nade.dmg], ['范围', SKILL.nade.r + ' 米'], ['数量', `最多 ${SKILL.nade.max} 枚（突击兵 +1）`], ['充能', `每 ${SKILL.nade.recharge} 秒 1 枚`]])}` });
   cdxItem('wpn', { id: 'ult', grp: '技能', name: SKILL.ult.name, icon: svgIcon('ult'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('ult')}</span><h3>${SKILL.ult.name}</h3><span class="cdxMeta">能量满 100% 后按 Z</span></header><p>用枪造成伤害和击杀会积攒能量；满了以后对准地面呼叫，${SKILL.ult.delay} 秒后落下，大范围重创并眩晕敌人。</p>${dl([['伤害', SKILL.ult.dmg], ['范围', SKILL.ult.r + ' 米'], ['眩晕', SKILL.ult.stun + ' 秒']])}` });
   for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header>${ST.CLS_LORE[c.id] ? `<p class="cdxLore">${ST.CLS_LORE[c.id]}</p>` : ''}<p>${c.desc}</p><p><b>震荡冲击（V）</b>：${c.shock}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
@@ -4181,13 +4482,17 @@ function buildHelp() {
   // —— 机制 ——
   const R = (id, grp, name, body) => cdxItem('rule', { id, grp, name, icon: '', cat: 'gun', detail: () => `<header><h3>${name}</h3><span class="cdxMeta">${grp}</span></header>${body}` });
   R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
+  R('elem', '基础规则', '伤害类型与克制', `<p>每种陷阱和武器都有一种<b>伤害类型</b>，每种怪物有一种<b>体质</b>。打中弱点伤害更高，打中抗性伤害降低，有的完全免疫——伤害数字变<b style="color:#ffd166">金色</b>是克制，变<b style="color:#9aa4ae">灰色</b>是被抵抗。看到「免疫」就该换东西打了。BOSS 的克制和抵抗只算一半。</p>
+    <table class="elTable"><thead><tr><th>体质</th><th>怕</th><th>抗</th><th>代表</th></tr></thead><tbody>${Object.entries(TD.ARMOR).map(([k, A]) => `<tr><td><b>${A.name}</b></td><td>${Object.keys(A.mul).filter(e => A.mul[e] > 1).map(e => elemChip(e) + '×' + A.mul[e]).join(' ') || '—'}</td><td>${Object.keys(A.mul).filter(e => A.mul[e] < 1).map(e => elemChip(e) + (A.mul[e] === 0 ? '免疫' : '×' + A.mul[e])).join(' ') || '—'}</td><td>${Object.keys(MON).filter(m => MON[m].cls === k && !MON[m].boss).slice(0, 4).map(m => MON[m].name).join('、')}</td></tr>`).join('')}</tbody></table>
+    <h4 class="cdxH4">伤害类型</h4><ul class="cdxTags">${Object.keys(TD.ELEM).map(e => `<li>${elemChip(e)} ${[...TRAPS.filter(t => t.elem === e).map(t => t.name), ...WEAPONS.filter(w => w.elem === e).map(w => w.name)].join('、')}</li>`).join('')}<li>${elemChip('blast')} 手雷、轨道打击、自爆蜘蛛的爆炸也算爆炸伤害；${elemChip('kinetic')} 震荡冲击和亲手操控加特林算动能。</li></ul>
+    <p class="cdxFoot">腐蚀（酸蚀池）还会让敌人 4 秒内护甲减半、受到的所有伤害提高——先酸再打。寒冰会积累冰冻值，满了就冻住（寒霜卫兵和 BOSS 冻不住）。</p>`);
   R('respawn', '基础规则', '复活保护', '<p>阵亡后，守卫装甲的回传系统会在 5 秒后把你送回基地重建，回来后 10 秒内无敌。</p>');
   R('body', '基础规则', '挡路与近战', '<p>碰到怪物不会受伤：近战怪只会攻击<b>挡在它路上</b>的守卫。站到它正前方，它就会停下来挥一下（约 1 秒，挥到一半时命中）——及时闪开能让它挥空，但它还是会停在原地把这一下打完；从旁边或身后贴近都没事。用身体挡路能把怪拖在陷阱里，但要盯着自己的血量。自爆蜘蛛被你挡住会直接爆炸；BOSS 不会停下，会把挡路的你拍开。</p>');
   R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
   R('unlock', '基础规则', '陷阱解锁', `<p>新守卫上岗时只有六种基础陷阱：减速器、毒刺陷阱、自修复磁暴塔、激光发射器、粉碎锤、岗哨机枪。每打通一章主线（任意难度），老钳就会送来新装备：</p><ul class="cdxTags">${Object.keys(UNLOCKS).sort((a, b) => UNLOCKS[a].ch - UNLOCKS[b].ch).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上，可以在设置里导出存档或开启云存档。</p>`);
   R('shock', '基础规则', '震荡冲击', `<p>按 V（手机右侧的「冲击」按钮）向准星方向扇形释放一道冲击波：造成伤害、击退并短暂眩晕前方的怪物，冷却 ${TD.SHOCK.cd} 秒。被推到坑边的怪物会直接掉下去。BOSS 只吃伤害。</p><ul class="cdxTags">${CLASSES.map(c => `<li><b>${c.name}</b>：${c.shock}</li>`).join('')}</ul>`);
   R('combo', '基础规则', '连杀与花式击杀', '<p>2.5 秒内接连击杀会累积全队连杀数：5 连杀起每只额外 +1 金币，10 连杀 +2，20 连杀 +3。花式击杀另有赏金：空中击杀（被弹飞时打死）、碎冰（冻住时被粉碎锤砸死）、爆燃（点燃毒雾）各 +3 金币，场景杀 +5 金币。</p>');
-  R('load', '基础规则', '出战配置与陷阱精通', `<p>一局最多带 ${LOAD_MAX} 种陷阱上场：开局设置的最后一步「陷阱」里挑选（解锁的陷阱不到 ${LOAD_MAX} 种时全部带上）。联机时每人各带各的。</p><p>主菜单「天赋」里的<b>陷阱精通</b>可以用功勋星单独强化每一种陷阱：每级伤害 +5%，满 3 级后建造再便宜 10%，只对你自己建造的陷阱生效。</p>`);
+  R('load', '基础规则', '出战配置与陷阱精通', `<p>一局最多带 ${LOAD_MAX} 种陷阱上场：开局设置的「出战陷阱」一步、主线任务简报里的「调整」，或者第一波开始前在陷阱一览（Tab）里点「调整出战陷阱」都能换（解锁的陷阱不到 ${LOAD_MAX} 种时全部带上）。联机时每人各带各的。遇到克制型敌人前记得换上对症的陷阱。</p><p>主菜单「天赋」里的<b>陷阱精通</b>可以用功勋星单独强化每一种陷阱：每级伤害 +5%，满 3 级后建造再便宜 10%，只对你自己建造的陷阱生效。</p>`);
   R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（晶核被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
   R('height', '地形', '高地与崖壁', '<p>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯、斜坡或梯子，往下可以直接跳。通道旁高出 2.5 米以上的崖壁可以挂墙壁陷阱。</p>');
   R('pit', '地形', '场景杀', '<p>部分地图的通道旁有陷坑：空间站的气闸、要塞的古井、熔炉的熔岩池、深渊、流沙坑、裂谷、液氮池。用弹射板或震荡冲击把怪物推下去就是一击必杀，额外 +5 金币。BOSS、飞行、倒挂在天花板上和不吃击退的怪物不会掉下去。小地图上的黑色方块就是坑。</p>');
@@ -5228,7 +5533,7 @@ function renderShop() {
     const b = document.createElement('button'); b.type = 'button';
     b.className = 'wcard' + (cur ? ' cur' : '') + (own ? ' own' : '') + (poor ? ' poor' : '');
     const dps = Math.round(w.dmg * (w.pellets || 1) * w.rps);
-    b.innerHTML = `<span class="kb">${i + 1}</span><span class="wi">${svgIcon(w.id)}</span><b>${w.name}${w.modName ? `<small class="wmodTag">${w.modName}</small>` : ''}</b><span class="ws">伤害 ${w.dmg}${w.pellets ? '×' + w.pellets : ''}${w.splash ? ' 范围' : ''} · 弹匣 ${w.mag} · 每秒 ${dps}</span><span class="wd">${w.desc}</span><em>${cur ? '装备中' : own ? '已拥有 · 装备' : w.cost + ' 金币'}</em>`;
+    b.innerHTML = `<span class="kb">${i + 1}</span><span class="wi">${svgIcon(w.id)}</span><b>${w.name} ${elemChip(w.elem)}${w.modName ? `<small class="wmodTag">${w.modName}</small>` : ''}</b><span class="ws">伤害 ${w.dmg}${w.pellets ? '×' + w.pellets : ''}${w.splash ? ' 范围' : ''} · 弹匣 ${w.mag} · 每秒 ${dps}</span><span class="wd">${w.desc}</span><em>${cur ? '装备中' : own ? '已拥有 · 装备' : w.cost + ' 金币'}</em>`;
     b.addEventListener('click', () => buyWeapon(i));
     row.appendChild(b);
     // 改装：买下这把枪后可以二选一
@@ -5313,7 +5618,7 @@ function newGame(state, prebuilt) {
   diff = sim.s.diff;
   trapIndex = new Map(); slotCache = null; pathDirCache.clear();
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;
-  parts.length = 0; tracers.length = 0; rings.length = 0; lights.length = 0;
+  parts.length = 0; tracers.length = 0; zaps.length = 0; rings.length = 0; lights.length = 0; counterTagT.clear(); counterSaid.clear();
   const p = sim.s.players[PID]; cam.yaw = p ? p.yaw : 0; cam.pitch = 0;
   runLoad = new Set(LOAD.list(sim && sim.def && sim.def.id));
   tool = 'gun'; buildHotbar(); selectTool('gun'); for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === 'gun');
@@ -6236,6 +6541,7 @@ function frame(now) {
     else E.push('ring', tr.wx, yy, tr.wz, timeNow, T * (TRAP[tr.type].big ? 1.15 : 0.62), 1, T * (TRAP[tr.type].big ? 1.15 : 0.62), c(1, 0.75, 0.3, 0.8, 1, 0, true));
   }
   // 子弹轨迹
+  drawZaps(fxdt);
   for (let i = tracers.length - 1; i >= 0; i--) {
     const t = tracers[i]; t.t += fxdt;
     if (t.t > t.life) { tracers.splice(i, 1); continue; }
@@ -6360,6 +6666,8 @@ function renderLoadout(ids, mapId, onChange) {
   setText(ids.n, `${cur.length} / ${LOAD_MAX}`);
   setText(ids.tip, free ? `已解锁的陷阱还不到 ${LOAD_MAX} 种，全部带上。打通主线章节会解锁更多陷阱，到时候就得挑着带了。` : `一局最多带 ${LOAD_MAX} 种陷阱，点一下带上 / 取下。带「新」字的是刚解锁的。${MP.role !== 'solo' ? '联机时每人各带各的。' : ''}`);
   $(ids.auto).hidden = free;
+  // 从任务简报打开：本章有克制型敌人、又没带对症的陷阱时，换成一句提示
+  { const hh = ids === LOAD_UI.modal && mapId ? counterLoadHint(mapId) : ''; if (hh) setText(ids.tip, '提示：' + hh + '。'); $(ids.tip).classList.toggle('hint', !!hh); }
   box.innerHTML = '';
   for (const g of TRAP_GROUPS) for (const id of g.traps) {
     const t = TRAP[id], lock = !isUnlocked(id), on = cur.includes(id);
@@ -6387,13 +6695,31 @@ function openLoadModal(mapId, onChange) {
 }
 function closeLoadModal() { show('loadModal', false); const c = loadModalCtx; loadModalCtx = null; if (c && c.onChange) c.onChange(); }
 // 任务简报里的「出战陷阱」一行
+// 这一章的克制型敌人怕的伤害类型里，有没有「解锁了却没带」的陷阱
+function counterLoadHint(mapId) {
+  const def = MAPS[mapId]; if (!def || LOAD.unlocked().length <= LOAD_MAX) return '';
+  const cur = LOAD.list(mapId), seen = new Set();
+  for (const w of def.waves) for (const g of w.groups) seen.add(g.t);
+  // 先提醒最要命的：有免疫的（熔岩 / 冰甲 / 镜甲），再是重甲、机械、血肉
+  const PRI = ['molten', 'frost', 'mirror', 'heavy', 'mech', 'flesh'], order = [...seen].filter(t => MON[t] && MON[t].cls).sort((a, b) => PRI.indexOf(MON[a].cls) - PRI.indexOf(MON[b].cls));
+  for (const t of order) {
+    const A = TD.ARMOR[MON[t] && MON[t].cls]; if (!A || MON[t].boss && !['molten', 'frost', 'mirror'].includes(MON[t].cls)) continue;
+    const weak = Object.keys(A.mul).filter(e => A.mul[e] > 1);
+    if (weak.some(e => cur.some(id => TRAP[id].elem === e))) continue;
+    const opt = LOAD.unlocked().filter(id => weak.includes(TRAP[id].elem) && !cur.includes(id));
+    if (opt.length) return `${MON[t].name}怕${weak.map(e => TD.ELEM[e].name).join('、')}：可以带上${opt.slice(0, 2).map(id => TRAP[id].name).join('或')}`;
+  }
+  return '';
+}
 function renderBriefLoad() {
-  const id = Brief.map, cur = LOAD.list(id), hot = loadHint(id);
+  const id = Brief.map, cur = LOAD.list(id), hot = loadHint(id), ch = counterLoadHint(id);
+  setText('brLoadHint', ch); $('brLoadHint').hidden = !ch;
   setText('brLoadN', `${cur.length} / ${Math.min(LOAD_MAX, LOAD.unlocked().length)}`);
   $('brLoadIc').innerHTML = cur.map(t => `<i style="--cc: var(--c-${TRAP[t].cat})" title="${TRAP[t].name}">${svgIcon(t)}</i>`).join('');
   $('brLoadTip').hidden = !hot; $('brLoad').classList.toggle('hot', hot);
   $('brLoadBtn').hidden = LOAD.unlocked().length <= LOAD_MAX;
-  $('brLoadBtn2').hidden = LOAD.unlocked().length <= LOAD_MAX; $('brLoadDot').hidden = !hot;
+  $('brLoadBtn2').hidden = LOAD.unlocked().length <= LOAD_MAX; $('brLoadDot').hidden = !hot && !ch;
+  $('brLoad').classList.toggle('hot', hot || !!ch);
 }
 // 第一波开始前：在陷阱一览里改出战陷阱，马上生效
 const canReload = () => !!sim && mode === 'play' && sim.s.phase === 'build' && sim.s.wave === 0 && !Tut.on && LOAD.unlocked().length > LOAD_MAX;

@@ -297,6 +297,7 @@ body.touch #comboBig { top: 12%; font-size: 26px; }
 .loadHead h3 { margin: 0; font-size: 18px; font-weight: 500; letter-spacing: .1em; }
 .loadHead h3 b { margin-left: 8px; font-family: var(--f-num); color: var(--gold); font-weight: 600; letter-spacing: 0; }
 .loadTip { margin: 4px 0 10px; }
+.loadTip.hint { color: #ffd166; }
 .loadGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .ldT { --cc: var(--c-gun); position: relative; display: grid; grid-template-columns: 26px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 8px; align-items: center; padding: 9px 10px; font: inherit; text-align: left; color: var(--ink); background: rgba(255, 255, 255, .03); border: 1px solid var(--line); border-left: 3px solid var(--line); cursor: pointer; }
 .ldT .ic { grid-row: span 2; color: var(--cc); display: grid; place-items: center; }
@@ -391,6 +392,18 @@ body.touch .bkRow { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr))
 #nums .num.gold { color: var(--gold); font-size: 12px; opacity: .9; }
 #nums .num.style { color: #ffd38a; font-family: var(--f-disp); font-size: 17px; letter-spacing: .06em; text-shadow: 0 0 8px rgba(255, 140, 50, .85), 0 1px 2px #000; }
 #nums .num.pit { color: #ff9b6b; font-size: 24px; }
+#nums .num.weak { color: #ffd166; font-size: 17px; }
+#nums .num.resist { color: #9aa4ae; font-size: 13px; }
+#nums .num.tag { font-family: var(--f-disp); font-size: 13px; letter-spacing: .06em; }
+#nums .num.tag.weak { color: #ffd166; text-shadow: 0 0 8px rgba(255, 180, 60, .8), 0 1px 2px #000; }
+#nums .num.tag.resist { color: #c7ced6; }
+#nums .num.tag.immune { color: #ff8a7a; font-size: 15px; }
+#nums .num.tag.freeze { color: #bff0ff; font-size: 15px; text-shadow: 0 0 8px rgba(120, 220, 255, .9), 0 1px 2px #000; }
+.elChip { display: inline-block; padding: 0 5px; margin: 0 1px; border-radius: 3px; font-size: 11px; line-height: 16px; font-weight: 600; color: #0d1117; background: var(--ec, #ccc); vertical-align: 1px; letter-spacing: 0; }
+.elTable { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: 13px; }
+.elTable th, .elTable td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.elTable th { color: var(--faint); font-weight: 500; font-size: 12px; }
+.elTable td:nth-child(-n+3) { white-space: nowrap; }
 #nums .num.combo { color: #ffe3a8; font-family: var(--f-disp); font-size: 22px; letter-spacing: .08em; text-shadow: 0 0 10px rgba(255, 160, 60, .9), 0 1px 2px #000; }
 
 /* ---------- 覆盖层 ---------- */
@@ -670,6 +683,8 @@ body.touch #bossCard .bcArt { width: min(190px, 26vw); margin-bottom: 0; }
 .brLoad em { font-style: normal; font-size: 11px; color: #10141a; background: #ffd166; padding: 1px 6px; border-radius: 3px; animation: newPulse 1.6s ease-in-out infinite; }
 .brLoad em[hidden] { display: none; }
 .brLoad.hot #brLoadBtn { border-color: #ffd166; color: #ffd166; }
+.brLoadHint { flex-basis: 100%; font-size: 11.5px; color: #ffd166; line-height: 1.4; }
+.brLoadHint[hidden] { display: none; }
 #loadModal { z-index: 66; background: rgba(3, 6, 10, .86); }
 .lmBox { width: min(980px, calc(100% - 24px)); gap: 10px; padding: 18px clamp(14px, 3vw, 26px); }
 #bookLoad { margin-left: auto; white-space: nowrap; }
@@ -682,6 +697,7 @@ body.touch #bossCard .bcArt { width: min(190px, 26vw); margin-bottom: 0; }
 @media (max-height: 560px) {
   .lmBox { padding: 10px 14px; gap: 6px; }
   .lmBox .loadTip { display: none; }
+  .lmBox .loadTip.hint { display: block; margin: 0; }
   .loadGrid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 5px; }
   .ldT { padding: 5px 7px; column-gap: 6px; grid-template-columns: 20px minmax(0, 1fr); }
   .ldT .ic svg { width: 19px; height: 19px; }
@@ -1472,7 +1488,7 @@ body.tEditOnly #hud { background: #05080c; }
       <p class="brGoal" id="brGoal"></p>
       <dl class="brIntel" id="brIntel"></dl>
       <div class="brNew" id="brNew"></div>
-      <div class="brLoad" id="brLoad"><span class="lbl">出战陷阱 <b id="brLoadN"></b></span><span class="brLoadIc" id="brLoadIc"></span><em id="brLoadTip" hidden>有新陷阱没带上</em><button type="button" class="ghostBtn small" id="brLoadBtn">调整</button></div>
+      <div class="brLoad" id="brLoad"><span class="lbl">出战陷阱 <b id="brLoadN"></b></span><span class="brLoadIc" id="brLoadIc"></span><em id="brLoadTip" hidden>有新陷阱没带上</em><button type="button" class="ghostBtn small" id="brLoadBtn">调整</button><small class="brLoadHint" id="brLoadHint" hidden></small></div>
     </aside>
     <section class="brTalk">
       <h3>任务简报 <small>点对话区继续</small></h3>

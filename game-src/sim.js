@@ -42,9 +42,9 @@ const ELEM = {
   shock: { name: '电击', col: '#b48cff' }, cryo: { name: '寒冰', col: '#9fe8ff' }, blast: { name: '爆炸', col: '#ffcf5a' }, acid: { name: '腐蚀', col: '#a6f25a' },
 };
 const ARMOR = {
-  flesh: { name: '血肉', desc: '活物，怕火；没有电路，电击效果差', mul: { fire: 1.5, shock: 0.7 } },
-  mech: { name: '机械', desc: '电路暴露，怕电击；金属外壳不怕火', mul: { shock: 1.5, fire: 0.7 } },
-  heavy: { name: '重甲', desc: '厚重装甲，子弹和尖刺打不动；能量束和腐蚀能熔穿', mul: { energy: 1.5, acid: 1.5, kinetic: 0.6 } },
+  flesh: { name: '血肉', desc: '活物，怕火；没有电路，电击效果差', mul: { fire: 1.5, shock: 0.8 } },
+  mech: { name: '机械', desc: '电路暴露，怕电击；金属外壳不怕火', mul: { shock: 1.5, fire: 0.8 } },
+  heavy: { name: '重甲', desc: '厚重装甲，子弹、尖刺和重锤效果差；能量束和腐蚀能熔穿', mul: { energy: 1.5, acid: 1.5, kinetic: 0.75 } },
   molten: { name: '熔岩', desc: '火焰对它无效；寒冰让它急速冷却开裂', mul: { cryo: 2, fire: 0 } },
   frost: { name: '冰甲', desc: '寒冰无效、不会被减速和冻住；火焰能融化冰甲', mul: { fire: 1.75, cryo: 0 } },
   mirror: { name: '镜甲', desc: '镜面装甲反射能量束；动能冲击能把它砸碎', mul: { energy: 0.35, kinetic: 1.5 } },
@@ -56,32 +56,40 @@ const elemMul = (cls, el) => (cls && el && ARMOR[cls] && ARMOR[cls].mul[el] !== 
  */
 const MON = {
   grunt: { name: '赛博格步兵', hp: 140, spd: 3.4, core: 5, bounty: 16, dps: 30, melee: 10, r: 0.45, body: [0.82, 0.4], head: [1.55, 0.48] },
-  runner: { name: '疾行猎犬', hp: 85, spd: 6.2, core: 3, bounty: 14, dps: 20, melee: 8, r: 0.45, body: [0.55, 0.5], head: [0.72, 0.24, 0.7] },
-  brute: { name: '重装赛博格', hp: 950, spd: 2.3, armor: 0.3, core: 15, bounty: 55, dps: 90, melee: 25, r: 0.8, knockRes: 0.5, body: [1.2, 0.58], head: [2.25, 0.7] },
-  flyer: { name: '浮游无人机', hp: 110, spd: 4.4, core: 5, bounty: 20, fly: true, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
-  bomber: { name: '自爆蜘蛛', hp: 190, spd: 4.0, core: 20, bounty: 24, bomb: true, r: 0.55, body: [0.55, 0.55], head: [0.68, 0.22, 0.5] },
-  elite: { name: '狂猩赛博格', hp: 4200, spd: 2.7, armor: 0.2, core: 40, bounty: 400, dps: 130, melee: 35, r: 1.1, knockRes: 1, slowRes: 0.5, elite: true, body: [1.85, 0.95], head: [2.62, 0.42, 0.72] },
-  healer: { name: '修复无人机', hp: 160, spd: 3.8, core: 5, bounty: 32, fly: true, heal: 30, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
-  boss: { name: '泰坦·终焉', hp: 20000, spd: 1.5, armor: 0.2, core: 999, bounty: 0, dps: 300, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [3.1, 1.9], head: [5.68, 0.62, 0.1] },
+  runner: { name: '疾行猎犬', cls: 'mech', hp: 85, spd: 6.2, core: 3, bounty: 14, dps: 20, melee: 8, r: 0.45, body: [0.55, 0.5], head: [0.72, 0.24, 0.7] },
+  brute: { name: '重装赛博格', cls: 'heavy', hp: 950, spd: 2.3, armor: 0.3, core: 15, bounty: 55, dps: 90, melee: 25, r: 0.8, knockRes: 0.5, body: [1.2, 0.58], head: [2.25, 0.7] },
+  flyer: { name: '浮游无人机', cls: 'mech', hp: 110, spd: 4.4, core: 5, bounty: 20, fly: true, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
+  bomber: { name: '自爆蜘蛛', cls: 'mech', hp: 190, spd: 4.0, core: 20, bounty: 24, bomb: true, r: 0.55, body: [0.55, 0.55], head: [0.68, 0.22, 0.5] },
+  elite: { name: '狂猩赛博格', cls: 'flesh', hp: 4200, spd: 2.7, armor: 0.2, core: 40, bounty: 400, dps: 130, melee: 35, r: 1.1, knockRes: 1, slowRes: 0.5, elite: true, body: [1.85, 0.95], head: [2.62, 0.42, 0.72] },
+  healer: { name: '修复无人机', cls: 'mech', hp: 160, spd: 3.8, core: 5, bounty: 32, fly: true, heal: 30, r: 0.5, body: [0, 0.6], head: [0.05, 0.28] },
+  boss: { name: '泰坦·终焉', cls: 'heavy', hp: 20000, spd: 1.5, armor: 0.2, core: 999, bounty: 0, dps: 300, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [3.1, 1.9], head: [5.68, 0.62, 0.1] },
   // —— 新敌人 ——
   stalker: { name: '幽影刺客', hp: 340, spd: 4.4, core: 6, bounty: 30, dps: 40, melee: 14, r: 0.45, stealth: true, body: [0.75, 0.37], head: [1.43, 0.44] },
-  burrower: { name: '钻地虫', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.5, 0.6], head: [0.55, 0.36, 0.55] },
+  burrower: { name: '钻地虫', cls: 'flesh', hp: 520, spd: 3.0, armor: 0.1, core: 8, bounty: 34, dps: 40, r: 0.6, burrow: true, body: [0.5, 0.6], head: [0.55, 0.36, 0.55] },
   sapper: { name: '骇客工兵', hp: 420, spd: 2.8, core: 6, bounty: 42, dps: 25, melee: 8, r: 0.5, hack: true, body: [0.75, 0.37], head: [1.43, 0.44] },
   gunner: { name: '火线射手', hp: 300, spd: 2.6, core: 5, bounty: 30, dps: 25, r: 0.5, ranged: { range: 16, dmg: 7, rate: 1.4, acc: 0.65, speed: 16 }, body: [0.86, 0.42], head: [1.63, 0.5] },
-  mite: { name: '噬晶蛛', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.33, 0.17, 0.3] },
-  siege: { name: '攻城机甲·破城者', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [1.4, 1.55], head: [2.62, 0.72, 0.2] },
-  colossus: { name: '熔炉巨像', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.93, 0.62, 0.15] },
-  brood: { name: '深渊母巢', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.1, 1.6], head: [1.6, 0.66, 1.4] },
+  mite: { name: '噬晶蛛', cls: 'mech', hp: 55, spd: 5.6, core: 2, bounty: 4, dps: 10, melee: 4, r: 0.32, body: [0.3, 0.35], head: [0.33, 0.17, 0.3] },
+  siege: { name: '攻城机甲·破城者', cls: 'mech', hp: 15000, spd: 1.35, armor: 0.3, core: 999, bounty: 0, dps: 320, melee: 40, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, body: [1.4, 1.55], head: [2.62, 0.72, 0.2] },
+  colossus: { name: '熔炉巨像', cls: 'molten', hp: 21000, spd: 1.5, armor: 0.15, core: 999, bounty: 0, dps: 320, melee: 45, r: 2.1, knockRes: 1, slowRes: 0.6, burnImmune: true, boss: true, body: [3.2, 2.0], head: [5.93, 0.62, 0.15] },
+  brood: { name: '深渊母巢', cls: 'flesh', hp: 15000, spd: 1.6, armor: 0.1, core: 999, bounty: 0, dps: 260, melee: 35, r: 2.0, knockRes: 1, slowRes: 0.6, boss: true, split: 'broodling', body: [2.1, 1.6], head: [1.6, 0.66, 1.4] },
   // —— 强力敌人（第二批）——
   shield: { name: '棱盾守卫', hp: 950, spd: 2.6, armor: 0.25, core: 6, bounty: 60, dps: 55, melee: 14, r: 0.6, knockRes: 0.3, aura: { every: 5.5, r: 6, amt: 200 }, body: [0.98, 0.48], head: [1.86, 0.56] },
-  tank: { name: '铁蹄坦克', hp: 2500, spd: 1.9, armor: 0.4, core: 12, bounty: 130, dps: 150, r: 1.15, knockRes: 1, slowRes: 0.3, stunRes: 0.6, heavy: true, cannon: { range: 15, every: 5.5, dmg: 380, dis: 4 }, body: [0.9, 1.15], head: [1.75, 0.42, 0.65] },
+  tank: { name: '铁蹄坦克', cls: 'heavy', hp: 2500, spd: 1.9, armor: 0.4, core: 12, bounty: 130, dps: 150, r: 1.15, knockRes: 1, slowRes: 0.3, stunRes: 0.6, heavy: true, cannon: { range: 15, every: 5.5, dmg: 380, dis: 4 }, body: [0.9, 1.15], head: [1.75, 0.42, 0.65] },
   blinker: { name: '相位行者', hp: 520, spd: 3.3, core: 4, bounty: 40, dps: 35, melee: 12, r: 0.45, blink: { every: 6.5, dist: 6 }, body: [0.78, 0.38], head: [1.47, 0.46] },
-  gunship: { name: '天穹炮艇', hp: 2000, spd: 2.4, armor: 0.2, core: 10, bounty: 110, fly: true, heavy: true, r: 1.2, ranged: { range: 20, dmg: 9, rate: 1.2, acc: 0.6, speed: 15 }, drop: { type: 'mite', n: 2, every: 9 }, body: [0, 1.1], head: [0.3, 0.45, 1.15] },
+  gunship: { name: '天穹炮艇', cls: 'mech', hp: 2000, spd: 2.4, armor: 0.2, core: 10, bounty: 110, fly: true, heavy: true, r: 1.2, ranged: { range: 20, dmg: 9, rate: 1.2, acc: 0.6, speed: 15 }, drop: { type: 'mite', n: 2, every: 9 }, body: [0, 1.1], head: [0.3, 0.45, 1.15] },
   // —— 克制型敌人（第三批）——
-  crawler: { name: '攀顶蛛', hp: 380, spd: 3.7, core: 6, bounty: 30, r: 0.55, ceil: true, body: [0.55, 0.55], head: [0.7, 0.25, 0.55] },
-  jammer: { name: '电磁干扰兵', hp: 680, spd: 2.5, armor: 0.1, core: 6, bounty: 48, dps: 30, melee: 10, r: 0.5, jam: 5.5, body: [0.8, 0.4], head: [1.5, 0.46] },
+  crawler: { name: '攀顶蛛', cls: 'flesh', hp: 380, spd: 3.7, core: 6, bounty: 30, r: 0.55, ceil: true, body: [0.55, 0.55], head: [0.7, 0.25, 0.55] },
+  jammer: { name: '电磁干扰兵', cls: 'mech', hp: 680, spd: 2.5, armor: 0.1, core: 6, bounty: 48, dps: 30, melee: 10, r: 0.5, jam: 5.5, body: [0.8, 0.4], head: [1.5, 0.46] },
   beetle: { name: '反应甲虫', hp: 950, spd: 2.5, core: 8, bounty: 50, dps: 70, melee: 14, r: 0.8, knockRes: 0.5, trapRes: 0.5, gunVuln: 1.35, body: [0.62, 0.78], head: [0.7, 0.36, 0.95] },
-  broodling: { name: '母巢裂体', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
+  broodling: { name: '母巢裂体', cls: 'flesh', hp: 4000, spd: 2.1, armor: 0.1, core: 60, bounty: 160, dps: 160, melee: 30, r: 1.3, knockRes: 1, slowRes: 0.4, elite: true, brood: true, body: [1.26, 0.96], head: [0.96, 0.42, 0.84] },
+  // —— 克制型敌人（第四批）：要换对伤害类型才好打 ——
+  magma: { name: '熔岩傀儡', cls: 'molten', hp: 1500, spd: 2.2, armor: 0.15, core: 10, bounty: 70, dps: 80, melee: 22, r: 0.75, knockRes: 0.4, burnImmune: true, body: [1.1, 0.62], head: [2.05, 0.5] },
+  frostguard: { name: '寒霜卫兵', cls: 'frost', hp: 900, spd: 2.7, armor: 0.2, core: 6, bounty: 55, dps: 50, melee: 14, r: 0.55, iceImmune: true, slowRes: 1, thaw: { r: 6 }, body: [0.9, 0.44], head: [1.7, 0.5] },
+  sporer: { name: '孢子巨兽', cls: 'flesh', hp: 1700, spd: 2.0, armor: 0.1, core: 10, bounty: 75, dps: 70, melee: 18, r: 0.85, knockRes: 0.5, spores: { type: 'spore', n: 4 }, body: [0.95, 0.85], head: [1.15, 0.45, 0.95] },
+  spore: { name: '孢子', cls: 'flesh', hp: 110, spd: 4.6, core: 2, bounty: 6, dps: 14, melee: 5, r: 0.32, body: [0.4, 0.38], head: [0.5, 0.2, 0.2] },
+  mirror: { name: '镜面骑士', cls: 'mirror', hp: 1100, spd: 2.9, armor: 0.1, core: 8, bounty: 60, dps: 60, melee: 16, r: 0.55, knockRes: 0.3, body: [0.95, 0.46], head: [1.78, 0.52] },
+  swarm: { name: '蜂群无人机', cls: 'mech', hp: 42, spd: 5.2, core: 2, bounty: 5, fly: true, r: 0.3, body: [0, 0.38], head: [0.04, 0.18] },
+  juggernaut: { name: '重盾推土者', cls: 'heavy', hp: 3200, spd: 1.8, armor: 0.3, core: 14, bounty: 150, dps: 150, melee: 30, r: 1.0, knockRes: 1, slowRes: 0.3, heavy: true, frontShield: 0.2, body: [1.2, 0.7], head: [2.2, 0.55] },
 };
 const BOSS_TIP = {
   boss: '泰坦会周期性释放 EMP 瘫痪附近陷阱、召唤援军、践踏周围玩家',
@@ -92,35 +100,42 @@ const BOSS_TIP = {
 
 /* ---------- 陷阱（参考逆战：地面 / 墙壁 / 天花板 / 炮台 / 阻挡）---------- */
 const TRAPS = [
-  { id: 'slow', key: '1', name: '减速器', cat: 'floor', cost: 90, slow: [0.4, 0.5, 0.58, 0.65],
+  { id: 'slow', key: '1', name: '减速器', elem: 'cryo', cat: 'floor', cost: 90, slow: [0.4, 0.5, 0.58, 0.65],
     desc: '地面 · 踩上的怪物大幅减速，延长受击时间' },
-  { id: 'spike', key: '2', name: '毒刺陷阱', cat: 'floor', cost: 120, cd: 1.2, dmg: [50, 85, 130, 190], poison: [12, 20, 30, 44],
+  { id: 'spike', key: '2', name: '毒刺陷阱', elem: 'acid', cat: 'floor', cost: 120, cd: 1.2, dmg: [50, 85, 130, 190], poison: [12, 20, 30, 44],
     desc: '地面 · 周期弹出毒刺，附带中毒持续伤害' },
-  { id: 'push', key: '3', name: '弹板陷阱', cat: 'floor', cost: 170, cd: [3.6, 3.2, 2.8, 2.4], push: [7, 8, 9, 10], dmg: [20, 35, 55, 80],
+  { id: 'push', key: '3', name: '弹板陷阱', elem: 'kinetic', cat: 'floor', cost: 170, cd: [3.6, 3.2, 2.8, 2.4], push: [7, 8, 9, 10], dmg: [20, 35, 55, 80],
     desc: '地面 · 把怪物弹回上游，让它们再吃一遍伤害' },
-  { id: 'tesla', key: '4', name: '自修复磁暴塔', cat: 'floor', block: true, cost: 220, hp: [1500, 2300, 3400, 5000], regen: 0.025,
+  { id: 'tesla', key: '4', name: '自修复磁暴塔', elem: 'shock', cat: 'floor', block: true, cost: 220, hp: [1500, 2300, 3400, 5000], regen: 0.025,
     cd: 0.6, range: 4.2, dmg: [30, 50, 78, 115], chains: 3,
     desc: '地面 · 阻挡类，堵路并电击周围敌人，持续自我修复' },
-  { id: 'sentry', key: '5', name: '岗哨机枪', cat: 'pad', cost: 260, cd: 0.25, range: [16, 17, 18, 19], dmg: [22, 36, 56, 82],
+  { id: 'sentry', key: '5', name: '岗哨机枪', elem: 'kinetic', cat: 'pad', cost: 260, cd: 0.25, range: [16, 17, 18, 19], dmg: [22, 36, 56, 82],
     desc: '炮台位 · 对地对空，优先射击最接近晶核的敌人' },
-  { id: 'aa', key: '6', name: '防空导弹', cat: 'pad', cost: 240, cd: 1.4, range: [24, 25, 26, 28], dmg: [150, 250, 380, 560], splash: 2.6,
+  { id: 'aa', key: '6', name: '防空导弹', elem: 'blast', cat: 'pad', cost: 240, cd: 1.4, range: [24, 25, 26, 28], dmg: [150, 250, 380, 560], splash: 2.6,
     desc: '炮台位 · 只打空中单位，追踪导弹带溅射' },
-  { id: 'laser', key: '7', name: '激光发射器', cat: 'wall', cost: 150, cd: 0.2, dmg: [12, 20, 31, 46],
+  { id: 'laser', key: '7', name: '激光发射器', elem: 'energy', cat: 'wall', cost: 150, cd: 0.2, dmg: [12, 20, 31, 46],
     desc: '墙壁 · 光束横贯通道，命中光束上所有敌人' },
-  { id: 'flame', key: '8', name: '火焰发射器', cat: 'wall', cost: 200, cd: 0.3, dmg: [12, 20, 31, 46], burn: [22, 36, 55, 80],
+  { id: 'flame', key: '8', name: '火焰发射器', elem: 'fire', cat: 'wall', cost: 200, cd: 0.3, dmg: [12, 20, 31, 46], burn: [22, 36, 55, 80],
     desc: '墙壁 · 喷火覆盖整条横线，附带灼烧' },
-  { id: 'crusher', key: '9', name: '粉碎锤', cat: 'ceil', cost: 300, cd: [3.0, 2.8, 2.6, 2.4], dmg: [260, 430, 650, 950], stun: 0.8,
+  { id: 'crusher', key: '9', name: '粉碎锤', elem: 'kinetic', cat: 'ceil', cost: 300, cd: [3.0, 2.8, 2.6, 2.4], dmg: [260, 430, 650, 950], stun: 0.8,
     desc: '天花板 · 重锤砸地，3×3 范围重伤并眩晕地面敌人' },
   // —— 重型陷阱：占地 2×2 ——
-  { id: 'rail', key: '0', name: '轨道电磁炮', cat: 'heavy', big: true, cost: 720, cd: [3.4, 3.1, 2.8, 2.5], range: 34, dmg: [760, 1150, 1700, 2450],
+  { id: 'rail', key: '0', name: '轨道电磁炮', elem: 'energy', cat: 'heavy', big: true, cost: 720, cd: [3.4, 3.1, 2.8, 2.5], range: 34, dmg: [760, 1150, 1700, 2450],
     desc: '重型炮台 2×2 · 蓄能贯穿一条直线上的所有敌人（对地对空、无视护甲），优先锁定 BOSS、精英与重甲' },
-  { id: 'mortar', key: '-', name: '等离子迫击炮', cat: 'heavy', big: true, cost: 620, cd: [3.0, 2.8, 2.6, 2.4], range: 30, minRange: 6, dmg: [380, 580, 860, 1250], splash: 3.8,
+  { id: 'mortar', key: '-', name: '等离子迫击炮', elem: 'blast', cat: 'heavy', big: true, cost: 620, cd: [3.0, 2.8, 2.6, 2.4], range: 30, minRange: 6, dmg: [380, 580, 860, 1250], splash: 3.8,
     desc: '重型炮台 2×2 · 远程曲射，自动轰击怪物最密集的位置，大范围溅射（只打地面）；按 F 可以亲手指定落点' },
-  { id: 'grinder', key: '=', name: '碎骨绞盘', cat: 'hfloor', big: true, cost: 540, dps: [150, 235, 350, 500], slow: [0.3, 0.35, 0.4, 0.45],
+  { id: 'grinder', key: '=', name: '碎骨绞盘', elem: 'kinetic', cat: 'hfloor', big: true, cost: 540, dps: [150, 235, 350, 500], slow: [0.3, 0.35, 0.4, 0.45],
     desc: '地面 2×2 · 铺在通道上的巨型绞盘，持续撕碎经过的地面敌人并减速（无视护甲）' },
   // —— 可操控炮台：走到旁边按 F 坐上去，亲手扫射 ——
-  { id: 'gatling', key: '[', name: '加特林炮塔', cat: 'pad', cost: 420, cd: 0.1, range: [18, 19, 20, 22], dmg: [9, 14, 20, 29], gun: [16, 24, 35, 50],
+  { id: 'gatling', key: '[', name: '加特林炮塔', elem: 'kinetic', cat: 'pad', cost: 420, cd: 0.1, range: [18, 19, 20, 22], dmg: [9, 14, 20, 29], gun: [16, 24, 35, 50],
     desc: '炮台位 · 无人时自动扫射（火力较弱）；走到旁边按 F 可以坐上去亲手扫射' },
+  // —— 克制型陷阱：寒冰 / 电击 / 腐蚀 ——
+  { id: 'frost', key: ']', name: '急冻喷口', elem: 'cryo', cat: 'floor', cost: 170, cd: [2.6, 2.4, 2.2, 2.0], dmg: [40, 65, 100, 145], chill: [0.55, 0.6, 0.65, 0.7],
+    desc: '地面 · 有敌人经过就朝周围 3×3 喷出液氮：寒冰伤害并大幅减速，连续喷中会把敌人冻住（熔岩怪物受双倍伤害）' },
+  { id: 'arc', key: ';', name: '电弧网', elem: 'shock', cat: 'wall', cost: 230, cd: 0.8, dmg: [34, 56, 86, 125],
+    desc: '墙壁 · 电网横跨通道，电击网上所有敌人（含空中）；机械敌人受到 1.5 倍伤害并短路僵直，护盾破得很快' },
+  { id: 'acid', key: "'", name: '酸蚀池', elem: 'acid', cat: 'floor', cost: 150, dps: [22, 34, 50, 72], acid: [0.25, 0.28, 0.31, 0.35],
+    desc: '地面 · 踩进酸池的敌人持续受腐蚀伤害，4 秒内护甲减半、受到的所有伤害提高（重甲怪物最怕）' },
 ];
 const BIG_CATS = { heavy: 1, hfloor: 1 };
 // 可以坐上去亲手操控的炮塔：F 上下
@@ -143,6 +158,9 @@ const EVO = {
   rail: { a: { name: '超载线圈', desc: '伤害 ×1.6，命中的非 BOSS 敌人眩晕 0.8 秒' }, b: { name: '速射轨道', desc: '冷却缩短 45%' } },
   mortar: { a: { name: '燃烧弹', desc: '落点燃起烈焰，灼烧范围内敌人 4 秒' }, b: { name: '集束弹', desc: '炮弹炸开后再散落 4 枚子弹药' } },
   grinder: { a: { name: '锯刃风暴', desc: '伤害 ×1.6' }, b: { name: '引力漩涡', desc: '把 5 米内的飞行敌人拽到地面撕碎，减速范围扩大一圈' } },
+  frost: { a: { name: '深度冻结', desc: '冰冻值积累快 50%，冻住的时间延长到 2.4 秒' }, b: { name: '冰棱爆发', desc: '伤害 ×1.8，冷却缩短 30%' } },
+  arc: { a: { name: '过载电网', desc: '伤害 ×1.5，所有被电到的非 BOSS 敌人都会僵直' }, b: { name: '跳跃电弧', desc: '每次放电再跳到电网外 4.5 米内的 2 个敌人身上' } },
+  acid: { a: { name: '强酸', desc: '腐蚀期间受到的伤害提高翻倍' }, b: { name: '酸雾', desc: '腐蚀范围扩大到周围 3×3 格，并且能腐蚀低空的飞行敌人' } },
 };
 // 突变词缀（可选，叠加提升难度）
 const MUTATORS = [
@@ -226,14 +244,21 @@ const CAT_NAME = { floor: '地面', pad: '炮台位', wall: '墙壁', ceil: '天
  * maxHit：单次射击对单个目标的理论伤害上限（主机校验队友上报的命中用）
  */
 const WEAPONS = [
-  { id: 'rifle', key: '1', name: '脉冲步枪', cost: 0, dmg: 15, rps: 8.5, mag: 30, reload: 1.9, spread: 0.006, bloom: 0.12, head: 2.2, kick: 0.4,
+  { id: 'rifle', key: '1', name: '脉冲步枪', elem: 'kinetic', cost: 0, dmg: 15, rps: 8.5, mag: 30, reload: 1.9, spread: 0.006, bloom: 0.12, head: 2.2, kick: 0.4,
     desc: '全自动，射速快，什么场合都能用' },
-  { id: 'shotgun', key: '2', name: '裂变霰弹枪', cost: 600, dmg: 13, pellets: 9, rps: 1.6, mag: 8, reload: 2.3, spread: 0.065, bloom: 0, head: 1.5, near: 7, far: 17, kick: 1,
+  { id: 'shotgun', key: '2', name: '裂变霰弹枪', elem: 'kinetic', cost: 600, dmg: 13, pellets: 9, rps: 1.6, mag: 8, reload: 2.3, spread: 0.065, bloom: 0, head: 1.5, near: 7, far: 17, kick: 1,
     desc: '9 颗弹丸近距离爆发，守在汇合口最好用' },
-  { id: 'sniper', key: '3', name: '电磁狙击枪', cost: 850, dmg: 200, rps: 0.9, mag: 5, reload: 2.6, spread: 0.03, adsSpread: 0, bloom: 0, head: 2.5, pierce: 3, kick: 1,
+  { id: 'sniper', key: '3', name: '电磁狙击枪', elem: 'energy', cost: 850, dmg: 200, rps: 0.9, mag: 5, reload: 2.6, spread: 0.03, adsSpread: 0, bloom: 0, head: 2.5, pierce: 3, kick: 1,
     desc: '右键开镜零散布，一枪贯穿 3 个目标，专打精英与 BOSS' },
-  { id: 'rocket', key: '4', name: '蜂巢火箭筒', cost: 1200, dmg: 240, splash: 3.4, rps: 0.7, mag: 3, reload: 3.2, proj: 40, spread: 0.004, bloom: 0, kick: 1,
+  { id: 'rocket', key: '4', name: '蜂巢火箭筒', elem: 'blast', cost: 1200, dmg: 240, splash: 3.4, rps: 0.7, mag: 3, reload: 3.2, proj: 40, spread: 0.004, bloom: 0, kick: 1,
     desc: '火箭弹范围爆炸，地面和空中目标都能炸' },
+  // —— 元素武器：对症下药 ——
+  { id: 'flamer', key: '5', name: '烈焰喷枪', elem: 'fire', cost: 700, dmg: 6, pellets: 4, rps: 12, mag: 80, reload: 2.4, spread: 0.06, bloom: 0, head: 1, near: 4, far: 10, maxR: 11, burn: 16, kick: 0.15,
+    desc: '近距离喷射火焰并点燃敌人，血肉和冰甲怪物最怕火；对机械效果一般，对熔岩无效' },
+  { id: 'cryo', key: '6', name: '冰霜射线', elem: 'cryo', cost: 750, dmg: 10, rps: 10, mag: 60, reload: 2.2, spread: 0.003, bloom: 0, head: 1.6, maxR: 28, chill: 0.075, kick: 0.1,
+    desc: '持续照射让敌人越来越慢，最后冻住（BOSS 只会减速）；熔岩怪物受双倍伤害，冰甲免疫' },
+  { id: 'arcgun', key: '7', name: '电弧枪', elem: 'shock', cost: 900, dmg: 50, rps: 2.5, mag: 14, reload: 2.4, spread: 0.008, bloom: 0, head: 1.6, chain: { n: 3, r: 6, mul: 0.6 }, kick: 0.7,
+    desc: '电弧命中后跳到附近 3 个敌人身上；机械敌人受到 1.5 倍伤害，蜂群和无人机的克星' },
 ];
 const WPN = {}; WEAPONS.forEach(w => { WPN[w.id] = w; w.maxHit = w.dmg * (w.head || 1) * (w.pellets || 1); });
 // 武器改装：每把枪二选一（本局有效，在军械库用金币购买）
@@ -246,6 +271,12 @@ const WMODS = {
     { id: 'b', name: '快速栓动', cost: 550, desc: '射速 +45%，弹匣 5 → 7', rps: 1.45, mag: 7 }],
   rocket: [{ id: 'a', name: '高爆装药', cost: 700, desc: '爆炸范围 +40%，伤害 +15%', splash: 1.4, dmg: 1.15 },
     { id: 'b', name: '速装弹舱', cost: 650, desc: '弹匣 3 → 5，换弹快 30%', mag: 5, reload: 0.7 }],
+  flamer: [{ id: 'a', name: '白磷燃料', cost: 500, desc: '灼烧伤害翻倍（每秒 32）', burn: 32 },
+    { id: 'b', name: '加压喷嘴', cost: 450, desc: '射程 +40%，伤害 +15%', range: 1.4, dmg: 1.15 }],
+  cryo: [{ id: 'a', name: '绝对零度', cost: 550, desc: '冰冻值积累快 60%', chill: 1.6 },
+    { id: 'b', name: '冰晶棱镜', cost: 500, desc: '伤害 +35%，一束贯穿 2 个目标', dmg: 1.35, pierce: 2 }],
+  arcgun: [{ id: 'a', name: '连锁线圈', cost: 650, desc: '电弧多跳 2 个目标，跳跃距离 +30%', chainN: 5, chainR: 1.3 },
+    { id: 'b', name: '高压电容', cost: 600, desc: '伤害 +30%，射速 +20%', dmg: 1.3, rps: 1.2 }],
 };
 const WMOD_CACHE = {};
 function modW(w, mid) {
@@ -264,6 +295,9 @@ function modW(w, mid) {
   if (M.pierce) W.pierce = M.pierce;
   if (M.rps) W.rps = B.rps * M.rps;
   if (M.splash) W.splash = B.splash * M.splash;
+  if (M.chill) W.chill = B.chill * M.chill;
+  if (M.range && B.maxR) W.maxR = B.maxR * M.range;
+  if (M.chainN || M.chainR) W.chain = Object.assign({}, B.chain, { n: M.chainN || B.chain.n, r: B.chain.r * (M.chainR || 1) });
   W.maxHit = W.dmg * (W.head || 1) * (W.pellets || 1);
   return (WMOD_CACHE[k] = W);
 }
@@ -322,7 +356,7 @@ const MAPS = {
       { name: '先头部队', groups: [g('grunt', 6, 'A', 1.6, 0), g('grunt', 6, 'B', 1.6, 4)] },
       { name: '疾行突袭', groups: [g('grunt', 7, 'A', 1.4, 0), g('grunt', 7, 'B', 1.4, 2), g('runner', 4, 'A', 0.9, 12), g('runner', 4, 'B', 0.9, 14)] },
       { name: '重装来袭', tip: '重装赛博格护甲厚、免疫一半击退', groups: [g('grunt', 8, 'A', 1.3, 0), g('grunt', 8, 'B', 1.3, 1), g('brute', 2, 'A', 5, 10), g('brute', 1, 'B', 5, 14)] },
-      { name: '空中威胁', tip: '浮游无人机无视地面陷阱，需要防空导弹、岗哨机枪或墙壁陷阱', groups: [g('grunt', 8, 'A', 1.2, 0), g('grunt', 8, 'B', 1.2, 0), g('flyer', 5, 'A', 1.5, 8), g('flyer', 5, 'B', 1.5, 10)] },
+      { name: '空中威胁', tip: '浮游无人机无视地面陷阱，需要防空导弹、岗哨机枪或墙壁陷阱；蜂群无人机成群飞来，单只很脆——机械怪怕电击，磁暴塔一次能电好几只', groups: [g('grunt', 8, 'A', 1.2, 0), g('grunt', 8, 'B', 1.2, 0), g('flyer', 5, 'A', 1.5, 8), g('flyer', 5, 'B', 1.5, 10), g('swarm', 6, 'A', 0.35, 15), g('swarm', 6, 'B', 0.35, 17)] },
       { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；精英「狂猩赛博格」半血后狂暴，攻速与移速大增', groups: [g('grunt', 8, 'A', 1.1, 0), g('grunt', 8, 'B', 1.1, 0), g('runner', 5, 'A', 0.8, 10), g('runner', 5, 'B', 0.8, 10), g('elite', 1, 'A', 0, 18), g('shield', 2, 'AB', 6, 4)] },
       { name: '自爆潮', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；自爆蜘蛛遇到阻挡会引爆，击杀它会炸伤周围怪物', groups: [g('runner', 12, 'A', 0.6, 0), g('runner', 12, 'B', 0.6, 2), g('bomber', 4, 'A', 2, 8), g('bomber', 4, 'B', 2, 10), g('blinker', 4, 'AB', 2.5, 4)] },
       { name: '钢铁洪流', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台让它瘫痪——重型轨道电磁炮专克它；火线射手会停下来射击玩家，别站在它们的视线里硬拼', groups: [g('grunt', 10, 'A', 1, 0), g('grunt', 10, 'B', 1, 0), g('brute', 4, 'A', 4, 6), g('brute', 4, 'B', 4, 8), g('gunner', 2, 'A', 3, 10), g('gunner', 2, 'B', 3, 11), g('flyer', 7, 'A', 1.2, 14), g('flyer', 7, 'B', 1.2, 16), g('tank', 1, 'A', 0, 16), g('tank', 1, 'B', 0, 22)] },
@@ -355,10 +389,10 @@ const MAPS = {
       { name: '空中威胁', tip: '浮游无人机无视地面陷阱；火线射手会远程射击玩家', groups: [g('grunt', 15, '*', 1.1, 0), g('flyer', 12, '*', 1.4, 8), g('gunner', 3, '*', 3, 12)] },
       { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；狂猩从北门出现', groups: [g('grunt', 18, '*', 1.1, 0), g('runner', 12, '*', 0.8, 10), g('elite', 1, 'B', 0, 18), g('shield', 3, '*', 4, 6)] },
       { name: '自爆潮', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；骇客工兵会骇入附近陷阱让它瘫痪 10 秒，优先击杀', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 9, '*', 2, 8), g('sapper', 3, '*', 4, 10), g('blinker', 6, '*', 2, 4)] },
-      { name: '维修部队', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台——轨道电磁炮专克它；修复无人机会持续治疗周围怪物，优先击落', groups: [g('grunt', 18, '*', 1, 0), g('brute', 6, '*', 4, 6), g('healer', 3, '*', 3, 10), g('tank', 2, 'AC', 8, 14)] },
+      { name: '维修部队', tip: '修复无人机会持续治疗周围怪物，优先击落；镜面骑士的镜甲会反射激光和电磁炮——交给粉碎锤、机枪和你的步枪（动能伤害 ×1.5）', groups: [g('grunt', 18, '*', 1, 0), g('brute', 6, '*', 4, 6), g('healer', 3, '*', 3, 10), g('mirror', 3, '*', 4, 12), g('tank', 1, 'A', 0, 16)] },
       { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；幽影刺客隐身潜入，减速器能让它现形', groups: [g('grunt', 21, '*', 0.9, 4), g('brute', 9, '*', 3.5, 0), g('flyer', 15, '*', 1.2, 10), g('stalker', 6, '*', 2, 12), g('gunship', 3, '*', 6, 16)] },
       { name: '混编突击', tip: '钻地虫会钻入地下越过一段陷阱，期间无敌', groups: [g('runner', 21, '*', 0.6, 0), g('bomber', 12, '*', 1.6, 6), g('healer', 6, '*', 2.5, 12), g('flyer', 9, '*', 1, 18), g('burrower', 3, '*', 3, 8), g('blinker', 6, '*', 2, 4), g('shield', 3, '*', 5, 10)] },
-      { name: '三王', tip: '三只狂猩分别从三道门出现', groups: [g('grunt', 24, '*', 0.9, 0), g('brute', 6, '*', 3.5, 6), g('elite', 3, '*', 6, 14), g('healer', 3, '*', 3, 16), g('gunner', 6, '*', 2.5, 10), g('tank', 3, '*', 6, 8)] },
+      { name: '三王', tip: '三只狂猩分别从三道门出现，镜面骑士护送', groups: [g('grunt', 24, '*', 0.9, 0), g('brute', 6, '*', 3.5, 6), g('elite', 3, '*', 6, 14), g('healer', 3, '*', 3, 16), g('gunner', 3, '*', 2.5, 10), g('mirror', 3, '*', 3, 18), g('tank', 3, '*', 6, 8)] },
       { name: '决战前夜', groups: [g('brute', 12, '*', 3, 0), g('flyer', 18, '*', 1, 0), g('bomber', 12, '*', 1.4, 8), g('runner', 18, '*', 0.6, 20), g('sapper', 3, '*', 4, 12), g('gunship', 4, '*', 5, 6), g('shield', 3, '*', 4, 10), g('tank', 3, '*', 6, 16)] },
       { name: '破城', boss: true, tip: '攻城机甲「破城者」从北门压境，会炮击远处的炮台和磁暴塔；西门有狂猩策应', groups: [g('grunt', 24, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'B', 0, 12), g('brute', 6, '*', 4, 16), g('healer', 2, '*', 3, 24), g('gunner', 3, '*', 3, 20), g('elite', 1, 'A', 0, 45), g('tank', 3, '*', 8, 20), g('shield', 3, '*', 5, 14), g('gunship', 3, '*', 8, 26)] },
     ],
@@ -390,10 +424,10 @@ const MAPS = {
       { name: '南门洞开', tip: '西南出怪口开启，南侧也需要布防', groups: [g('grunt', 16, '*', 1, 0), g('flyer', 9, '*', 1.4, 6)] },
       { name: '狂猩出笼', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('grunt', 18, '*', 1, 0), g('runner', 12, '*', 0.7, 10), g('stalker', 4, '*', 2, 6), g('elite', 1, 'A', 0, 18), g('shield', 3, '*', 4, 8)] },
       { name: '四面楚歌', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；东南出怪口开启，四个方向同时进攻', groups: [g('runner', 28, '*', 0.6, 0), g('bomber', 8, '*', 2, 8), g('blinker', 8, '*', 1.6, 4)] },
-      { name: '维修部队', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，还会炮击射程内的炮台——轨道电磁炮专克它；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 6, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('tank', 1, 'A', 0, 14)] },
+      { name: '熔岩苏醒', tip: '熔岩傀儡完全不怕火，寒冰伤害却翻倍——急冻喷口、冰霜射线专克它；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 4, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('magma', 4, '*', 4, 12)] },
       { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛', groups: [g('grunt', 20, '*', 0.9, 0), g('flyer', 16, '*', 1.2, 0), g('brute', 6, '*', 3.5, 10), g('gunship', 2, 'AB', 6, 12), g('shield', 2, '*', 4, 6)] },
-      { name: '双王', groups: [g('bomber', 12, '*', 1.4, 0), g('runner', 20, '*', 0.6, 8), g('healer', 2, '*', 3, 12), g('elite', 2, 'AB', 12, 20), g('gunner', 6, '*', 2.5, 4), g('burrower', 6, '*', 3, 14), g('tank', 2, 'CD', 10, 16)] },
-      { name: '熔流', groups: [g('grunt', 24, '*', 0.8, 4), g('brute', 8, '*', 3, 0), g('flyer', 12, '*', 1, 0), g('healer', 4, '*', 2.5, 10), g('stalker', 6, '*', 2, 8), g('blinker', 8, '*', 1.6, 6), g('gunship', 4, '*', 6, 14)] },
+      { name: '双王', groups: [g('bomber', 12, '*', 1.4, 0), g('runner', 20, '*', 0.6, 8), g('healer', 2, '*', 3, 12), g('elite', 2, 'AB', 12, 20), g('gunner', 6, '*', 2.5, 4), g('burrower', 4, '*', 3, 14), g('tank', 1, 'C', 0, 16)] },
+      { name: '熔流', tip: '大批熔岩傀儡——火焰发射器在这一波几乎没用', groups: [g('grunt', 24, '*', 0.8, 4), g('brute', 6, '*', 3, 0), g('flyer', 12, '*', 1, 0), g('healer', 4, '*', 2.5, 10), g('magma', 6, '*', 3, 8), g('blinker', 8, '*', 1.6, 6), g('gunship', 4, '*', 6, 14)] },
       { name: '狂猩巢穴', tip: '四只狂猩从四个角落轮番冲出', groups: [g('runner', 24, '*', 0.5, 0), g('elite', 4, '*', 17, 10), g('bomber', 8, '*', 1.4, 14), g('tank', 3, '*', 7, 4), g('shield', 4, '*', 4, 8)] },
       { name: '熔炉巨像', boss: true, tip: '熔炉巨像从西北压境，走过的地面化作熔岩；东南有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('colossus', 1, 'A', 0, 16), g('brute', 4, '*', 4, 14), g('healer', 2, '*', 3, 24), g('elite', 1, 'D', 0, 40), g('tank', 2, 'BC', 10, 22), g('shield', 4, '*', 5, 12), g('gunship', 2, 'AD', 8, 28)] },
     ],
@@ -428,14 +462,14 @@ const MAPS = {
       { name: '北门开启', tip: '北侧出怪口开启；噬晶蛛又小又快', groups: [g('grunt', 18, '*', 1.1, 0), g('brute', 3, '*', 4, 10), g('mite', 12, '*', 0.4, 6)] },
       { name: '空中威胁', groups: [g('grunt', 15, '*', 1.1, 0), g('flyer', 12, '*', 1.4, 8)] },
       { name: '南门开启', tip: '南侧出怪口开启，狂猩从西北出现', groups: [g('grunt', 20, '*', 1, 0), g('runner', 16, '*', 0.7, 8), g('elite', 1, 'A', 0, 18)] },
-      { name: '自爆潮', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 10, '*', 2, 8), g('stalker', 6, '*', 2, 4), g('shield', 3, '*', 4, 8)] },
-      { name: '维修部队', tip: '相位行者每隔几秒向前瞬移一段，能直接越过阻挡；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 8, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('blinker', 6, '*', 2, 4)] },
+      { name: '自爆潮', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直；幽影刺客隐身，炮台锁定不到它；减速器、攻击或靠近都能让它现形', groups: [g('runner', 30, '*', 0.6, 0), g('bomber', 10, '*', 2, 8), g('stalker', 6, '*', 2, 4), g('shield', 3, '*', 4, 8), g('swarm', 15, '*', 0.3, 12)] },
+      { name: '孢子之潮', tip: '孢子巨兽死后会裂成一群孢子——除非它是被烧死的：火焰发射器、烈焰喷枪收尾；骇客工兵会骇入附近陷阱让它瘫痪，优先击杀', groups: [g('grunt', 20, '*', 1, 4), g('brute', 6, '*', 4, 0), g('healer', 4, '*', 3, 8), g('sapper', 4, '*', 4, 10), g('sporer', 4, '*', 4, 10)] },
       { name: '深渊之门', tip: '铁蹄坦克装甲极厚、几乎不怕眩晕，会炮击炮台——轨道电磁炮专克它；西侧直道开启！这条路最短，疾行猎犬会直扑主干道', groups: [g('runner', 30, '*', 0.5, 0), g('grunt', 20, '*', 1, 0), g('flyer', 10, '*', 1.2, 10), g('tank', 2, 'AC', 10, 14)] },
       { name: '钢铁洪流', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛；钻地虫会钻入地下越过一段陷阱', groups: [g('brute', 10, '*', 3.5, 0), g('flyer', 20, '*', 1, 6), g('bomber', 10, '*', 1.5, 12), g('burrower', 6, '*', 2.5, 4), g('gunship', 4, '*', 5, 10), g('shield', 4, '*', 4, 14)] },
       { name: '双王', groups: [g('grunt', 30, '*', 0.8, 0), g('healer', 5, '*', 2.5, 10), g('elite', 2, 'AC', 0, 18), g('gunner', 6, '*', 2.5, 6), g('tank', 3, '*', 6, 10), g('blinker', 8, '*', 1.6, 4)] },
       { name: '自爆狂潮', groups: [g('bomber', 20, '*', 1.2, 0), g('runner', 30, '*', 0.5, 6), g('brute', 10, '*', 3, 14), g('shield', 5, '*', 3, 4), g('gunship', 3, '*', 6, 16)] },
-      { name: '遮天蔽日', groups: [g('grunt', 30, '*', 0.8, 4), g('flyer', 30, '*', 0.9, 0), g('healer', 5, '*', 2.5, 6), g('mite', 20, '*', 0.3, 10), g('gunship', 6, '*', 4, 8)] },
-      { name: '狂猩巢穴', groups: [g('brute', 15, '*', 3, 0), g('elite', 3, '*', 6, 10), g('bomber', 10, '*', 1.4, 16), g('sapper', 4, '*', 4, 6), g('stalker', 6, '*', 2, 12), g('tank', 4, '*', 5, 6), g('blinker', 8, '*', 1.6, 2)] },
+      { name: '遮天蔽日', tip: '蜂群铺天盖地——磁暴塔和电弧网的电击对机械 ×1.5', groups: [g('grunt', 30, '*', 0.8, 4), g('flyer', 24, '*', 0.9, 0), g('healer', 5, '*', 2.5, 6), g('swarm', 24, '*', 0.25, 10), g('gunship', 5, '*', 4, 8)] },
+      { name: '狂猩巢穴', groups: [g('brute', 15, '*', 3, 0), g('elite', 3, '*', 6, 10), g('bomber', 10, '*', 1.4, 16), g('sapper', 4, '*', 4, 6), g('sporer', 5, '*', 3, 12), g('tank', 4, '*', 5, 6), g('blinker', 8, '*', 1.6, 2)] },
       { name: '决战前夜', groups: [g('runner', 40, '*', 0.4, 0), g('flyer', 20, '*', 1, 8), g('brute', 10, '*', 3, 14), g('healer', 5, '*', 2, 18), g('burrower', 6, '*', 2.5, 4), g('gunner', 6, '*', 2.5, 10), g('tank', 4, '*', 6, 16), g('shield', 5, '*', 4, 6), g('gunship', 4, '*', 6, 20)] },
       { name: '深渊母巢', boss: true, tip: '深渊母巢从西北压境，不断孵化噬晶蛛，击破后分裂成两只母巢裂体；西南有狂猩策应', groups: [g('grunt', 30, '*', 0.9, 0), g('flyer', 15, '*', 1.1, 6), g('brood', 1, 'A', 0, 10), g('brute', 8, '*', 3.5, 16), g('healer', 3, '*', 3, 20), g('elite', 1, 'C', 0, 50), g('tank', 4, '*', 8, 24), g('shield', 5, '*', 4, 14), g('gunship', 4, '*', 8, 30)] },
     ],
@@ -471,11 +505,11 @@ const MAPS = {
       { name: '重装登场', groups: [g('grunt', 10, 'AB', 1.1, 0), g('brute', 4, 'AB', 4, 8), g('flyer', 6, 'AB', 1.4, 12)] },
       { name: '护盾方阵', tip: '棱盾守卫会给周围的怪套上能量护盾；磁暴塔、电磁炮、激光破盾特别快，破盾瞬间敌人会僵直', groups: [g('grunt', 12, 'AB', 1, 0), g('shield', 2, 'AB', 6, 6), g('gunner', 4, 'AB', 3, 10)] },
       { name: '西路开启', tip: '西侧小路开启，怪物直接从盆地西边绕进来；相位行者会瞬移越过阻挡', groups: [g('runner', 18, '*', 0.6, 0), g('blinker', 6, '*', 2, 6), g('elite', 1, 'A', 0, 18)] },
-      { name: '铁蹄', tip: '铁蹄坦克装甲厚、几乎不怕眩晕，还会炮击炮台——轨道电磁炮专克它', groups: [g('grunt', 15, '*', 0.9, 0), g('tank', 2, 'AB', 10, 8), g('bomber', 6, '*', 1.6, 12), g('healer', 3, '*', 3, 14)] },
+      { name: '铁蹄', tip: '铁蹄坦克会炮击炮台——轨道电磁炮专克它；重盾推土者正面的盾挡住大部分子弹：绕到侧面或背后打，或者交给陷阱（重甲怕激光、电磁炮和酸蚀）', groups: [g('grunt', 15, '*', 0.9, 0), g('tank', 1, 'A', 0, 8), g('juggernaut', 2, 'AB', 10, 10), g('bomber', 6, '*', 1.6, 12), g('healer', 3, '*', 3, 14)] },
       { name: '天空压境', tip: '天穹炮艇是重装飞行单位，会射击玩家并空投噬晶蛛', groups: [g('flyer', 15, '*', 1, 0), g('gunship', 3, '*', 6, 8), g('stalker', 6, '*', 2, 4), g('brute', 6, '*', 3, 10)] },
-      { name: '钢铁洪流', groups: [g('grunt', 18, '*', 0.8, 0), g('brute', 8, '*', 3, 4), g('shield', 4, '*', 4, 8), g('sapper', 3, '*', 4, 12), g('burrower', 4, '*', 3, 6)] },
+      { name: '钢铁洪流', groups: [g('grunt', 18, '*', 0.8, 0), g('brute', 6, '*', 3, 4), g('shield', 4, '*', 4, 8), g('sapper', 3, '*', 4, 12), g('juggernaut', 3, '*', 6, 6)] },
       { name: '双王', groups: [g('runner', 24, '*', 0.5, 0), g('elite', 2, 'AB', 12, 14), g('tank', 3, '*', 6, 6), g('blinker', 8, '*', 1.6, 4), g('healer', 3, '*', 3, 10)] },
-      { name: '决战前夜', groups: [g('grunt', 24, '*', 0.7, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 3, '*', 6, 14), g('bomber', 10, '*', 1.2, 10)] },
+      { name: '决战前夜', groups: [g('grunt', 24, '*', 0.7, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 3, '*', 6, 14), g('bomber', 10, '*', 1.2, 10), g('mirror', 4, '*', 3, 12)] },
       { name: '高地之王', boss: true, tip: '攻城机甲「破城者」从西北高地压下来，会炮击远处的炮台；东北有狂猩策应', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('siege', 1, 'A', 0, 12), g('tank', 3, '*', 8, 20), g('shield', 4, '*', 5, 14), g('gunship', 3, '*', 8, 26), g('elite', 1, 'B', 0, 40)] },
     ],
   },
@@ -501,15 +535,15 @@ const MAPS = {
     waves: [
       { name: '寒流先锋', groups: [g('grunt', 8, 'A', 1.4, 0), g('grunt', 8, 'B', 1.4, 3)] },
       { name: '顶上有东西', tip: '攀顶蛛沿天花板爬行：地面陷阱和阻挡碰不到它，粉碎锤砸它伤害翻倍，墙壁陷阱、炮台和枪都能打', groups: [g('grunt', 10, 'AB', 1.2, 0), g('crawler', 8, 'AB', 1.2, 6)] },
-      { name: '重装来袭', groups: [g('grunt', 12, 'AB', 1, 0), g('brute', 4, 'AB', 4, 6), g('flyer', 8, 'AB', 1.2, 10)] },
+      { name: '重装来袭', tip: '寒霜卫兵的冰甲不怕寒冰、不会被减速和冻住，还会让周围同伴更难被冻住——用火焰对付它（伤害 ×1.75）', groups: [g('grunt', 12, 'AB', 1, 0), g('brute', 4, 'AB', 4, 6), g('flyer', 8, 'AB', 1.2, 10), g('frostguard', 2, 'AB', 6, 8)] },
       { name: '电磁干扰', tip: '电磁干扰兵周围 5 米内的陷阱全部失灵——用枪集火它，或者在它走进陷阱区之前击杀', groups: [g('grunt', 14, 'AB', 1, 0), g('jammer', 3, 'AB', 6, 6), g('runner', 10, 'AB', 0.7, 10)] },
       { name: '管道开启', tip: '东侧冷却管道开启，第三路怪物直接冲进中央十字', groups: [g('runner', 16, '*', 0.6, 0), g('crawler', 10, '*', 1, 4), g('blinker', 5, '*', 2, 8), g('shield', 2, '*', 6, 6)] },
       { name: '甲虫潮', tip: '反应甲虫的外壳让陷阱伤害减半，但怕子弹（枪械伤害 +35%）——亲手打它', groups: [g('grunt', 14, '*', 1, 0), g('beetle', 6, '*', 3, 4), g('flyer', 10, '*', 1, 10), g('healer', 2, '*', 4, 12)] },
       { name: '骇入', groups: [g('grunt', 16, '*', 0.9, 0), g('sapper', 3, '*', 4, 6), g('jammer', 3, '*', 5, 10), g('tank', 2, 'AB', 8, 8), g('crawler', 10, '*', 1, 4)] },
-      { name: '冰封苍穹', groups: [g('flyer', 16, '*', 0.8, 0), g('gunship', 3, '*', 6, 6), g('crawler', 14, '*', 0.8, 4), g('beetle', 4, '*', 3, 10)] },
+      { name: '冰封苍穹', groups: [g('flyer', 12, '*', 0.8, 0), g('gunship', 3, '*', 6, 6), g('crawler', 14, '*', 0.8, 4), g('beetle', 4, '*', 3, 10), g('swarm', 12, '*', 0.3, 12), g('frostguard', 3, '*', 4, 6)] },
       { name: '狂猩破冰', tip: '狂猩从北环冲出，甲虫和干扰兵掩护它', groups: [g('grunt', 18, '*', 0.8, 0), g('elite', 1, 'A', 0, 14), g('beetle', 6, '*', 3, 6), g('jammer', 3, '*', 6, 8), g('shield', 3, '*', 5, 4)] },
-      { name: '蛛群', groups: [g('crawler', 24, '*', 0.5, 0), g('mite', 24, '*', 0.3, 4), g('bomber', 10, '*', 1.2, 8), g('stalker', 6, '*', 2, 10)] },
-      { name: '最后的寒夜', groups: [g('grunt', 22, '*', 0.7, 0), g('beetle', 8, '*', 2.5, 4), g('jammer', 4, '*', 5, 8), g('tank', 3, '*', 6, 10), g('gunship', 3, '*', 6, 12), g('crawler', 16, '*', 0.8, 6)] },
+      { name: '蛛群', groups: [g('crawler', 24, '*', 0.5, 0), g('mite', 24, '*', 0.3, 4), g('bomber', 10, '*', 1.2, 8), g('frostguard', 5, '*', 3, 10)] },
+      { name: '最后的寒夜', groups: [g('grunt', 22, '*', 0.7, 0), g('beetle', 6, '*', 2.5, 4), g('jammer', 4, '*', 5, 8), g('tank', 3, '*', 6, 10), g('gunship', 3, '*', 6, 12), g('crawler', 16, '*', 0.8, 6), g('frostguard', 4, '*', 4, 12)] },
       { name: '冰封泰坦', boss: true, tip: '泰坦从南环压进来，会释放 EMP、召唤援军；随后干扰兵从北环赶来让陷阱失灵——先清掉干扰兵', groups: [g('grunt', 16, '*', 1, 0), g('boss', 1, 'B', 0, 10), g('jammer', 3, 'A', 8, 26), g('beetle', 4, '*', 4, 8), g('crawler', 10, '*', 1.2, 6), g('gunship', 2, '*', 8, 20), g('shield', 2, '*', 5, 14)] },
     ],
   },
@@ -548,10 +582,10 @@ const MAPS = {
       { name: '空中支援', groups: [g('flyer', 14, 'AB', 0.9, 0), g('healer', 3, 'AB', 3, 6), g('gunship', 2, 'AB', 8, 10), g('brute', 4, 'AB', 3, 4)] },
       { name: '裂谷开启', tip: '东侧裂谷开启，第三路怪物从东边直接冲进谷底', groups: [g('runner', 20, '*', 0.5, 0), g('blinker', 6, '*', 2, 6), g('elite', 1, 'A', 0, 16), g('grunt', 12, '*', 1, 4)] },
       { name: '铁蹄过谷', tip: '铁蹄坦克会炮击炮台——用电磁炮或亲手操控迫击炮对付它', groups: [g('grunt', 16, '*', 0.9, 0), g('tank', 2, 'AB', 8, 8), g('bomber', 8, '*', 1.4, 12), g('healer', 3, '*', 3, 14)] },
-      { name: '护盾长城', groups: [g('shield', 5, '*', 3, 0), g('brute', 8, '*', 2.6, 4), g('gunner', 6, '*', 2.4, 8), g('sapper', 3, '*', 4, 12)] },
-      { name: '天穹', tip: '大批天穹炮艇——加特林炮塔亲手扫射对空效果最好', groups: [g('flyer', 18, '*', 0.8, 0), g('gunship', 5, '*', 5, 6), g('stalker', 6, '*', 2, 10), g('mite', 20, '*', 0.3, 14)] },
-      { name: '狂潮', groups: [g('runner', 30, '*', 0.4, 0), g('elite', 1, 'B', 0, 12), g('tank', 2, '*', 6, 8), g('burrower', 5, '*', 2.5, 6), g('blinker', 8, '*', 1.5, 4)] },
-      { name: '决战前夜', groups: [g('grunt', 26, '*', 0.6, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 4, '*', 6, 12), g('bomber', 10, '*', 1.2, 10), g('healer', 4, '*', 3, 14)] },
+      { name: '护盾长城', groups: [g('shield', 5, '*', 3, 0), g('brute', 6, '*', 2.6, 4), g('gunner', 6, '*', 2.4, 8), g('sapper', 3, '*', 4, 12), g('juggernaut', 3, '*', 6, 10)] },
+      { name: '天穹', tip: '大批天穹炮艇——加特林炮塔亲手扫射对空效果最好；蜂群怕电击', groups: [g('flyer', 18, '*', 0.8, 0), g('gunship', 5, '*', 5, 6), g('stalker', 6, '*', 2, 10), g('swarm', 24, '*', 0.25, 14)] },
+      { name: '狂潮', tip: '熔岩傀儡从裂谷里爬出来——别指望火焰', groups: [g('runner', 30, '*', 0.4, 0), g('elite', 1, 'B', 0, 12), g('tank', 2, '*', 6, 8), g('magma', 5, '*', 3, 6), g('blinker', 8, '*', 1.5, 4)] },
+      { name: '决战前夜', groups: [g('grunt', 26, '*', 0.6, 0), g('gunship', 4, '*', 5, 8), g('shield', 5, '*', 3, 6), g('tank', 3, '*', 6, 12), g('bomber', 10, '*', 1.2, 10), g('healer', 4, '*', 3, 14), g('mirror', 4, '*', 3, 4)] },
       { name: '峡谷之王', boss: true, tip: '泰坦从西北谷口压进峡谷，熔炉巨像从东侧裂谷策应——两只 BOSS 都会分阶段变强', groups: [g('grunt', 20, '*', 1, 0), g('flyer', 12, '*', 1.2, 6), g('boss', 1, 'A', 0, 10), g('colossus', 1, 'C', 0, 45), g('gunship', 2, '*', 8, 26), g('shield', 3, '*', 5, 14)] },
     ],
   },
@@ -580,6 +614,13 @@ function genWave(n, lanes) {
   if (k >= 3 && k % 3 === 0) gr.push(g('crawler', 4 + k, '*', 1.2, 6));
   if (k >= 4 && k % 3 === 1) gr.push(g('jammer', 1 + Math.floor(k / 4), '*', 5, 10));
   if (k >= 5 && k % 3 === 2) gr.push(g('beetle', 2 + Math.floor(k / 3), '*', 3.5, 8));
+  // 克制型：每隔几波换一种「要换伤害类型」的敌人
+  if (k >= 3 && k % 3 === 1) gr.push(g('swarm', 10 + k * 2, '*', 0.25, 12));
+  if (k % 4 === 2) gr.push(g('mirror', 2 + Math.floor(k / 4), '*', 3, 10));
+  if (k >= 4 && k % 4 === 0) gr.push(g('magma', 2 + Math.floor(k / 4), '*', 3.5, 8));
+  if (k >= 5 && k % 4 === 3) gr.push(g('sporer', 2 + Math.floor(k / 5), '*', 4, 10));
+  if (k >= 6 && k % 4 === 1) gr.push(g('frostguard', 2 + Math.floor(k / 5), '*', 3.5, 6));
+  if (k >= 7 && k % 3 === 2) gr.push(g('juggernaut', 1 + Math.floor(k / 6), '*', 6, 12));
   const boss = k % 5 === 0;
   const BT = ['boss', 'siege', 'colossus', 'brood'];
   if (boss) gr.push(g(BT[Math.floor(k / 5) % 4], 1 + Math.floor(k / 15), '*', 25, 12));
@@ -910,7 +951,7 @@ class Sim {
         const md = MON[m.type];
         if (dv.type === 'cryo' && !md.fly) {
           m.slowAmt = Math.max(m.slowAmt, 0.7); m.slowT = Math.max(m.slowT, 0.5);
-          if (!md.boss) { m.stunT = Math.max(m.stunT, 0.15); m.frozenT = 0.3; }
+          this._freeze(m, 0.3, 0.15);
         } else if (dv.type === 'vent' && !md.fly && !md.ceil && pulse) {
           this._src = 'device'; this.damage(m, 45, 'trap'); this._src = null;
           if (!md.burnImmune) { m.burnDps = Math.max(m.burnT > 0 ? m.burnDps : 0, 30); m.burnT = 3; m.burnBy = 'device'; }
@@ -1507,9 +1548,13 @@ class Sim {
     let a = amt * (pierce ? 1 : 1 - armor);
     // 伤害类型 × 体质（克制 / 抵抗 / 免疫）；酸蚀：受到的所有伤害提高
     const el = this._el || (src === 'gun' ? (GW ? GW.elem : gp && gp.mount ? 'kinetic' : null) : src === 'trap' && TRAP[this._src] ? TRAP[this._src].elem : null);
-    a *= elemMul(def.cls, el);
+    // BOSS 的克制 / 抵抗只算一半（免疫照旧）
+    { const em = elemMul(def.cls, el); a *= def.boss && em > 0 ? 1 + (em - 1) * 0.5 : em; }
     if (m.acidT > 0) a *= 1 + (m.acidAmt || 0.25);
-    if (a <= 0) return 0;
+    if (el) m.lastEl = el;
+    if (a <= 0) { if (el && !(m.immFx > this.s.time)) { m.immFx = this.s.time + 1.2; this.ev('immune', { id: m.id, x: m.x, y: m.y + def.body[0] + def.body[1], z: m.z, el }); } return 0; }
+    // 冰霜射线：每次命中积累冰冻值
+    if (GW && GW.chill && !pierce) this._chill(m, GW.chill);
     // 重盾推土者：正面的盾牌挡住大部分枪械伤害（从侧面 / 背后打，或者交给陷阱）
     if (def.frontShield && gp && !pierce) {
       const dx = gp.x - m.x, dz = gp.z - m.z, L = Math.hypot(dx, dz) || 1;
@@ -1546,6 +1591,26 @@ class Sim {
     return a;
   }
 
+  // 冻住（BOSS 和冰甲免疫；寒霜卫兵光环内时间减半）。stun：僵直时长（默认同冻结时长）
+  _freeze(m, t, stun) {
+    const d = MON[m.type]; if (d.boss || d.iceImmune || m.dead) return false;
+    if (m.thawT > 0) t *= 0.5;
+    m.frozenT = Math.max(m.frozenT || 0, t); m.stunT = Math.max(m.stunT, stun === undefined ? t : stun * (m.thawT > 0 ? 0.5 : 1));
+    return true;
+  }
+  // 积累冰冻值：减速越来越强，满 1 冻住（BOSS 只减速）；amt 已含等级
+  _chill(m, amt, frz) {
+    const d = MON[m.type]; if (d.iceImmune || m.dead) return false;
+    if (m.thawT > 0) amt *= 0.5;
+    m.chill = Math.min(1, (m.chill || 0) + amt); m.chillT = 3;
+    m.slowAmt = Math.max(m.slowAmt, 0.2 + 0.45 * m.chill); m.slowT = Math.max(m.slowT, 1.2);
+    if (m.chill >= 1 && !d.boss) {
+      m.chill = 0;
+      if (this._freeze(m, frz || 1.4)) { this.ev('freeze', { id: m.id, x: m.x, y: m.y + d.body[0], z: m.z }); return true; }
+    }
+    return false;
+  }
+
   _reap() {
     const s = this.s;
     let w = 0;
@@ -1573,6 +1638,14 @@ class Sim {
           for (const o of s.monsters) if (!o.dead && o !== m && Math.hypot(o.x - m.x, o.z - m.z) < 2.6) { o.poisonDps = Math.max(o.poisonDps || 0, m.poisonDps); o.poisonT = 3; o.poisonSpread = true; }
           this.ev('combo', { k: 'spread', x: m.x, y: 0.6, z: m.z });
         }
+        // 孢子巨兽：没被火烧死就裂成一群孢子
+        if (def.spores && !(m.burnT > 0) && m.lastEl !== 'fire' && m.style !== 'pit') {
+          for (let k = 0; k < def.spores.n; k++) {
+            const c = this._spawn(def.spores.type, m.lane, Math.max(0, m.d - 0.4 - k * 0.5));
+            c.off = Math.max(-0.7 * T, Math.min(0.7 * T, m.off + (k - (def.spores.n - 1) / 2) * 0.6)); c.born = s.time;
+          }
+          this.ev('split', { x: m.x, z: m.z, k: 'spore' });
+        } else if (def.spores) this.ev('combo', { k: 'burnt', x: m.x, y: m.y + def.body[0], z: m.z });
         if (def.split) {
           for (const k of [-1, 1]) {
             const c = this._spawn(def.split, m.lane, Math.max(0, m.d - 1.5 - (k > 0 ? 2 : 0)));
@@ -1657,7 +1730,7 @@ class Sim {
           if (br === 'a' && tr.cd <= 0 && list.length) {
             tr.cd = 1;
             let n = 0;
-            for (const m of list) if (!MON[m.type].boss && this.rand() < 0.35) { m.stunT = Math.max(m.stunT, 1); m.frozenT = 1; n++; }
+            for (const m of list) if (!MON[m.type].boss && !MON[m.type].iceImmune && this.rand() < 0.35) { this._freeze(m, 1); n++; }
             if (n) this.ev('trap', { kind: 'freeze', id: tr.id, x: tr.wx, y: 0.3, z: tr.wz });
           }
           break;
@@ -1809,7 +1882,7 @@ class Sim {
           let shat = false;
           for (const m of list) {
             // 碎冰：减速或冻住的敌人受到双倍伤害
-            const ice = m.slowAmt > 0 || m.frozenT > 0;
+            const ice = (m.slowAmt > 0 || m.frozenT > 0) && !MON[m.type].iceImmune;
             if (ice) shat = true;
             this.damage(m, def.dmg[lv - 1] * (br === 'a' ? 1.5 : 1) * (ice ? 2 : 1) * (MON[m.type].ceil ? 2 : 1), 'trap');
             if (ice && m.dead && !m.style) m.style = 'shatter';
@@ -1902,6 +1975,66 @@ class Sim {
           }
           tr.activeT = 0.4;
           if (s.time - tr.fireT > 0.9) { tr.fireT = s.time; this.ev('trap', { kind: 'grinder', id: tr.id, x: tr.wx, y: tr.wy, z: tr.wz }); }
+          break;
+        }
+        case 'frost': {
+          // 急冻喷口：脚下有敌人才喷，喷中周围 3×3
+          if (tr.cd > 0) break;
+          this._ground(tr.idx, list);
+          if (!list.length) { tr.cd = 0; break; }
+          list.length = 0;
+          for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (!this.solid(tr.x + dx, tr.z + dz)) this._ground((tr.z + dz) * this.W + tr.x + dx, list);
+          const ch = def.chill[lv - 1] * (br === 'a' ? 1.5 : 1), dm = def.dmg[lv - 1] * (br === 'b' ? 1.8 : 1);
+          let nf = 0;
+          for (const m of list) {
+            this.damage(m, dm, 'trap');
+            if (!m.dead && this._chill(m, ch, br === 'a' ? 2.4 : 1.4)) nf++;
+          }
+          tr.cd = def.cd[lv - 1] * (br === 'b' ? 0.7 : 1); tr.fireT = s.time; tr.activeT = 0.5;
+          this.ev('trap', { kind: 'frost', id: tr.id, x: tr.wx, y: 0.3, z: tr.wz, n: nf });
+          break;
+        }
+        case 'arc': {
+          // 电弧网：横跨通道的电网，地面和空中都电；机械短路僵直
+          if (tr.cd > 0) break;
+          for (const i of tr.line) this._all(i, list);
+          if (!list.length) { tr.cd = 0; break; }
+          const dm = def.dmg[lv - 1] * (br === 'a' ? 1.5 : 1), hitSet = new Set(list);
+          tr.targets = [];
+          for (const m of list) {
+            const md = MON[m.type];
+            this.damage(m, dm, 'trap', null, false, 3);
+            if (!md.boss && (br === 'a' || md.cls === 'mech')) m.stunT = Math.max(m.stunT, br === 'a' ? 0.3 : 0.25);
+          }
+          if (br === 'b') {
+            // 跳跃电弧：从网上的敌人跳到网外最近的 2 个敌人
+            let jumps = 0;
+            for (const m of list) {
+              if (jumps >= 2) break;
+              let best = null, bd = 4.5;
+              for (const o of s.monsters) { if (o.dead || hitSet.has(o) || !this.canLock(o)) continue; const d = Math.hypot(o.x - m.x, o.z - m.z); if (d < bd) { bd = d; best = o; } }
+              if (best) { hitSet.add(best); this.damage(best, dm * 0.7, 'trap', null, false, 3); tr.targets.push(best.id); jumps++; }
+            }
+          }
+          tr.cd = def.cd; tr.activeT = 0.3;
+          if (s.time - tr.fireT > 0.7) { tr.fireT = s.time; this.ev('trap', { kind: 'arc', id: tr.id, x: tr.wx, y: tr.wy, z: tr.wz }); }
+          break;
+        }
+        case 'acid': {
+          // 酸蚀池：每 0.5 秒腐蚀一次，挂上 4 秒的「腐蚀」（护甲减半、受伤提高）
+          tr.tick = (tr.tick || 0) - dt;
+          if (tr.tick > 0) break;
+          tr.tick = 0.5;
+          if (br === 'b') { for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (!this.solid(tr.x + dx, tr.z + dz)) { const ii = (tr.z + dz) * this.W + tr.x + dx; this._ground(ii, list); const bk = this._bk.get(ii); if (bk) for (const m of bk) if (!m.dead && MON[m.type].fly && !MON[m.type].boss && !list.includes(m)) list.push(m); } }
+          else this._ground(tr.idx, list);
+          if (!list.length) break;
+          const amt = def.acid[lv - 1] * (br === 'a' ? 2 : 1), dm = def.dps[lv - 1] * 0.5;
+          for (const m of list) {
+            this.damage(m, dm, 'trap', null, true);
+            m.acidAmt = m.acidT > 0 ? Math.max(m.acidAmt || 0, amt) : amt; m.acidT = 4;
+          }
+          tr.activeT = 0.6;
+          if (s.time - tr.fireT > 1.2) { tr.fireT = s.time; this.ev('trap', { kind: 'acid', id: tr.id, x: tr.wx, y: 0.2, z: tr.wz }); }
           break;
         }
       }
@@ -2110,6 +2243,14 @@ class Sim {
       if (m.frozenT > 0) m.frozenT -= dt;
       if (m.poisonT > 0) { m.poisonT -= dt; this._src = 'spike'; this._el = 'acid'; this.damage(m, m.poisonDps * dt, 'trap', null, true); this._el = null; }
       if (m.acidT > 0) m.acidT -= dt;
+      if (m.chillT > 0) { m.chillT -= dt; if (m.chillT <= 0) m.chill = 0; }
+      if (def.iceImmune) { m.slowAmt = 0; m.frozenT = 0; m.chill = 0; }
+      if (m.thawT > 0) m.thawT -= dt;
+      // 寒霜卫兵：周围的同伴不容易被减速、冻住
+      if (def.thaw && (m.thawCd = (m.thawCd || 0) - dt) <= 0) {
+        m.thawCd = 0.5;
+        for (const o of s.monsters) if (!o.dead && o !== m && Math.hypot(o.x - m.x, o.z - m.z) < def.thaw.r) { o.thawT = 0.7; if (o.frozenT > 0.4) { o.frozenT = 0.4; o.stunT = Math.min(o.stunT, 0.4); } }
+      }
       this._el = 'fire';
       if (m.burnT > 0) { m.burnT -= dt; if (m.burnBy === 'gun') this.damage(m, m.burnDps * dt, 'gun', m.burnPid, true); else { this._src = m.burnBy || 'flame'; this.damage(m, m.burnDps * dt, 'trap', null, true); } }
       this._el = null;
@@ -2132,7 +2273,7 @@ class Sim {
       // 眩晕抗性：新施加的眩晕时间按比例缩短
       if (def.stunRes && m.stunT > (m._st || 0)) m.stunT = (m._st || 0) + (m.stunT - (m._st || 0)) * (1 - def.stunRes);
       if (def.elite && !m.enraged && m.hp < m.maxHp * 0.5) { m.enraged = true; this.ev('enrage', { id: m.id, x: m.x, z: m.z }); }
-      let spd = def.spd * (m.enraged ? 1.6 : 1) * (m.bossSpd || 1) * (1 - m.slowAmt * (1 - (def.slowRes || 0))) * (this.hasMut('swift') ? 1.25 : 1) * (m.champ ? 0.9 : 1);
+      let spd = def.spd * (m.enraged ? 1.6 : 1) * (m.bossSpd || 1) * (1 - m.slowAmt * (1 - (def.slowRes || 0)) * (m.thawT > 0 ? 0.5 : 1)) * (this.hasMut('swift') ? 1.25 : 1) * (m.champ ? 0.9 : 1);
       if (this.hasMut('regen') && s.time - (m.lastHitT || 0) > 2 && m.hp < m.maxHp) m.hp = Math.min(m.maxHp, m.hp + m.maxHp * 0.015 * dt);
       if (m.stunT > 0) { m.stunT -= dt; spd = 0; }
       if (m.launchT > 0) m.launchT -= dt;
@@ -2725,12 +2866,35 @@ class Sim {
     if (W.adsSpread !== undefined && p.input.ads) spread = W.adsSpread;
     for (let i = 0; i < n; i++) {
       const r = this.traceShot(p, rnd, spread, W.pierce || 1);
+      // 射程有限的武器（喷火、射线）：超出射程的命中作废，弹道在射程处截断
+      if (W.maxR) {
+        r.hits = r.hits.filter(h => h.t <= W.maxR);
+        if (!r.hits.length) r.best = null;
+        const ox = p.x, oy = p.y + 1.62, oz = p.z, L = Math.hypot(r.ex - ox, r.ey - oy, r.ez - oz);
+        if (L > W.maxR) { const k = W.maxR / L; r.ex = ox + (r.ex - ox) * k; r.ey = oy + (r.ey - oy) * k; r.ez = oz + (r.ez - oz) * k; r.wall = null; }
+      }
       ends.push(r);
       for (const h of r.hits) {
         let dmg = W.dmg * (h.head ? (W.head || 1) : 1) * this.gunMul(p);
         if (W.near) { const d = h.t; dmg *= d <= W.near ? 1 : d >= W.far ? 0.35 : 1 - 0.65 * (d - W.near) / (W.far - W.near); }
         hits.push({ m: h.m, head: h.head, dmg, x: h.x, y: h.y, z: h.z });
       }
+    }
+    // 电弧枪：从第一个命中的敌人跳到附近的敌人（每次跳跃伤害打折）
+    if (W.chain && hits.length) {
+      const done = new Set(hits.map(h => h.m)), links = [];
+      let cur = hits[0].m, dmg = hits[0].dmg;
+      for (let k = 0; k < W.chain.n; k++) {
+        let best = null, bd = W.chain.r;
+        for (const o of this.s.monsters) { if (o.dead || done.has(o) || !this.targetable(o)) continue; const d = Math.hypot(o.x - cur.x, (o.y + MON[o.type].body[0]) - (cur.y + MON[cur.type].body[0]), o.z - cur.z); if (d < bd) { bd = d; best = o; } }
+        if (!best) break;
+        dmg *= W.chain.mul; done.add(best);
+        const by = best.y + MON[best.type].body[0];
+        hits.push({ m: best, head: false, dmg, x: best.x, y: by, z: best.z, chain: true });
+        links.push([cur.x, cur.y + MON[cur.type].body[0], cur.z, best.x, by, best.z]);
+        cur = best;
+      }
+      if (links.length) ends[0].links = links;
     }
     return { hits, ends, w: W };
   }
@@ -2778,6 +2942,7 @@ class Sim {
     }
     for (const [m, a] of agg) this.ev('hit', { pid: p.id, id: m.id, mtype: m.type, x: a.x, y: a.y, z: a.z, dmg: Math.round(a.dmg), head: a.head, kill: m.dead, w: W.id });
     for (const e of r.ends) this.ev('shot', { pid: p.id, w: W.id, x: e.ex, y: e.ey, z: e.ez, hit: !!e.best, wall: !!e.wall, hk: e.wall ? e.wall.kind : '', dir: e.wall && e.wall.kind === 'wall' ? e.wall.dir : -1, mtype: e.best ? e.best.type : '' });
+    if (r.ends[0] && r.ends[0].links) this.ev('chain', { pid: p.id, l: r.ends[0].links.map(a => a.map(v => Math.round(v * 10) / 10)) });
   }
   // 玩家可以射击隐身单位（看得到虚影），但炮台锁定不到；钻地中两者都不行
   // 离 (x, z) 最近、2.6 格以内的坑（通道中间那一格也够得着）
@@ -2801,7 +2966,7 @@ class Sim {
 
 }
 
-const api = { PIT_KIND, STYLE, SHOCK, COMBO_WIN, WMODS, modW, pwOf, MOUNTABLE, MORTAR_MAN, TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
+const api = { ELEM, ARMOR, elemMul, PIT_KIND, STYLE, SHOCK, COMBO_WIN, WMODS, modW, pwOf, MOUNTABLE, MORTAR_MAN, TECH, TECH_BY, TECH_MAX, SUPPLY_CD, LANE_HP, raySphere, WEAPONS, WPN, SKILL, BOSS_TIP, EVO, COMBOS, DEVICE, MUTATORS, MUT, TALENTS, CLASSES, CLS, dailySpec, Sim, T, WALL_H, PLAT_H, FLY_Y, BIG_CATS, kindOfCat, TILE, DIRS, MON, TRAPS, TRAP, MAPS, MAP_LIST, DIFFS, MAX_LV, CAT_NAME, pathAt, lvv, genWave };
 if (typeof module !== 'undefined' && module.exports) module.exports = api;
 else root.TD = api;
 })(typeof window !== 'undefined' ? window : globalThis);

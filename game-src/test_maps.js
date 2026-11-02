@@ -90,7 +90,7 @@ function run(mapId, opts) {
   }
   const pitG = (sim.def.pits || []).length;
   // 逐章解锁：PROG=1 时只用「按顺序打到这一章时」已经解锁的陷阱；ONLY=a,b,c 指定可用陷阱
-  const CH_REW = { 1: ['push', 'aa', 'rail'], 2: ['flame', 'grinder'], 3: ['gatling'], 4: ['mortar'] };
+  const CH_REW = { 1: ['push', 'aa', 'rail'], 2: ['flame', 'grinder', 'frost'], 3: ['gatling', 'acid'], 4: ['mortar', 'arc'] };
   let allow = null;
   if (process.env.ONLY) allow = new Set(process.env.ONLY.split(','));
   else if (process.env.PROG === '1' || opts.prog) { allow = new Set(['slow', 'spike', 'tesla', 'laser', 'crusher', 'sentry']); const k = sim.def.order || 1; for (let j = 1; j < k; j++) for (const t of CH_REW[j] || []) allow.add(t); }
@@ -111,14 +111,14 @@ function run(mapId, opts) {
       for (const f of foci) { let dmin = 1e9; for (let d = 0; d < pth.len; d += 1) { TD.pathAt(pth, d, tmp); dmin = Math.min(dmin, Math.hypot(tmp.x - f.x, tmp.z - f.z)); } if (!best || dmin < best.d) best = { f, d: dmin }; }
       fOverride = best.f;
     }
-    const want = [['tesla', 3 * nf], ['slow', 2 * nf], ['laser', 4 * nf], ['spike', 2 * nf], ['crusher', nf]].concat(pitSl.length ? [['push', Math.min(pitSl.length, pitG)]] : []).concat(process.env.NOHEAVY ? [] : [['rail', 1]]).concat([['aa', 2 * nf], ['sentry', nf]]).concat(process.env.NOHEAVY ? [] : [['grinder', nf], ['mortar', 1]]).concat([ ['laser', 8 * nf]]).concat(pitSl.length ? [['push', Math.min(pitSl.length, pitG * 2)]] : []).concat([['flame', 3 * nf], ['crusher', 2 * nf], ['spike', 4 * nf], ['sentry', 2 * nf], ['aa', 3 * nf], ['flame', 5 * nf], ['laser', 12 * nf], ['crusher', 4 * nf], ['laser', 20 * nf], ['flame', 10 * nf], ['spike', 8 * nf], ['crusher', 6 * nf], ['laser', 30 * nf]]).concat(process.env.NOHEAVY ? [] : [['rail', 2 * nf], ['mortar', nf], ['grinder', 2 * nf]]);
+    const want = [['tesla', 3 * nf], ['slow', 2 * nf], ['laser', 4 * nf], ['spike', 2 * nf], ['crusher', nf]].concat(pitSl.length ? [['push', Math.min(pitSl.length, pitG)]] : []).concat(process.env.NOHEAVY ? [] : [['rail', 1]]).concat([['aa', 2 * nf], ['sentry', nf]]).concat(process.env.NOHEAVY ? [] : [['grinder', nf], ['mortar', 1]]).concat([['laser', 8 * nf], ['frost', nf], ['arc', 2 * nf], ['acid', nf]]).concat(pitSl.length ? [['push', Math.min(pitSl.length, pitG * 2)]] : []).concat([['flame', 3 * nf], ['crusher', 2 * nf], ['spike', 4 * nf], ['sentry', 2 * nf], ['aa', 3 * nf], ['flame', 5 * nf], ['laser', 12 * nf], ['crusher', 4 * nf], ['laser', 20 * nf], ['flame', 10 * nf], ['spike', 8 * nf], ['crusher', 6 * nf], ['arc', 5 * nf], ['acid', 3 * nf], ['laser', 30 * nf]]).concat(process.env.NOHEAVY ? [] : [['rail', 2 * nf], ['mortar', nf], ['grinder', 2 * nf]]);
     for (let i = want.length - 1; i >= 0; i--) if (!okT(want[i][0])) want.splice(i, 1);
     const cnt = t => sim.s.traps.filter(x => x.type === t).length;
     const upgradeRound = (cap) => {
       let progress = true;
       while (progress) {
         progress = false;
-        for (const tt of ['rail', 'tesla', 'laser', 'crusher', 'grinder', 'mortar', 'aa', 'sentry', 'spike', 'flame', 'slow']) {
+        for (const tt of ['rail', 'tesla', 'laser', 'crusher', 'grinder', 'mortar', 'arc', 'frost', 'aa', 'sentry', 'spike', 'flame', 'acid', 'slow']) {
           const tr = sim.s.traps.filter(x => x.type === tt && x.lv < cap).sort((a, b) => a.lv - b.lv)[0];
           if (tr && sim.s.gold >= sim.upgradeCost(tr) && sim.apply({ t: 'upgrade', pid: 'p1', id: tr.id, br: process.env.BR || (tr.id % 2 ? 'a' : 'b') }).ok) progress = true;
         }
@@ -127,6 +127,7 @@ function run(mapId, opts) {
     outer: for (const [t, k] of want) {
       if (t === 'aa' && sim.s.wave < 3) continue;
       let guard = 0;
+      if (process.env.DBG3 && sim.s.wave >= 5) console.log('want', t, cnt(t), k, sim.s.gold);
       while (cnt(t) < k && guard++ < 30) {
         if (t === 'tesla') {
           const fi = cnt(t) % nf; const sl = rows[fi].find(x => !sim.trapAtSlot(x)) || rows.flat().find(x => !sim.trapAtSlot(x)); if (!sl) break;
@@ -152,7 +153,7 @@ function run(mapId, opts) {
     // 余钱继续沿通道铺墙面/天花板陷阱
     let k = 0;
     // 只带了部分陷阱时（PROG / ONLY）：余钱轮流铺所有带了的输出型陷阱，某一种铺不下就换下一种
-    const extra = (allow ? ['laser', 'flame', 'crusher', 'spike', 'sentry', 'aa', 'grinder', 'laser'] : ['laser', 'flame', 'crusher', 'laser']).filter(okT);
+    const extra = (allow ? ['laser', 'flame', 'crusher', 'arc', 'spike', 'sentry', 'frost', 'aa', 'grinder', 'laser'] : ['laser', 'flame', 'crusher', 'arc', 'laser']).filter(okT);
     let fails = 0;
     while (extra.length && sim.s.gold > 700 && k++ < 60 && fails < extra.length) { const t = extra[k % extra.length]; if (build(t, k) === true) fails = 0; else if (!allow) break; else fails++; }
     upgradeRound(4);

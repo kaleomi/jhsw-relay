@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 18;
+const VERSION = 19;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 // 武器改装：每把枪 2 位（1 = a，2 = b）
 const modMask = mods => { let m = 0; if (mods) WIDS.forEach((w, i) => { if (mods[w] === 'a') m |= 1 << (i * 2); else if (mods[w] === 'b') m |= 2 << (i * 2); }); return m; };
@@ -24,7 +24,7 @@ const LIMIT = 3900;                       // 平台单条消息上限 4096 字�
 const MTYPES = Object.keys(MON), TTYPES = TRAPS.map(t => t.id);
 const PHASES = ['build', 'wave', 'victory', 'defeat'];
 const STATES = ['move', 'block', 'queue', 'hack'];
-const MREC = 13, TREC = 12;               // 单条记录字节数
+const MREC = 14, TREC = 12;               // 单条记录字节数
 const TAU = Math.PI * 2;
 
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
@@ -55,6 +55,7 @@ function packMonsters(list) {
     u[o + 3] = MTYPES.indexOf(m.type);
     u[o + 4] = (m.slowAmt > 0 ? 1 : 0) | (m.poisonT > 0 ? 2 : 0) | (m.burnT > 0 ? 4 : 0) | (m.stunT > 0 ? 8 : 0) | (m.enraged ? 16 : 0) | (m.hitT > 0 ? 32 : 0) | (m.launchT > 0 ? 64 : 0) | (m.cloak ? 128 : 0);
     u[o + 12] = Math.max(0, STATES.indexOf(m.state)) | (m.burrow ? 4 : 0) | (m.aiming ? 8 : 0) | (m.frozenT > 0 ? 16 : 0) | (m.champ ? 32 : 0) | (m.shield > 0 ? 64 : 0) | (m.fallT > 0 ? 128 : 0);
+    u[o + 13] = (m.acidT > 0 ? 1 : 0) | (m.thawT > 0 ? 2 : 0) | (m.chill > 0.5 ? 4 : 0);
     const x = clamp(Math.round(m.x * 100), 0, 65535), z = clamp(Math.round(m.z * 100), 0, 65535);
     u[o + 5] = x & 255; u[o + 6] = x >> 8; u[o + 7] = z & 255; u[o + 8] = z >> 8;
     u[o + 9] = clamp(Math.round(m.y * 28), 0, 255);
@@ -114,7 +115,8 @@ const SCHEMA = {
   waveClear: ['wave', 'bonus'],
   boss: ['id', 'mtype', 'lane', 'laneName'],
   burrow: ['id', 'x', 'z'], surface: ['id', 'x', 'z'], hacked: ['id', 'trap', 'x', 'y', 'z'], hackStart: ['id', 'tr'],
-  mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], boltHit: ['x', 'y', 'z'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z'],
+  mshot: ['id', 'x', 'y', 'z', 'tx', 'ty', 'tz', 'hit'], boltHit: ['x', 'y', 'z'], shellFire: ['x', 'z', 'tx', 'tz', 't', 'k', 'y'], rail: ['id', 'x', 'y', 'z', 'x2', 'y2', 'z2', 'n'], aura: ['id', 'x', 'z', 'r', 'n'], shieldBreak: ['id', 'x', 'y', 'z'], blink: ['id', 'x', 'z', 'x2', 'z2'], fwave: ['x', 'z', 'yaw'], split: ['x', 'z', 'k'],
+  immune: ['id', 'x', 'y', 'z', 'el'], freeze: ['id', 'x', 'y', 'z'], deflect: ['id', 'x', 'y', 'z'],
   bossPhase: ['id', 'phase', 'x', 'z'],
   laneOpen: ['lanes', 'names'],
   victory: [], defeat: [],
@@ -124,7 +126,7 @@ const SCHEMA = {
   research: ['pid', 'tech', 'lv'], resupply: ['pid'],
 };
 // 高频装饰事件只发一次，其余事件在后续快照里重复两次以抵抗丢包（客户端按序号去重）
-const ONCE = new Set(['mswing', 'trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'boltHit', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak']);
+const ONCE = new Set(['mswing', 'trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'boltHit', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak', 'immune', 'freeze', 'deflect']);
 const encVal = v => typeof v === 'number' ? (v === Infinity ? -1 : r2(v)) : typeof v === 'boolean' ? (v ? 1 : 0) : v === undefined ? null : v;
 
 class EventOut {
@@ -351,6 +353,7 @@ function applySnap(sim, snap, ctx) {
     m.state = STATES[f2 & 3] || 'move';
     m.slowAmt = f & 1 ? 0.4 : 0; m.poisonT = f & 2 ? 1 : 0; m.burnT = f & 4 ? 1 : 0; m.stunT = f & 8 ? 1 : 0; m.enraged = !!(f & 16); m.launchT = f & 64 ? 0.3 : 0;
     m.cloak = !!(f & 128); m.burrow = !!(f2 & 4); m.aiming = !!(f2 & 8); m.frozenT = f2 & 16 ? 0.3 : 0; m.champ = !!(f2 & 32); m.shield = f2 & 64 ? 1 : 0; m.fallT = f2 & 128 ? (m.fallT > 0 ? m.fallT : 0.8) : 0;
+    const f3 = mU[o + 13]; m.acidT = f3 & 1 ? 1 : 0; m.thawT = f3 & 2 ? 1 : 0; m.chill = f3 & 4 ? 0.8 : 0;
     if (f & 32) m.hitT = 0.12;
     const a = bAng(mU[o + 10]);
     if (m.aiming) { m.ax = Math.sin(a); m.az = Math.cos(a); } else { m.fx = Math.sin(a); m.fz = Math.cos(a); }
