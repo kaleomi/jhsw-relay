@@ -5992,6 +5992,15 @@ function shareName() { return `晶核守卫战报-${endInfo ? endInfo.map : 'run
 function saveShare() {
   if (!shareURL) return;
   if (window.JhswApk && window.JhswApk.saveImage) { const r = String(window.JhswApk.saveImage(shareURL.split(',')[1], shareName())); toast(r === 'ok' ? '已保存到相册「晶核守卫」' : '保存失败（系统版本太旧？可以截图保存）', r !== 'ok'); return; }
+  // 在 claude.ai 里打开时：通过 downloads 能力让查看者确认保存（网页里的下载链接在那里不生效）
+  if (HAS_CLAUDE) {
+    window.claude.use('downloads').then(async dl => {
+      if (!dl) { toast('这里不能直接下载：右键 / 长按图片另存为', true); return; }
+      try { const blob = await (await fetch(shareURL)).blob(); await dl.save({ filename: shareName(), data: blob }); toast('战报图已保存'); }
+      catch (e) { if (!e || e.code !== 'declined') toast('保存失败：右键 / 长按图片另存为', true); }
+    });
+    return;
+  }
   const a = document.createElement('a'); a.href = shareURL; a.download = shareName(); document.body.appendChild(a); a.click(); a.remove();
 }
 async function sendShare() {
