@@ -26,7 +26,8 @@ function checks(sim) {
     if (t !== TILE.PAD) errs.push(`pad ${x},${z} 被覆盖为 ${t}`);
     else { let adj = false; for (const [dx, dz] of TD.DIRS) if (sim.tileAt(x + dx, z + dz) === TILE.LANE) adj = true; if (!adj) errs.push(`pad ${x},${z} 不贴通道`); }
   }
-  for (const [x, z] of sim.def.spawns) if (sim.tileAt(x, z) === TILE.WALL) errs.push(`玩家出生点 ${x},${z} 在墙里`);
+  for (const [x, z] of sim.def.spawns) if (sim.tileAt(x, z) === TILE.WALL || sim.tileAt(x, z) === TILE.PIT) errs.push(`玩家出生点 ${x},${z} 在墙里 / 坑里`);
+  for (const pt of sim.pitTiles) { let adj = false; for (let dz = -3; dz <= 3; dz++) for (let dx = -3; dx <= 3; dx++) if (sim.tileAt(pt.x + dx, pt.z + dz) === TILE.LANE) adj = true; if (!adj) errs.push(`坑 ${pt.x},${pt.z} 离通道太远`); }
   // 科研舱：物件必须在可走的地面上、背后贴墙，且从玩家出生点走得到；不能和怪物通道相连
   const reach = new Set(), q = [sim.def.spawns[0].slice()];
   const walk = (x, z) => { const t = sim.tileAt(x, z); return t === TILE.FLOOR || t === TILE.BASE || t === TILE.LANE || t === TILE.PAD; };
@@ -76,6 +77,24 @@ function run(mapId, opts) {
     return out;
   };
   const rows = foci.map((_, i) => blockRow(i));
+  // 场景杀：坑旁边、通道中线上放弹板（PITS=1 时启用；默认不用坑，保证不靠坑也能过）
+  const pitSl = [];
+  if (process.env.PITS === '1') {
+    const groups = (sim.def.pits || []).map(r => ({ x: (r[0] + r[2] + 1) / 2 * T, z: (r[1] + r[3] + 1) / 2 * T }));
+    const near = sl => Math.min(...sim.pitTiles.map(pt => Math.hypot((sl.x + 0.5) * T - pt.cx, (sl.z + 0.5) * T - pt.cz)));
+    // 离路径中线近（大部分怪会踩到）、离坑 2.2 格以内的通道格
+    const tmp = { x: 0, z: 0, dx: 0, dz: 0 }, lineD = sl => { let b = 1e9; for (const l of sim.lanes) { const pth = sim.paths[l]; for (let d = 0; d < pth.len; d += 0.6) { TD.pathAt(pth, d, tmp); b = Math.min(b, Math.hypot(tmp.x - (sl.x + 0.5) * T, tmp.z - (sl.z + 0.5) * T)); } } return b; };
+    const cand = slots.floor.filter(sl => near(sl) < T * 2.2).map(sl => ({ sl, ld: lineD(sl) })).filter(o => o.ld < T * 0.6);
+    const per = groups.map(g => cand.filter(o => Math.hypot((o.sl.x + 0.5) * T - g.x, (o.sl.z + 0.5) * T - g.z) < T * 3).sort((a, b) => a.ld - b.ld || near(a.sl) - near(b.sl)).map(o => o.sl));
+    for (let k = 0; k < 3; k++) for (const l of per) if (l[k] && !pitSl.includes(l[k])) pitSl.push(l[k]);
+  }
+  const pitG = (sim.def.pits || []).length;
+  // 逐章解锁：PROG=1 时只用「按顺序打到这一章时」已经解锁的陷阱；ONLY=a,b,c 指定可用陷阱
+  const CH_REW = { 1: ['push', 'aa', 'rail'], 2: ['flame', 'grinder'], 3: ['gatling'], 4: ['mortar'] };
+  let allow = null;
+  if (process.env.ONLY) allow = new Set(process.env.ONLY.split(','));
+  else if (process.env.PROG === '1' || opts.prog) { allow = new Set(['slow', 'spike', 'tesla', 'laser', 'crusher', 'sentry']); const k = sim.def.order || 1; for (let j = 1; j < k; j++) for (const t of CH_REW[j] || []) allow.add(t); }
+  const okT = t => !allow || allow.has(t);
   const strat = () => {
     const nf = foci.length;
     // 科研：从第 3 波起按顺序研究（留 300 金币底）
@@ -92,7 +111,8 @@ function run(mapId, opts) {
       for (const f of foci) { let dmin = 1e9; for (let d = 0; d < pth.len; d += 1) { TD.pathAt(pth, d, tmp); dmin = Math.min(dmin, Math.hypot(tmp.x - f.x, tmp.z - f.z)); } if (!best || dmin < best.d) best = { f, d: dmin }; }
       fOverride = best.f;
     }
-    const want = [['tesla', 3 * nf], ['slow', 2 * nf], ['laser', 4 * nf], ['spike', 2 * nf], ['crusher', nf]].concat(process.env.NOHEAVY ? [] : [['rail', 1]]).concat([['aa', 2 * nf], ['sentry', nf]]).concat(process.env.NOHEAVY ? [] : [['grinder', nf], ['mortar', 1]]).concat([ ['laser', 8 * nf], ['flame', 3 * nf], ['crusher', 2 * nf], ['spike', 4 * nf], ['sentry', 2 * nf], ['aa', 3 * nf], ['flame', 5 * nf], ['laser', 12 * nf], ['crusher', 4 * nf], ['laser', 20 * nf], ['flame', 10 * nf], ['spike', 8 * nf], ['crusher', 6 * nf], ['laser', 30 * nf]]).concat(process.env.NOHEAVY ? [] : [['rail', 2 * nf], ['mortar', nf], ['grinder', 2 * nf]]);
+    const want = [['tesla', 3 * nf], ['slow', 2 * nf], ['laser', 4 * nf], ['spike', 2 * nf], ['crusher', nf]].concat(pitSl.length ? [['push', Math.min(pitSl.length, pitG)]] : []).concat(process.env.NOHEAVY ? [] : [['rail', 1]]).concat([['aa', 2 * nf], ['sentry', nf]]).concat(process.env.NOHEAVY ? [] : [['grinder', nf], ['mortar', 1]]).concat([ ['laser', 8 * nf]]).concat(pitSl.length ? [['push', Math.min(pitSl.length, pitG * 2)]] : []).concat([['flame', 3 * nf], ['crusher', 2 * nf], ['spike', 4 * nf], ['sentry', 2 * nf], ['aa', 3 * nf], ['flame', 5 * nf], ['laser', 12 * nf], ['crusher', 4 * nf], ['laser', 20 * nf], ['flame', 10 * nf], ['spike', 8 * nf], ['crusher', 6 * nf], ['laser', 30 * nf]]).concat(process.env.NOHEAVY ? [] : [['rail', 2 * nf], ['mortar', nf], ['grinder', 2 * nf]]);
+    for (let i = want.length - 1; i >= 0; i--) if (!okT(want[i][0])) want.splice(i, 1);
     const cnt = t => sim.s.traps.filter(x => x.type === t).length;
     const upgradeRound = (cap) => {
       let progress = true;
@@ -115,6 +135,13 @@ function run(mapId, opts) {
           if (!r.ok) { if (process.env.DBG) console.log('tesla fail', r.reason, sim.s.wave, sim.s.gold); if (r.reason === '金币不足') break outer; break; }
           continue;
         }
+        if (t === 'push') {
+          const sl = pitSl.find(x => !sim.trapAtSlot(x)); if (!sl) break;
+          const w = sim.trapWorld(Object.assign({ type: 'push' }, sl)); p.x = w.x + T * 2; p.z = w.z;
+          const r = sim.apply({ t: 'build', pid: 'p1', trap: 'push', slot: sl });
+          if (!r.ok) { if (r.reason === '金币不足') break outer; pitSl.splice(pitSl.indexOf(sl), 1); }
+          continue;
+        }
         const r = build(t, cnt(t));
         if (process.env.DBG && r !== true) console.log('build', t, r, sim.s.wave, sim.s.gold);
         if (r === false) break outer; if (r === null) break;
@@ -124,7 +151,10 @@ function run(mapId, opts) {
     upgradeRound(4);
     // 余钱继续沿通道铺墙面/天花板陷阱
     let k = 0;
-    while (sim.s.gold > 700 && k++ < 40) { const t = ['laser', 'flame', 'crusher', 'laser'][k % 4]; if (build(t, k) !== true) break; }
+    // 只带了部分陷阱时（PROG / ONLY）：余钱轮流铺所有带了的输出型陷阱，某一种铺不下就换下一种
+    const extra = (allow ? ['laser', 'flame', 'crusher', 'spike', 'sentry', 'aa', 'grinder', 'laser'] : ['laser', 'flame', 'crusher', 'laser']).filter(okT);
+    let fails = 0;
+    while (extra.length && sim.s.gold > 700 && k++ < 60 && fails < extra.length) { const t = extra[k % extra.length]; if (build(t, k) === true) fails = 0; else if (!allow) break; else fails++; }
     upgradeRound(4);
   };
   const log = [];

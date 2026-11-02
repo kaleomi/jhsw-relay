@@ -8,6 +8,10 @@ for key, fn in [('ENGINE', 'engine.js'), ('SIM', 'sim.js'), ('PROTO', 'proto.js'
     code = open(os.path.join(HERE, fn), encoding='utf-8').read()
     assert '</script' not in code, fn
     src = src.replace('/*__%s__*/' % key, '\n' + code + '\n')
+import sys
+sys.path.insert(0, HERE)
+from art import art_js   # 美术图片（art/ 目录，见 art/PROMPTS.md）
+src = src.replace('/*__ART__*/', art_js(os.path.join(HERE, 'art')))
 os.makedirs(os.path.join(HERE, '../dist'), exist_ok=True)
 open(os.path.join(HERE, '../dist/晶核守卫.html'), 'w', encoding='utf-8').write(src)
 srv = ('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">'

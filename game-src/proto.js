@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 16;
+const VERSION = 17;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 // 武器改装：每把枪 2 位（1 = a，2 = b）
 const modMask = mods => { let m = 0; if (mods) WIDS.forEach((w, i) => { if (mods[w] === 'a') m |= 1 << (i * 2); else if (mods[w] === 'b') m |= 2 << (i * 2); }); return m; };
@@ -54,7 +54,7 @@ function packMonsters(list) {
     u[o] = id & 255; u[o + 1] = (id >> 8) & 255; u[o + 2] = (id >> 16) & 255;
     u[o + 3] = MTYPES.indexOf(m.type);
     u[o + 4] = (m.slowAmt > 0 ? 1 : 0) | (m.poisonT > 0 ? 2 : 0) | (m.burnT > 0 ? 4 : 0) | (m.stunT > 0 ? 8 : 0) | (m.enraged ? 16 : 0) | (m.hitT > 0 ? 32 : 0) | (m.launchT > 0 ? 64 : 0) | (m.cloak ? 128 : 0);
-    u[o + 12] = Math.max(0, STATES.indexOf(m.state)) | (m.burrow ? 4 : 0) | (m.aiming ? 8 : 0) | (m.frozenT > 0 ? 16 : 0) | (m.champ ? 32 : 0) | (m.shield > 0 ? 64 : 0);
+    u[o + 12] = Math.max(0, STATES.indexOf(m.state)) | (m.burrow ? 4 : 0) | (m.aiming ? 8 : 0) | (m.frozenT > 0 ? 16 : 0) | (m.champ ? 32 : 0) | (m.shield > 0 ? 64 : 0) | (m.fallT > 0 ? 128 : 0);
     const x = clamp(Math.round(m.x * 100), 0, 65535), z = clamp(Math.round(m.z * 100), 0, 65535);
     u[o + 5] = x & 255; u[o + 6] = x >> 8; u[o + 7] = z & 255; u[o + 8] = z >> 8;
     u[o + 9] = clamp(Math.round(m.y * 28), 0, 255);
@@ -86,7 +86,10 @@ function packTraps(list, time) {
 /* ---------------- 事件 ---------------- */
 // 字段表：pid 字段按玩家槽位编码；Infinity 编码为 -1
 const SCHEMA = {
-  kill: ['id', 'mtype', 'x', 'y', 'z', 'fx', 'fz', 'bounty', 'pid', 'launch'],
+  kill: ['id', 'mtype', 'x', 'y', 'z', 'fx', 'fz', 'bounty', 'pid', 'launch', 'st', 'cb', 'ex'],
+  pitFall: ['x', 'z', 'mtype', 'kind'],
+  shock: ['pid', 'x', 'y', 'z', 'yaw', 'n', 'cls'],
+  wmod: ['pid', 'w', 'm'],
   core: ['dmg', 'mtype', 'x', 'y', 'z'],
   build: ['id', 'trap', 'pid', 'x', 'y', 'z'],
   upgrade: ['id', 'lv', 'x', 'y', 'z', 'br', 'trap'],
@@ -164,7 +167,7 @@ function encodeSnap(sim, o) {
   const boss = s.bossId ? s.monsters.find(m => m.id === s.bossId) : null;
   const h = [sim.def.id, s.diff, s.endless ? 1 : 0, PHASES.indexOf(s.phase), s.wave, r2(s.timer), s.gold, r2(s.crystal.hp), s.crystal.max,
     s.bossId || 0, boss ? Math.ceil(boss.hp) : 0, boss ? Math.ceil(boss.maxHp) : 0, boss && boss.empT !== undefined ? r2(boss.empT) : 0, s.spawnQ.length, r2(s.time)];
-  const st = [s.stats.kills, s.stats.leaks, Math.round(s.stats.dmgGun), Math.round(s.stats.dmgTrap), s.stats.built, s.stats.spent, r2(s.stats.startTime), s.stats.endlessBest || 0];
+  const st = [s.stats.kills, s.stats.leaks, Math.round(s.stats.dmgGun), Math.round(s.stats.dmgTrap), s.stats.built, s.stats.spent, r2(s.stats.startTime), s.stats.endlessBest || 0, s.stats.bestCombo || 0, s.stats.styleGold || 0, (s.stats.styles && s.stats.styles.pit) || 0];
   const p = Object.values(s.players).map(q => [q.id, q.slot, q.name, r2(q.x), r2(q.y), r2(q.z), r3(q.yaw), r3(q.pitch), Math.ceil(q.hp), q.maxHp,
     (q.dead ? 1 : 0) | (q.input.fire && !q.dead && (q.remote || (q.ammo > 0 && q.reloadT <= 0)) ? 2 : 0) | (q.ready ? 4 : 0) | (q.ground ? 8 : 0),
     r2(q.respawnT), q.kills, Math.round(q.dmg), q.life || 0,
@@ -247,7 +250,8 @@ function applySnap(sim, snap, ctx) {
   s.crystal.hp = h[7]; s.crystal.max = h[8]; s.bossId = h[9];
   s.spawnQ.length = h[13];
   const st = snap.st || [];
-  Object.assign(s.stats, { kills: st[0] | 0, leaks: st[1] | 0, dmgGun: st[2] || 0, dmgTrap: st[3] || 0, built: st[4] | 0, spent: st[5] | 0, startTime: st[6] || 0 });
+  Object.assign(s.stats, { kills: st[0] | 0, leaks: st[1] | 0, dmgGun: st[2] || 0, dmgTrap: st[3] || 0, built: st[4] | 0, spent: st[5] | 0, startTime: st[6] || 0, bestCombo: st[8] | 0, styleGold: st[9] | 0 });
+  s.stats.styles = Object.assign(s.stats.styles || {}, { pit: st[10] | 0 });
   if (st[7]) s.stats.endlessBest = st[7];
   if (snap.bt && typeof snap.bt === 'object') s.stats.byTrap = snap.bt;
 
@@ -345,7 +349,7 @@ function applySnap(sim, snap, ctx) {
     const f = mU[o + 4], f2 = mU[o + 12];
     m.state = STATES[f2 & 3] || 'move';
     m.slowAmt = f & 1 ? 0.4 : 0; m.poisonT = f & 2 ? 1 : 0; m.burnT = f & 4 ? 1 : 0; m.stunT = f & 8 ? 1 : 0; m.enraged = !!(f & 16); m.launchT = f & 64 ? 0.3 : 0;
-    m.cloak = !!(f & 128); m.burrow = !!(f2 & 4); m.aiming = !!(f2 & 8); m.frozenT = f2 & 16 ? 0.3 : 0; m.champ = !!(f2 & 32); m.shield = f2 & 64 ? 1 : 0;
+    m.cloak = !!(f & 128); m.burrow = !!(f2 & 4); m.aiming = !!(f2 & 8); m.frozenT = f2 & 16 ? 0.3 : 0; m.champ = !!(f2 & 32); m.shield = f2 & 64 ? 1 : 0; m.fallT = f2 & 128 ? (m.fallT > 0 ? m.fallT : 0.8) : 0;
     if (f & 32) m.hitT = 0.12;
     const a = bAng(mU[o + 10]);
     if (m.aiming) { m.ax = Math.sin(a); m.az = Math.cos(a); } else { m.fx = Math.sin(a); m.fz = Math.cos(a); }

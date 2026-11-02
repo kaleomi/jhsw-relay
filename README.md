@@ -37,6 +37,7 @@ npx wrangler deploy
 | `room-core.js` | 两个版本共用的房间转发逻辑 |
 | `public/index.html` | 构建好的游戏（单文件） |
 | `game-src/` | 游戏源码：`python3 build.py` 重新生成 `public/index.html` 与 `dist/晶核守卫.html` |
+| `game-src/art/` | 美术图片（角色头像、章节插图、BOSS 卡、主菜单海报）：文件名和 ChatGPT 提示词见 `game-src/art/PROMPTS.md`，放进来后重新构建即可（自动缩放需要 Pillow） |
 | `android/` | 安卓 WebView 外壳与打包脚本（工具链与签名密钥不在仓库里） |
 | `test/` | 服务器测试：`node test/worker-sim.test.js` |
 

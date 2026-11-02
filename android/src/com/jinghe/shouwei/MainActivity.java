@@ -38,6 +38,7 @@ public class MainActivity extends Activity {
     web.setWebViewClient(new WebViewClient());
     web.setWebChromeClient(new WebChromeClient());
     web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+    web.addJavascriptInterface(new ApkBridge(this), "JhswApk");   // 战报图：保存到相册 / 分享
     setContentView(web);
     hideSystemUi();
     web.loadUrl("file:///android_asset/index.html");

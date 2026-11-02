@@ -65,7 +65,7 @@ if (!settings.tb.size || typeof settings.tb.size !== 'object') settings.tb.size 
 const KEY_ACTIONS = [
   ['KeyW', '前进'], ['KeyS', '后退'], ['KeyA', '左移'], ['KeyD', '右移'], ['Space', '跳跃'], ['ShiftLeft', '冲刺'],
   ['KeyR', '换弹'], ['KeyQ', '步枪 / 切换武器'], ['KeyC', '手雷'], ['KeyZ', '轨道打击'], ['KeyB', '军械库'], ['KeyF', '互动（机关 / 科研舱）'],
-  ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
+  ['KeyE', '升级陷阱'], ['KeyX', '拆除陷阱'], ['KeyG', '准备 / 提前开战'], ['KeyT', '标记'], ['KeyV', '震荡冲击'], ['KeyY', '快捷消息'], ['KeyM', '大地图'], ['KeyH', '图鉴'], ['KeyP', '暂停'],
 ];
 const KEY_FIXED = new Set(['Enter', 'NumpadEnter', 'Escape', 'Tab', 'Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'F1']);
 let keyInv = new Map(), keyAway = new Set();
@@ -117,7 +117,7 @@ const MP = {
 const AWAY_GRACE = 90000, HOST_GRACE = 60000;
 try { MP.name = (localStorage.getItem('jhsw-nick') || '').slice(0, 12); } catch (e) { /* 无存储 */ }
 if (!MP.name) MP.name = '守卫' + Math.floor(100 + Math.random() * 900);
-const NET_CMDS = new Set(['build', 'upgrade', 'sell', 'ready', 'dmg', 'buy', 'wmod', 'rocket', 'nade', 'ult', 'use', 'research', 'resupply']);
+const NET_CMDS = new Set(['build', 'upgrade', 'sell', 'ready', 'dmg', 'buy', 'wmod', 'rocket', 'nade', 'ult', 'use', 'research', 'resupply', 'shock']);
 const cleanName = v => String(v || '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, 12);
 const r2n = v => Math.round(v * 100) / 100, r3n = v => Math.round(v * 1000) / 1000;
 const TEAM_COL = [[0.37, 0.89, 1], [1, 0.71, 0.28], [0.42, 0.94, 0.64], [0.85, 0.55, 1]];
@@ -545,10 +545,16 @@ const DIFF_IDS = ['normal', 'hard', 'hell'];
 const STAR_RULES = ['通关', '晶核剩余 ≥ 70%', '晶核无损（满血通关）'];
 const starsOf = r => !r || !r.win ? 0 : r.grade === 'S' ? 3 : r.grade === 'A' ? 2 : 1;
 const starStr = n => '★'.repeat(n) + '☆'.repeat(3 - n);
+const MAST_MAX = 3;
 const PROG = {
-  tal: {},
-  load() { try { this.tal = JSON.parse(localStorage.getItem('jhsw-tal') || '{}') || {}; } catch (e) { this.tal = {}; } },
-  save() { try { localStorage.setItem('jhsw-tal', JSON.stringify(this.tal)); } catch (e) { /* 无存储 */ } },
+  tal: {}, mast: {},
+  load() {
+    try { this.tal = JSON.parse(localStorage.getItem('jhsw-tal') || '{}') || {}; } catch (e) { this.tal = {}; }
+    try { this.mast = JSON.parse(localStorage.getItem('jhsw-mast') || '{}') || {}; } catch (e) { this.mast = {}; }
+  },
+  save() { try { localStorage.setItem('jhsw-tal', JSON.stringify(this.tal)); localStorage.setItem('jhsw-mast', JSON.stringify(this.mast)); } catch (e) { /* 无存储 */ } },
+  mastLv(id) { return Math.max(0, Math.min(MAST_MAX, this.mast[id] | 0)); },
+  mastObj() { const o = {}; for (const t of TRAPS) { const v = this.mastLv(t.id); if (v) o[t.id] = v; } return o; },
   dailyWins() { try { const a = JSON.parse(localStorage.getItem('jhsw-daily') || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } },
   addDailyWin(d) { const a = this.dailyWins(); if (!a.includes(d)) { a.push(d); try { localStorage.setItem('jhsw-daily', JSON.stringify(a.slice(-400))); } catch (e) { /* 无存储 */ } } },
   // 星星来源：每张地图每个难度的三星评价 + 无尽超过剧本 10 波 + 每日挑战 + 成就奖励
@@ -561,18 +567,60 @@ const PROG = {
   kills() { try { return +localStorage.getItem('jhsw-kills') || 0; } catch (e) { return 0; } },
   addKills(n) { try { localStorage.setItem('jhsw-kills', String(this.kills() + Math.max(0, n | 0))); } catch (e) { /* 无存储 */ } },
   // 天赋第 r 级要花 r 颗星（1 + 2 + 3）
-  spent() { return TALENTS.reduce((a, t) => { const r = Math.min(t.max, this.tal[t.id] | 0); return a + r * (r + 1) / 2; }, 0); },
+  spent() { return TALENTS.reduce((a, t) => { const r = Math.min(t.max, this.tal[t.id] | 0); return a + r * (r + 1) / 2; }, 0) + TRAPS.reduce((a, t) => { const r = this.mastLv(t.id); return a + r * (r + 1) / 2; }, 0); },
   team() { const o = {}; for (const t of TALENTS) if (t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
-  personal() { const o = {}; for (const t of TALENTS) if (!t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); return o; },
+  personal() { const o = {}; for (const t of TALENTS) if (!t.team) o[t.id] = Math.min(t.max, this.tal[t.id] | 0); o.mast = this.mastObj(); return o; },
 };
 PROG.load();
 /* ---------- 重型陷阱（2×2）阶段性解锁：通关指定关卡 / 完成成就（记录在本机） ---------- */
 const mapWon = id => { const all = loadBest(); return ['normal', 'hard', 'hell'].some(d => { const r = all[bestKey(id, d, 'std')]; return r && r.win; }); };
-const UNLOCKS = {
-  rail: { how: '通关「空间站·中枢」（任意难度）', ok: () => mapWon('station') },
-  grinder: { how: '通关「三岔要塞」（任意难度）', ok: () => mapWon('fortress') },
-  mortar: { how: '成就「歼灭者」：累计击杀 800 只怪物', prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => PROG.kills() >= 800 || !!ACH.d.done.kill800 },
+// 逐章解锁：新守卫只带 6 种基础陷阱上岗（减速器、毒刺、磁暴塔、激光、粉碎锤、岗哨机枪），
+// 打通主线章节后老钳陆续送来新装备。打通更靠后的章节也算（任意难度）。
+const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八'];
+const wonFrom = i => MAP_LIST.slice(i - 1).some(m => mapWon(m.id));
+const CH_UNLOCK = [[1, ['push', 'aa', 'rail']], [2, ['flame', 'grinder']], [3, ['gatling']]];
+const UNLOCKS = {};
+for (const [i, ids] of CH_UNLOCK) for (const id of ids) UNLOCKS[id] = { ch: i, how: `通关主线第${CN_NUM[i]}章「${MAP_LIST[i - 1].name}」`, ok: () => wonFrom(i) };
+UNLOCKS.mortar = { ch: 4, how: `通关主线第四章「${MAP_LIST[3].name}」，或累计击杀 800 只怪物`, prog: () => `已击杀 ${Math.min(800, PROG.kills())} / 800`, ok: () => wonFrom(4) || PROG.kills() >= 800 || !!ACH.d.done.kill800 };
+// 新解锁、还没用过的陷阱：陷阱栏和陷阱一览里挂个「新」字
+const NEWT = {
+  d: null,
+  load() {
+    if (this.d) return;
+    let raw = null; try { raw = localStorage.getItem('jhsw-newtrap'); } catch (e) { raw = null; }
+    if (raw === null) { this.d = {}; for (const id in UNLOCKS) if (UNLOCKS[id].ok()) this.d[id] = 1; this.save(); }   // 老玩家：已经有的就不算新的
+    else { try { this.d = JSON.parse(raw) || {}; } catch (e) { this.d = {}; } }
+  },
+  save() { try { localStorage.setItem('jhsw-newtrap', JSON.stringify(this.d)); } catch (e) { /* 无存储 */ } },
+  isNew(id) { if (!UNLOCKS[id] || window.__unlockAll) return false; this.load(); return !this.d[id] && UNLOCKS[id].ok(); },
+  seen(id) { if (!this.isNew(id)) return; this.d[id] = 1; this.save(); },
+  list() { return Object.keys(UNLOCKS).filter(id => this.isNew(id)); },
 };
+/* ---------- 出战配置：每局最多带 8 种陷阱 ---------- */
+const LOAD_MAX = 8;
+// 没手动配置过时的默认顺序（先带基础和对付 BOSS 的）
+const LOAD_PRI = ['slow', 'spike', 'tesla', 'laser', 'crusher', 'sentry', 'rail', 'push', 'flame', 'aa', 'grinder', 'gatling', 'mortar'];
+const LOAD = {
+  d: null,   // { sel: 玩家选的, known: 保存时已经解锁的 }；没配置过为 null
+  load() { try { const o = JSON.parse(localStorage.getItem('jhsw-load') || 'null'); this.d = o && Array.isArray(o.sel) ? { sel: o.sel.filter(id => TRAP[id]), known: Array.isArray(o.known) ? o.known : [] } : null; } catch (e) { this.d = null; } },
+  save() { try { localStorage.setItem('jhsw-load', JSON.stringify(this.d)); } catch (e) { /* 无存储 */ } },
+  unlocked() { const all = [...LOAD_PRI, ...TRAPS.map(t => t.id).filter(id => !LOAD_PRI.includes(id))]; return all.filter(id => TRAP[id] && isUnlocked(id)); },
+  // 实际携带：解锁不超过 8 种就全带；否则用玩家的配置，配置之后新解锁的有空位就自动补上
+  list(mapId) {
+    const un = this.unlocked();
+    if (un.length <= LOAD_MAX) return un;
+    // 没配置过：按推荐顺序；室外图天花板少，粉碎锤往后放
+    if (!this.d) { const md = MAPS[mapId || selMap]; return (md && md.outdoor ? un.filter(id => id !== 'crusher').concat(un.filter(id => id === 'crusher')) : un).slice(0, LOAD_MAX); }
+    const out = this.d.sel.filter(id => un.includes(id)).slice(0, LOAD_MAX);
+    for (const id of un) if (out.length < LOAD_MAX && !out.includes(id) && !this.d.known.includes(id)) out.push(id);
+    return out;
+  },
+  set(sel) { this.d = { sel: sel.slice(0, LOAD_MAX), known: this.unlocked() }; this.save(); },
+};
+LOAD.load();
+let runLoad = null;   // 本局携带的陷阱（开局时定下来）
+const inLoad = id => isUnlocked(id) && (Tut.on || !runLoad || runLoad.has(id));
+const gTraps = g => g.traps.filter(inLoad);
 /* ---------- 成就：完成后永久记录，奖励星星（部分解锁新陷阱 / 改装） ---------- */
 const ACH = {
   d: { c: {}, done: {} },
@@ -604,7 +652,7 @@ const ACHS = [
   { id: 'hardAll', name: '钢铁防线', desc: '所有关卡都在困难难度通关', star: 3, prog: () => [winsOn('hard'), MAP_LIST.length], ok: () => winsOn('hard') >= MAP_LIST.length },
   { id: 'hell1', name: '炼狱行者', desc: '任意关卡在炼狱难度通关', star: 2, ok: () => winsOn('hell') > 0 },
   { id: 'stars30', name: '星光闪耀', desc: '关卡评价累计获得 30 颗星', star: 2, prog: () => [Math.min(30, PROG.mapStars()), 30], ok: () => PROG.mapStars() >= 30 },
-  { id: 'kill800', name: '歼灭者', desc: '累计击杀 800 只怪物', star: 1, reward: '解锁等离子迫击炮', prog: () => [Math.min(800, PROG.kills()), 800], ok: () => PROG.kills() >= 800 },
+  { id: 'kill800', name: '歼灭者', desc: '累计击杀 800 只怪物', star: 1, reward: '提前解锁等离子迫击炮', prog: () => [Math.min(800, PROG.kills()), 800], ok: () => PROG.kills() >= 800 },
   { id: 'kill5000', name: '屠戮机器', desc: '累计击杀 5000 只怪物', star: 2, prog: () => [Math.min(5000, PROG.kills()), 5000], ok: () => PROG.kills() >= 5000 },
   { id: 'boss1', name: '屠龙者', desc: '击败一次 BOSS', star: 1, ok: () => ACH.n('boss') >= 1 },
   { id: 'boss10', name: 'BOSS 猎手', desc: '累计击败 10 次 BOSS', star: 2, prog: () => [Math.min(10, ACH.n('boss')), 10], ok: () => ACH.n('boss') >= 10 },
@@ -616,6 +664,8 @@ const ACHS = [
   { id: 'endless35', name: '深渊凝视', desc: '无尽模式到达第 35 波', star: 2, prog: () => [Math.min(35, ACH.n('endlessBest')), 35], ok: () => ACH.n('endlessBest') >= 35 },
   { id: 'daily3', name: '每日挑战者', desc: '赢下 3 次每日挑战', star: 1, prog: () => [Math.min(3, PROG.dailyWins().length), 3], ok: () => PROG.dailyWins().length >= 3 },
   { id: 'coop', name: '并肩作战', desc: '和队友一起通关一次多人游戏', star: 1, ok: () => ACH.n('coopWin') >= 1 },
+  { id: 'pit20', name: '地形杀手', desc: '累计用场景杀（推进坑里）消灭 20 只怪物', star: 1, prog: () => [Math.min(20, ACH.n('pits')), 20], ok: () => ACH.n('pits') >= 20 },
+  { id: 'combo30', name: '连环杀手', desc: '一局里打出 30 连杀', star: 1, prog: () => [Math.min(30, ACH.n('bestCombo')), 30], ok: () => ACH.n('bestCombo') >= 30 },
   { id: 'mod1', name: '改装师', desc: '在军械库给武器做一次改装', star: 1, ok: () => ACH.n('mods') >= 1 },
   { id: 'allCls', name: '全能战士', desc: '突击兵、工程师、支援兵、侦察兵各通关一次', star: 2, prog: () => [CLASSES.filter(c => ACH.n('cls_' + c.id)).length, CLASSES.length], ok: () => CLASSES.every(c => ACH.n('cls_' + c.id) > 0) },
 ];
@@ -627,7 +677,7 @@ try { const c = localStorage.getItem('jhsw-cls'); if (CLS[c]) selCls = c; } catc
 let mode = 'menu';           // menu | play | pause | end
 let tool = 'gun';            // 'gun' 或陷阱 id
 let locked = false, fallbackLook = false, hadLock = false;
-let endTimer = 0, timeNow = 0, frameAlpha = 0, simNow = 0, timeScale = 1, slowmoT = 0;
+let endTimer = 0, timeNow = 0, frameAlpha = 0, simNow = 0, timeScale = 1, slowmoT = 0, hitStopT = 0, hitStopAt = -9;
 const cam = { yaw: 0, pitch: 0, fov: 75, shake: 0, ads: 0, bob: 0, x: 0, y: 0, z: 0, fx: 0, fy: 0, fz: -1, rx: 1, rz: 0, ux: 0, uy: 1, uz: 0 };
 const vm = { kick: 0, flash: 0, swayX: 0, swayY: 0, switchT: 0 };
 const keys = {};
@@ -744,6 +794,11 @@ const Snd = {
       case 'resupply': this.hiss(0.18, 'highpass', 2500, 1200, 1, 0.22, p); this.tone('triangle', 500, 1000, 0.25, 0.14, p, 0.05); this.tone('sine', 1300, 1500, 0.12, 0.08, p, 0.25); break;
       case 'device': this.tone('square', 440, 880, 0.12, 0.12, p); this.tone('square', 660, 1320, 0.12, 0.1, p, 0.12); this.hiss(0.5, 'bandpass', 800, 2400, 2, 0.15, p, 0.1); break;
       case 'shatter': this.hiss(0.25, 'highpass', 5000, 2500, 1, 0.35 * v, p); this.tone('triangle', 2400, 1800, 0.15, 0.1 * v, p); break;
+      case 'shock': this.tone('sine', 120, 40, 0.45, 0.5 * v + 0.15, p); this.hiss(0.35, 'bandpass', 900, 200, 1.2, 0.35 * v + 0.1, p); this.tone('triangle', 520, 180, 0.2, 0.12, p); break;
+      case 'pit': this.hiss(0.6, 'lowpass', 2400, 200, 1, 0.4 * v + 0.1, p); this.tone('sine', 300, 60, 0.7, 0.25 * v + 0.05, p, 0.15); break;
+      case 'combo': [0, 0.07, 0.14].forEach((d, i) => this.tone('square', [660, 880, 1320][i], [660, 880, 1320][i] * 1.02, 0.09, 0.07, 0, d)); break;
+      case 'coin': { const now = performance.now(); if (now - (this._coinT || 0) < 70) break; this._coinT = now; const f = 1900 + Math.random() * 500; this.tone('sine', f, f * 1.12, 0.05, 0.035, 0); break; }
+      case 'comboBig': [0, 0.08, 0.16, 0.24].forEach((d, i) => this.tone('sawtooth', [523, 659, 784, 1046][i], [523, 659, 784, 1046][i] * 1.01, 0.14, 0.09, 0, d)); break;
       case 'freeze': this.hiss(0.3, 'highpass', 4000, 6000, 2, 0.15 * v, p); break;
       case 'burrow': this.hiss(0.4, 'lowpass', 600, 120, 1, 0.3 * v, p); this.tone('sine', 70, 40, 0.3, 0.25 * v, p); break;
       case 'hack': [0, 0.08, 0.16].forEach((d, i) => this.tone('square', 1200 - i * 300, 900 - i * 300, 0.07, 0.1 * v + 0.03, p, d)); break;
@@ -1009,7 +1064,7 @@ function buildTerrainStatic(S) {
   E.beginStatic();
   const CX = W * T / 2, CZ = H * T / 2, RR = Math.max(W, H) * T;
   // 远景：大地、远山、太阳
-  E.push('box', CX, -0.45, CZ, 0, RR * 6, 0.5, RR * 6, C3(TH.ground));
+  pitGround(S, -0.45, 0.5, C3(TH.ground), RR * 6);
   for (let i = 0; i < 34; i++) {
     const a = i / 34 * Math.PI * 2 + hash(i, 7) * 0.2, r = RR * (0.95 + hash(i, 3) * 0.7), h = 16 + hash(i, 5) * 30, w = 70 + hash(i, 9) * 60;
     const k = 0.75 + hash(i, 11) * 0.25;
@@ -1027,6 +1082,7 @@ function buildTerrainStatic(S) {
   const tH = (x, z) => S.tileH(x, z);
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
     const t = tileOf(S, x, z), cx = (x + 0.5) * T, cz = (z + 0.5) * T, i = z * W + x;
+    if (t === TILE.PIT) continue;   // 坑在 buildPits 里画
     if (t === TILE.WALL) {
       let edge = false, top = 0;
       for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) if (tileOf(S, x + dx, z + dz) !== TILE.WALL) { edge = true; top = Math.max(top, tH(x + dx, z + dz)); }
@@ -1148,7 +1204,7 @@ function buildTerrainStatic(S) {
     for (let y = h0 + 0.3; y < h1 + 0.05; y += 0.36) E.push('box', fx, y, fz, yaw, 0.84, 0.05, 0.06, RUNG);
     E.push('box', fx - d[0] * 0.25, h0 + 0.02, fz - d[1] * 0.25, yaw, 0.9, 0.02, 0.4, col(0.42, 0.94, 0.64, 1, 0.9));
   }
-  buildPlatforms(S);
+  buildPlatforms(S); buildPits(S);
   buildCommonStatic(S, TH);
   return E.endStatic();
 }
@@ -1157,7 +1213,7 @@ function buildStatic(S) {
   const TH = themeOf(S), W = S.W, H = S.H;
   const C3 = (a, emit, panel) => col(a[0], a[1], a[2], 1, emit || 0, 0, panel || 0);
   E.beginStatic();
-  E.push('box', W * T / 2, -0.35, H * T / 2, 0, W * T, 0.5, H * T, col(0.02, 0.025, 0.035));
+  pitGround(S, -0.35, 0.5, col(0.02, 0.025, 0.035));
   E.push('box', W * T / 2, WALL_H + 0.25, H * T / 2, 0, W * T, 0.5, H * T, C3(TH.ceil, 0, 17));
   // 材质编号（见 engine.js 片元着色器）：10 金属地板 11 地砖 12 墙板 15 格栅 16 警示条
   const FL = { [TILE.LANE]: C3(TH.lane, 0, 10), [TILE.FLOOR]: C3(TH.floor, 0, 11), [TILE.PAD]: C3(TH.pad, 0, 11), [TILE.BASE]: C3(TH.base, 0, 10), [TILE.SPAWN]: C3(TH.spawn, 0, 10) };
@@ -1167,7 +1223,7 @@ function buildStatic(S) {
   const TRIM = C3(TH.trim, 1), UPPER = C3(TH.upper, 0.75), LAMP = C3(TH.lamp, 1), REDSTRIP = col(1, 0.25, 0.25, 1, 1);
   for (let z = 0; z < H; z++) for (let x = 0; x < W; x++) {
     const t = tileOf(S, x, z), cx = (x + 0.5) * T, cz = (z + 0.5) * T;
-    if (t !== TILE.WALL) {
+    if (t === TILE.PIT) { /* 坑在 buildPits 里画 */ } else if (t !== TILE.WALL) {
       E.push('box', cx, -0.1, cz, 0, T * 0.995, 0.2, T * 0.995, FL[t]);
       if ((x * 7 + z * 3) % 4 === 0) E.push('box', cx, WALL_H - 0.03, cz, 0, T * 0.62, 0.06, T * 0.14, LAMP);
       for (let d = 0; d < 4; d++) {
@@ -1201,7 +1257,7 @@ function buildStatic(S) {
       // 通道与玩家区域交界处：警示条纹
       if (t === TILE.LANE) for (let d = 0; d < 4; d++) {
         const nt = tileOf(S, x + DIRS[d][0], z + DIRS[d][1]);
-        if (nt !== TILE.FLOOR && nt !== TILE.PAD && nt !== TILE.BASE) continue;
+        if (nt !== TILE.FLOOR && nt !== TILE.PAD && nt !== TILE.BASE && nt !== TILE.PIT) continue;
         const alongX = DIRS[d][1] !== 0, fx = cx + DIRS[d][0] * (T * 0.5 - 0.1), fz = cz + DIRS[d][1] * (T * 0.5 - 0.1);
         E.push('box', fx, 0.004, fz, 0, alongX ? T * 0.96 : 0.18, 0.01, alongX ? 0.18 : T * 0.96, HAZ);
       }
@@ -1216,7 +1272,7 @@ function buildStatic(S) {
       E.push('box', cx, py + 0.012, cz, 0.785, T * 0.12, 0.01, T * 0.12, col(1, 0.68, 0.22, 1, 0.9));
     }
   }
-  buildPlatforms(S);
+  buildPlatforms(S); buildPits(S);
   buildCommonStatic(S, TH);
   return E.endStatic();
 }
@@ -1249,6 +1305,33 @@ function flashLight(x, y, z, r, c3, i, life) { lights.push({ x, y, z, r, c: c3, 
 
 const nums = [];
 const numLayer = $('nums');
+// 顿帧：重要击杀的一瞬间让画面停顿几十毫秒（只在单人局；关掉「屏幕震动」也一起关掉）
+function hitStop(t) {
+  if (MP.role !== 'solo' || settings.shake === false || timeNow - hitStopAt < 0.35) return;
+  hitStopAt = timeNow; hitStopT = Math.max(hitStopT, t);
+}
+// 金币飞向左下角的金币计数（同时最多 16 枚，太远 / 不在屏幕里的不飞）
+const coinPool = [];
+let coinsLive = 0;
+function coinFly(x, y, z, n) {
+  if (mode !== 'play' || coinsLive >= 16 || Math.hypot(x - cam.x, z - cam.z) > 48) return;
+  const p = project(x, y, z), tgt = $('goldNum');
+  if (!p || p.x < 0 || p.y < 0 || p.x > innerWidth || p.y > innerHeight || !tgt || !tgt.animate) return;
+  const r = tgt.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
+  for (let i = 0; i < n && coinsLive < 16; i++) {
+    let el = coinPool.pop();
+    if (!el) { el = document.createElement('i'); el.className = 'coin'; $('coins').appendChild(el); }
+    el.hidden = false; coinsLive++;
+    const sx = p.x + rnd(-14, 14), sy = p.y + rnd(-10, 6), mx = (sx + tx) / 2 + rnd(-60, 60), my = Math.min(sy, ty) - rnd(40, 110);
+    const a = el.animate([
+      { transform: `translate(${sx}px, ${sy}px) scale(.4)`, opacity: 0 },
+      { transform: `translate(${sx}px, ${sy - 18}px) scale(1.15)`, opacity: 1, offset: 0.12 },
+      { transform: `translate(${mx}px, ${my}px) scale(1)`, opacity: 1, offset: 0.55 },
+      { transform: `translate(${tx}px, ${ty}px) scale(.55)`, opacity: 0.9 },
+    ], { duration: 620 + i * 70 + rnd(0, 120), easing: 'cubic-bezier(.45, 0, .6, 1)', delay: i * 45 });
+    a.onfinish = () => { el.hidden = true; coinPool.push(el); coinsLive--; const g = $('gold'); g.classList.remove('bump'); void g.offsetWidth; g.classList.add('bump'); Snd.play('coin'); };
+  }
+}
 function floatNum(x, y, z, text, cls) {
   let el = null;
   for (const n of nums) if (!n.on) { el = n; break; }
@@ -1395,8 +1478,15 @@ function drawColossus(m, x, y, z, sw, moving, t) {
 }
 function drawMonster(m, a) {
   const def = MON[m.type];
-  const x = lerp(m.ox, m.x, a), y = lerp(m.oy, m.y, a), z = lerp(m.oz, m.z, a);
-  const yaw = Math.atan2(-m.fx, -m.fz);
+  const x = lerp(m.ox, m.x, a), z = lerp(m.oz, m.z, a);
+  let y = lerp(m.oy, m.y, a), yaw = Math.atan2(-m.fx, -m.fz);
+  // 掉进坑里：联机队友这边只知道“在掉”，按本地时间补上下坠；翻滚着掉下去
+  if (m.fallT > 0) {
+    if (!m._fa) { m._fa = simNow; m._fy = m.y; }
+    const k = clamp((simNow - m._fa) / 0.8, 0, 1);
+    if (MP.role === 'client') y = m._fy + (k < 0.45 ? Math.sin(k / 0.45 * Math.PI / 2) * 1.8 : 1.8 - (k - 0.45) / 0.55 * 7);
+    yaw += k * 9;
+  }
   MX.x = x; MX.y = y; MX.z = z; MX.yaw = yaw; MX.cy = Math.cos(yaw); MX.sy = Math.sin(yaw); MX.s = 1;
   TN.slow = m.frozenT > 0 ? 2 : m.slowAmt > 0 ? 1 : 0; TN.poison = m.poisonT > 0; TN.burn = m.burnT > 0; TN.flash = m.hitT > 0 ? 0.55 : 0; TN.enr = m.enraged; TN.champ = !!m.champ;
   const moving = m.state === 'move' && m.stunT <= 0;
@@ -1768,7 +1858,7 @@ function drawMonster(m, a) {
     E.push('sphere', x, y + top * 0.5, z, 0, def.r * 3, top * 1.1, def.r * 3, c(1, 0.75, 0.2, 0.07, 1, 0, true));
   }
   // 影子
-  E.push('disc', x, gy + 0.025, z, 0, def.r * 2.6, 1, def.r * 2.6, c(0, 0, 0, def.fly ? 0.28 : 0.42));
+  if (!(m.fallT > 0)) E.push('disc', x, gy + 0.025, z, 0, def.r * 2.6, 1, def.r * 2.6, c(0, 0, 0, def.fly ? 0.28 : 0.42));
   if (m.stunT > 0) {
     for (let i = 0; i < 3; i++) {
       const aa = timeNow * 5 + i * 2.1, rr = def.r * 0.9 + 0.2;
@@ -2877,6 +2967,30 @@ function drawShells(dt) {
     const k = f.t / 0.7;
     E.push('ring', f.x, 0.15 + k * 0.6, f.z, 0, f.r * k, 1, f.r * k, c(0.4, 0.85, 1, 0.8 * (1 - k), 1, 0, true));
   }
+  // 震荡冲击：贴地向前推开的一道道弧形波纹（不挡视线）
+  for (let i = shockFxs.length - 1; i >= 0; i--) {
+    const f = shockFxs[i]; f.t += dt;
+    if (f.t >= 0.55) { shockFxs.splice(i, 1); continue; }
+    const k = f.t / 0.55, half = TD.SHOCK.ang / 2, fade = 1 - k;
+    for (let w = 0; w < 3; w++) {
+      const R = 2.2 + (TD.SHOCK.r - 1.8) * Math.min(1, k * 1.25 + w * 0.12) - w * 0.7;
+      if (R < 1.8) continue;
+      const seg = 9, al = (0.5 - w * 0.14) * fade * (0.3 + 0.7 * clamp((R - 2.2) / 2.5, 0, 1));   // 离镜头近的波纹淡一点，免得糊一脸
+      for (let j = -seg; j <= seg; j++) {
+        const a = f.yaw + j / seg * half, px = f.x - Math.sin(a) * R, pz = f.z - Math.cos(a) * R;
+        E.push('box', px, f.y + 0.07, pz, a, R * half / seg * 2.1, 0.03, 0.22, c(f.col[0], f.col[1], f.col[2], al, 1, 0, true));
+        if (w === 0 && R > 4) E.push('box', px, f.y + 0.4, pz, a, R * half / seg * 2.1, 0.7 * fade, 0.04, c(f.col[0], f.col[1], f.col[2], 0.1 * fade, 1, 0, true));
+      }
+    }
+  }
+  // 场景杀的坑：熔岩冒火星、液氮冒白雾、气闸外的星尘……（只画镜头附近）
+  if (S_cur && S_cur.pitTiles && S_cur.pitTiles.length) {
+    for (const pt of S_cur.pitTiles) {
+      if (Math.abs(pt.cx - cam.x) > 42 || Math.abs(pt.cz - cam.z) > 42 || Math.random() > dt * 3) continue;
+      const A = PIT_AMB[pt.kind] || PIT_AMB.void, h0 = S_cur.tileH(pt.x, pt.z);
+      particle({ x: pt.cx + rnd(-1, 1), y: h0 + A.y, z: pt.cz + rnd(-1, 1), vx: rnd(-0.3, 0.3), vy: rnd(A.vy[0], A.vy[1]), vz: rnd(-0.3, 0.3), life: rnd(0.8, 1.6), s0: A.s, s1: A.s * 1.8, c: A.c, add: A.add, a0: A.a, drag: 0.4 });
+    }
+  }
   // 燃烧弹的火海
   for (let i = fireFx.length - 1; i >= 0; i--) {
     const f = fireFx[i]; f.t += dt;
@@ -2886,7 +3000,129 @@ function drawShells(dt) {
     if (Math.random() < 0.8 * k) particle({ x: f.x + rnd(-3, 3), y: 0.2, z: f.z + rnd(-3, 3), vy: rnd(1, 2.5), life: rnd(0.4, 0.8), s0: rnd(0.2, 0.4), s1: 0.6, c: [1, rnd(0.35, 0.6), 0.1], drag: 1, a0: 0.7 });
   }
 }
-const railFx = [], blinkFx = [], auraFx = [], fireFx = [];
+const railFx = [], blinkFx = [], auraFx = [], fireFx = [], shockFxs = [];
+// 每种坑的样子：坑壁 / 坑底颜色、发光表面（高度、亮度）、深度、坑壁材质
+const PIT_LOOK = {
+  space: { wall: [0.26, 0.28, 0.33], bottom: [0.03, 0.06, 0.16], bottomE: 0.7, glow: [0.35, 0.6, 1], glowY: 0, glowA: 0, depth: 3.6, stars: true, rim: [0.35, 0.8, 1], pan: 12, haz: true, lights: [0.4, 0.75, 1] },
+  well: { natural: true, wall: [0.3, 0.28, 0.24], bottom: [0.02, 0.03, 0.03], glow: [0.12, 0.3, 0.28], glowY: -2.6, glowA: 0.35, depth: 3.0, rim: [1, 0.6, 0.2], pan: 13 },
+  lava: { wall: [0.2, 0.1, 0.07], bottom: [0.3, 0.05, 0.02], glow: [0.95, 0.3, 0.04], glowY: -0.9, glowA: 0.85, depth: 2.0, rim: [1, 0.45, 0.1], pan: 13, crust: [0.16, 0.05, 0.03] },
+  void: { wall: [0.16, 0.13, 0.22], bottom: [0.01, 0.0, 0.03], glow: [0.4, 0.15, 0.75], glowY: -3.4, glowA: 0.55, depth: 3.8, rim: [0.7, 0.4, 1], pan: 13 },
+  sand: { natural: true, noLamp: true, wall: [0.4, 0.31, 0.2], bottom: [0.52, 0.42, 0.27], glow: [0.62, 0.5, 0.32], glowY: 0, glowA: 0, depth: 0.9, rim: [1, 0.62, 0.2], pan: 14 },
+  rift: { natural: true, wall: [0.34, 0.19, 0.12], bottom: [0.08, 0.02, 0.01], glow: [1, 0.3, 0.1], glowY: -3.8, glowA: 0.7, depth: 4.2, rim: [1, 0.5, 0.2], pan: 13 },
+  cryo: { wall: [0.36, 0.44, 0.52], bottom: [0.4, 0.6, 0.75], glow: [0.55, 0.85, 0.95], glowY: -0.7, glowA: 0.5, depth: 1.6, rim: [0.4, 0.9, 1], pan: 12, haz: true },
+};
+// 坑：四壁 + 底部 + 发光表面 + 坑沿（静态几何）
+function buildPits(S) {
+  const HAZ = col(0.95, 0.72, 0.12, 1, 0, 0, 16), CURB = col(0.24, 0.24, 0.26, 1, 0, 0, 11);
+  for (const pt of S.pitTiles || []) {
+    const L = PIT_LOOK[pt.kind] || PIT_LOOK.void, h0 = S.tileH(pt.x, pt.z), D = L.depth, cx = pt.cx, cz = pt.cz;
+    E.push('box', cx, h0 - D - 0.1, cz, 0, T, 0.2, T, col(L.bottom[0], L.bottom[1], L.bottom[2], 1, L.bottomE !== undefined ? L.bottomE : L.glowA >= 0.85 ? 0.8 : 0.1, 0, pt.kind === 'sand' ? 14 : 0));
+    if (L.glowA > 0) E.push('box', cx, h0 + L.glowY, cz, 0, T, 0.06, T, col(L.glow[0], L.glow[1], L.glow[2], 1, L.glowA));
+    if (L.crust) for (let k = 0; k < 3; k++) {
+      const u = Math.sin(pt.x * 7.3 + pt.z * 31.7 + k * 5.1) * 9137.7, v = Math.sin(pt.x * 3.3 + pt.z * 17.1 + k * 2.9) * 7351.3, r = 0.35 + (u - Math.floor(u)) * 0.45;
+      E.push('box', cx + ((v - Math.floor(v)) - 0.5) * T * 0.6, h0 + L.glowY + 0.035, cz + ((u - Math.floor(u)) - 0.5) * T * 0.6, u * 3, r, 0.04, r * 0.8, col(L.crust[0], L.crust[1], L.crust[2], 1, 0.15, 0, 13));
+    }
+    if (L.stars) for (let k = 0; k < 7; k++) {
+      const u = Math.sin(pt.x * 12.9 + pt.z * 78.2 + k * 3.1) * 43758.5, v = Math.sin(pt.x * 4.1 + pt.z * 9.7 + k * 7.3) * 12345.6;
+      E.push('box', cx + ((u - Math.floor(u)) - 0.5) * T * 0.9, h0 - D + 0.02, cz + ((v - Math.floor(v)) - 0.5) * T * 0.9, 0, 0.06, 0.02, 0.06, col(0.8, 0.9, 1, 1, 1));
+    }
+    for (let d = 0; d < 4; d++) {
+      const nx = pt.x + DIRS[d][0], nz = pt.z + DIRS[d][1], nt = S.tileAt(nx, nz);
+      if (nt === TILE.PIT) continue;
+      const alongX = DIRS[d][1] !== 0, ex = DIRS[d][0], ez = DIRS[d][1], fx = cx + ex * T * 0.5, fz = cz + ez * T * 0.5;
+      // 坑壁：从地面一直到坑底（墙那一侧也要画，不然会看到墙体的截面）
+      E.push('box', fx - ex * 0.05, h0 - D / 2 - 0.1, fz - ez * 0.05, 0, alongX ? T : 0.1, D + 0.2, alongX ? 0.1 : T, col(L.wall[0], L.wall[1], L.wall[2], 1, 0, 0, L.pan));
+      // 气闸：坑壁上一圈圈指示灯，往下看像一条通往太空的竖井
+      if (L.lights) for (let k = 1; k <= 3; k++) E.push('box', fx - ex * 0.11, h0 - D * k / 3.6, fz - ez * 0.11, 0, alongX ? T * 0.7 : 0.02, 0.05, alongX ? 0.02 : T * 0.7, col(L.lights[0], L.lights[1], L.lights[2], 1, 1));
+      if (nt === TILE.WALL) continue;
+      // 通道一侧：坑沿 + 一条警示灯带（野外的坑：一圈碎石）
+      if (L.natural) {
+        const RK = col(L.wall[0] * 0.85, L.wall[1] * 0.85, L.wall[2] * 0.85, 1, 0, 0, 13);
+        E.push('box', fx - ex * 0.12, h0 + 0.04, fz - ez * 0.12, 0, alongX ? T : 0.24, 0.1, alongX ? 0.24 : T, RK);
+        for (let k = 0; k < 2; k++) { const u = Math.sin(pt.x * 5.7 + pt.z * 13.3 + d * 2.1 + k * 4.4) * 4375.5, f = u - Math.floor(u), o = (f - 0.5) * T * 0.8; E.push('oct', fx - ex * 0.15 + (alongX ? o : 0), h0 + 0.1, fz - ez * 0.15 + (alongX ? 0 : o), f * 6, 0.35 + f * 0.3, 0.3 + f * 0.2, 0.35 + f * 0.25, RK); }
+      } else E.push('box', fx - ex * 0.1, h0 + 0.05, fz - ez * 0.1, 0, alongX ? T : 0.2, 0.1, alongX ? 0.2 : T, L.haz ? HAZ : CURB);
+      if (!L.noLamp) E.push('box', fx - ex * 0.12, h0 - 0.16, fz - ez * 0.12, 0, alongX ? T : 0.03, 0.05, alongX ? 0.03 : T, col(L.rim[0], L.rim[1], L.rim[2], 1, 1));
+    }
+  }
+}
+const PIT_AMB = {
+  space: { y: -1.5, vy: [0.6, 1.4], s: 0.05, c: [0.6, 0.8, 1], add: true, a: 0.8 },
+  well: { y: -1.2, vy: [0.2, 0.5], s: 0.25, c: [0.25, 0.4, 0.38], add: false, a: 0.25 },
+  lava: { y: -0.8, vy: [1.5, 3.5], s: 0.07, c: [1, 0.55, 0.15], add: true, a: 1 },
+  void: { y: -2.5, vy: [0.8, 1.8], s: 0.08, c: [0.6, 0.35, 1], add: true, a: 0.8 },
+  sand: { y: -0.3, vy: [0.2, 0.6], s: 0.22, c: [0.62, 0.52, 0.36], add: false, a: 0.35 },
+  rift: { y: -3, vy: [1.2, 2.5], s: 0.07, c: [1, 0.45, 0.15], add: true, a: 0.9 },
+  cryo: { y: -0.5, vy: [0.3, 0.8], s: 0.35, c: [0.85, 0.95, 1], add: false, a: 0.3 },
+};
+// 地基：整块铺满，但给坑留出洞（不然从坑口往下只能看到一块平板）
+function pitGround(S, y, th, cc, outer) {
+  const W = S.W, H = S.H, MW = W * T, MH = H * T;
+  if (!S.pitTiles || !S.pitTiles.length) { E.push('box', MW / 2, y, MH / 2, 0, outer || MW, th, outer || MH, cc); return; }
+  if (outer) {
+    const ex = (outer - MW) / 2, ez = (outer - MH) / 2;
+    E.push('box', MW / 2, y, -ez / 2, 0, outer, th, ez, cc);
+    E.push('box', MW / 2, y, MH + ez / 2, 0, outer, th, ez, cc);
+    E.push('box', -ex / 2, y, MH / 2, 0, ex, th, MH, cc);
+    E.push('box', MW + ex / 2, y, MH / 2, 0, ex, th, MH, cc);
+  }
+  for (let z = 0; z < H; z++) {
+    let x0 = 0;
+    for (let x = 0; x <= W; x++) if (x === W || S.tileAt(x, z) === TILE.PIT) { if (x > x0) E.push('box', (x0 + x) / 2 * T, y, (z + 0.5) * T, 0, (x - x0) * T, th, T, cc); x0 = x + 1; }
+  }
+}
+// 掉进坑里的一瞬间：按坑的类型溅起不同的特效
+function pitFx(x, z, kind) {
+  const L = PIT_LOOK[kind] || PIT_LOOK.void, A = PIT_AMB[kind] || PIT_AMB.void, h0 = S_cur && S_cur.tileH ? S_cur.tileH(Math.floor(x / T), Math.floor(z / T)) : 0;
+  const cc = kind === 'sand' || kind === 'well' ? A.c : L.glow;
+  for (let i = 0; i < 16; i++) particle({ x: x + rnd(-0.8, 0.8), y: h0 + (kind === 'lava' || kind === 'cryo' || kind === 'sand' ? L.glowY + 0.3 : -0.5), z: z + rnd(-0.8, 0.8), vx: rnd(-2.5, 2.5), vy: rnd(3, 7), vz: rnd(-2.5, 2.5), life: rnd(0.5, 1), s0: rnd(0.06, 0.14), s1: 0.02, c: cc, grav: 12, add: kind !== 'sand' && kind !== 'well' });
+  if (kind === 'cryo') burst(x, h0 + 0.2, z, 14, { c: [0.85, 0.95, 1], sp0: 1, sp1: 3, s0: 0.4, s1: 1.2, l0: 0.6, l1: 1.2, grav: -0.5, a0: 0.5 });
+  if (kind === 'space') { rings.push({ x, z, y: h0 + 0.2, r0: 0.4, r1: 3.2, t: 0, life: 0.45, c: [0.4, 0.75, 1] }); for (let i = 0; i < 10; i++) particle({ x, y: h0 + 0.5, z, vx: rnd(-1, 1), vy: rnd(-9, -4), vz: rnd(-1, 1), life: 0.6, s0: 0.12, s1: 0.02, c: [0.7, 0.85, 1] }); }
+  if (L.glowA > 0.4) flashLight(x, h0 + 0.3, z, 6, cc, 0.5, 0.3);
+  shakeAt(x, z, 0.18, 20);
+}
+// 震荡冲击的特效（本机按下时立刻播放；队友的由主机事件触发）
+const SHOCK_COL = { assault: [1, 0.55, 0.3], engineer: [1, 0.78, 0.3], support: [0.45, 1, 0.6], scout: [0.6, 0.8, 1] };
+function shockFx(x, y, z, yaw, cls, mine) {
+  const col3 = SHOCK_COL[cls] || [0.6, 0.85, 1];
+  shockFxs.push({ x, y: y || 0, z, yaw, t: 0, col: col3 });
+  // 扬起的尘土 + 几道细小的能量火花
+  for (let i = 0; i < 14; i++) { const a = yaw + rnd(-0.8, 0.8), sp = rnd(6, 12); particle({ x: x - Math.sin(a) * 2, y: (y || 0) + rnd(0.1, 0.5), z: z - Math.cos(a) * 2, vx: -Math.sin(a) * sp, vy: rnd(0.3, 1.5), vz: -Math.cos(a) * sp, life: rnd(0.3, 0.5), s0: 0.07, s1: 0.02, c: col3, drag: 2.5 }); }
+  for (let i = 0; i < 6; i++) { const a = yaw + rnd(-0.8, 0.8), r = rnd(3.2, 6.5); particle({ x: x - Math.sin(a) * r, y: (y || 0) + 0.1, z: z - Math.cos(a) * r, vx: -Math.sin(a) * 3, vy: rnd(0.3, 0.8), vz: -Math.cos(a) * 3, life: rnd(0.45, 0.75), s0: 0.18, s1: 0.45, c: [0.5, 0.48, 0.45], add: false, a0: 0.22, drag: 2 }); }
+  flashLight(x - Math.sin(yaw) * 4, (y || 0) + 0.6, z - Math.cos(yaw) * 4, 6, col3, 0.35, 0.18);
+  Snd.play('shock', mine ? undefined : x, mine ? undefined : z, { range: 60 });
+  if (mine) { shake(0.22); vm.kick = Math.min(1.2, (vm.kick || 0) + 0.6); }
+}
+let shockReady = 0;
+function useShock() {
+  const p = me(); if (!p || p.dead || mode !== 'play' || myMount()) return;
+  if (timeNow < shockReady) { toast(`震荡冲击冷却中 · ${Math.ceil(shockReady - timeNow)} 秒`, true); Snd.play('deny'); return; }
+  const yaw = Math.atan2(-cam.fx, -cam.fz);
+  shockReady = timeNow + TD.SHOCK.cd * (p.cls === 'scout' ? 0.6 : 1);
+  shockFx(p.x, p.y, p.z, yaw, p.cls, true);
+  netCmd({ t: 'shock', d: [r3n(cam.fx), 0, r3n(cam.fz)] }, r => {
+    if (!r.ok) { shockReady = timeNow + (r.cd || 0); if (r.reason && r.cd) toast(r.reason, true); return; }
+    if (r.n >= 4) sayPool('shockHit', { cd: 40 });
+  });
+}
+/* ---------- 连杀计数 ---------- */
+const Combo = { n: 0, t: 0, shown: 0 };
+const COMBO_TIERS = [5, 10, 20, 30, 50, 100];
+function comboHit(n) {
+  Combo.n = n; Combo.t = TD.COMBO_WIN;
+  if (n >= 3) { $('combo').hidden = false; setText('comboN', '×' + n); const el = $('combo'); el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump'); }
+  if (COMBO_TIERS.includes(n)) {
+    const el = $('comboBig'); el.textContent = `${n} 连杀！`; el.hidden = true; void el.offsetWidth; el.hidden = false;
+    clearTimeout(comboHit.t); comboHit.t = setTimeout(() => { el.hidden = true; }, 1400);
+    Snd.play(n >= 20 ? 'comboBig' : 'combo');
+    if (n >= 20) sayPool('comboBig', { cd: 45 });
+  }
+}
+function updateCombo(dt) {
+  if (Combo.t <= 0) return;
+  Combo.t -= dt;
+  setStyle($('comboBar'), 'width', (Math.max(0, Combo.t) / TD.COMBO_WIN * 100).toFixed(0) + '%');
+  if (Combo.t <= 0) { $('combo').hidden = true; Combo.n = 0; }
+}
 function drawStrikes(dt) {
   for (let i = strikeFx.length - 1; i >= 0; i--) {
     const f = strikeFx[i];
@@ -2913,33 +3149,62 @@ const decals = [];
 const buildFx = new Map();
 let bossFx = null;
 const portalFlare = { A: 0, B: 0 };
-function addCorpse(e) {
+// 击杀时尸体被打飞的方向和力度：被枪打死就往远离开枪者的方向飞（霰弹 / 狙击 / 火箭更猛），被弹飞 / 震飞的飞得更高
+function flingOf(S, e) {
+  const q = e.pid && S.s.players[e.pid], def = MON[e.mtype] || {}, heavy = def.boss || def.elite || (def.r || 0.5) > 0.9;
+  let dx = -(e.fx || 0), dz = -(e.fz === undefined ? 1 : e.fz), sp = 1.6, up = 1.4;
+  if (q) { const L = Math.hypot(e.x - q.x, e.z - q.z) || 1; dx = (e.x - q.x) / L; dz = (e.z - q.z) / L; sp = { shotgun: 6.5, sniper: 7, rocket: 8, gatling: 3.2 }[q.wpn] || 3; up = sp * 0.55; }
+  if (e.launch || e.st === 'air') { sp += 2; up += 4.5; }
+  if (e.st === 'shatter' || e.st === 'ignite') { sp += 1.5; up += 2; }
+  if (heavy) { sp *= 0.35; up *= 0.35; }
+  return { vx: dx * sp + rnd(-0.6, 0.6), vz: dz * sp + rnd(-0.6, 0.6), vy: up + rnd(0, 0.8), dx, dz };
+}
+function addCorpse(e, fl) {
   const yaw = Math.atan2(-(e.fx || 0), -(e.fz === undefined ? 1 : e.fz));
   const RT = { grunt: [1, [0.85, 0.85, 0.85]], brute: [1.45, [0.5, 0.56, 0.72]], stalker: [0.92, [0.34, 0.27, 0.5]], sapper: [0.92, [1, 0.8, 0.32]], gunner: [1.05, [0.95, 0.42, 0.38]] }[e.mtype];
+  const gy = S_cur && S_cur.terrain ? S_cur.floorH(e.x, e.z) : 0;
+  const phys = { y: Math.max(gy, e.y || 0), gy, vx: fl.vx, vy: fl.vy, vz: fl.vz, spin: rnd(-1, 1) * (2 + Math.hypot(fl.vx, fl.vz)), roll: 0, rollV: rnd(4, 9) * (Math.random() < 0.5 ? -1 : 1) };
   if (RT && hasModel('robot')) {
-    corpses.push({ kind: 'robot', x: e.x, z: e.z, yaw, s: RT[0], tint: RT[1], t: 0 });
+    corpses.push(Object.assign({ kind: 'robot', x: e.x, z: e.z, yaw, s: RT[0], tint: RT[1], t: 0 }, phys));
     return true;
   }
   if (e.mtype === 'runner' && hasModel('fox')) {
-    corpses.push({ kind: 'fox', x: e.x, z: e.z, yaw, s: 1, tint: [0.62, 0.48, 0.48], t: 0, ph: Math.random(), side: Math.random() < 0.5 ? -1 : 1 });
+    corpses.push(Object.assign({ kind: 'fox', x: e.x, z: e.z, yaw, s: 1, tint: [0.62, 0.48, 0.48], t: 0, ph: Math.random(), side: Math.random() < 0.5 ? -1 : 1 }, phys));
     return true;
   }
   return false;
+}
+// 尸体的简单物理：抛物线 + 落地弹一下 + 滑行，撞墙停下；空中翻滚，落地后摆正
+function corpsePhys(k, dt) {
+  if (k.vx === undefined) return;
+  const air = k.y > k.gy + 0.02 || k.vy > 0;
+  if (!air && Math.abs(k.vx) + Math.abs(k.vz) < 0.05) { k.roll *= Math.max(0, 1 - dt * 10); return; }
+  const nx = k.x + k.vx * dt, nz = k.z + k.vz * dt;
+  if (S_cur && S_cur.solid(Math.floor(nx / T), Math.floor(nz / T))) { k.vx *= -0.25; k.vz *= -0.25; }
+  else { k.x = nx; k.z = nz; }
+  if (S_cur && S_cur.terrain) k.gy = Math.min(k.gy + 0.6, S_cur.floorH(k.x, k.z));
+  if (air) {
+    k.vy -= 20 * dt; k.y += k.vy * dt; k.yaw += k.spin * dt; k.roll += k.rollV * dt;
+    if (k.y <= k.gy) { k.y = k.gy; if (k.vy < -4) { k.vy *= -0.28; k.rollV *= 0.4; } else k.vy = 0; k.vx *= 0.55; k.vz *= 0.55; k.spin *= 0.4; }
+  } else {
+    const f = Math.exp(-dt * 7); k.vx *= f; k.vz *= f; k.roll *= Math.max(0, 1 - dt * 8);
+  }
 }
 function drawCorpses(dt) {
   while (corpses.length > 45) corpses.shift();
   for (let i = corpses.length - 1; i >= 0; i--) {
     const k = corpses[i]; k.t += dt;
     if (k.t > 3.9) { corpses.splice(i, 1); continue; }
-    const sink = Math.max(0, k.t - 2.4) * 1.1;
+    corpsePhys(k, dt);
+    const sink = Math.max(0, k.t - 2.4) * 1.1, by = (k.y || 0);
     const glow = k.t > 2.4 ? Math.min(1, (k.t - 2.4) * 2) * 0.35 : 0;
     if (k.kind === 'robot') {
       animClip('robot', 'death', k.t);
-      E.push('robot', k.x, -sink * k.s, k.z, k.yaw, k.s, k.s, k.s, c(k.tint[0], k.tint[1], k.tint[2], 1, 0, glow * 0.4));
+      E.pushR('robot', k.x, by - sink * k.s, k.z, k.yaw, 0, k.roll || 0, k.s, k.s, k.s, c(k.tint[0], k.tint[1], k.tint[2], 1, 0, glow * 0.4));
     } else {
       animClip('fox', 'run', k.ph);
-      const r = Math.min(1, k.t / 0.3) * Math.PI / 2 * k.side;
-      E.pushR('fox', k.x, Math.abs(Math.sin(r)) * 0.16 - sink, k.z, k.yaw, 0, r, 1, 1, 1, c(k.tint[0], k.tint[1], k.tint[2], 1, 0, glow * 0.4));
+      const r = Math.min(1, k.t / 0.3) * Math.PI / 2 * k.side + (k.roll || 0);
+      E.pushR('fox', k.x, by + Math.abs(Math.sin(r)) * 0.16 - sink, k.z, k.yaw, 0, r, 1, 1, 1, c(k.tint[0], k.tint[1], k.tint[2], 1, 0, glow * 0.4));
     }
     E.anim();
     if (k.t > 2.3 && Math.random() < 0.5) particle({ x: k.x + rnd(-0.6, 0.6) * k.s, y: rnd(0.05, 0.5), z: k.z + rnd(-0.6, 0.6) * k.s, vy: rnd(0.8, 1.8), life: 0.7, s0: 0.07, s1: 0, c: [0.4, 0.9, 1], grav: 0 });
@@ -3026,15 +3291,19 @@ function handleEvents(S) {
       case 'kill': {
         const def = MON[e.mtype];
         const pal = { grunt: [0.36, 0.38, 0.32], runner: [0.42, 0.24, 0.2], brute: [0.36, 0.38, 0.43], flyer: [0.6, 0.35, 0.9], bomber: [1, 0.5, 0.1], elite: [0.3, 0.25, 0.3], boss: [0.4, 0.42, 0.48], burrower: [0.5, 0.36, 0.25], mite: [0.4, 0.2, 0.5], siege: [0.44, 0.42, 0.33], colossus: [0.3, 0.2, 0.15], brood: [0.4, 0.2, 0.45], broodling: [0.4, 0.2, 0.45] }[e.mtype] || [0.4, 0.4, 0.4];
-        const hasCorpse = addCorpse(e);
+        const fl = flingOf(S, e), hasCorpse = addCorpse(e, fl);
         if (def.boss && mode === 'play' && S === sim) { ACH.add('boss'); ACH.save(); }
         if (def.boss) { const bm = S._mById.get(e.id) || (S._gone && S._gone.get(e.id)); bossFx = { x: e.x, z: e.z, t: 0, next: 0, m: bm ? Object.assign({}, bm) : null }; slowmoT = 1.9; }
         if (e.mtype === 'flyer' || e.mtype === 'healer') explode(e.x, e.y, e.z, 1.6, true);
         if (def.elite) explode(e.x, 1.5, e.z, 4, false);
         const n = def.boss ? 0 : (def.elite ? 30 : (hasCorpse ? 0 : 10));
-        for (let i = 0; i < n; i++) particle({ x: e.x + rnd(-0.4, 0.4) * def.r * 2, y: e.y + rnd(0.3, 1.6) * (def.boss ? 3 : 1), z: e.z + rnd(-0.4, 0.4) * def.r * 2, vx: rnd(-4, 4), vy: rnd(2, 7), vz: rnd(-4, 4), life: rnd(0.8, 1.6), s0: rnd(0.1, 0.25) * (def.boss ? 2.5 : 1), s1: 0.05, c: pal, g: 'box', grav: 16, bounce: true, add: false, drag: 0.6 });
+        for (let i = 0; i < n; i++) particle({ x: e.x + rnd(-0.4, 0.4) * def.r * 2, y: e.y + rnd(0.3, 1.6) * (def.boss ? 3 : 1), z: e.z + rnd(-0.4, 0.4) * def.r * 2, vx: rnd(-3, 3) + fl.vx * 0.8, vy: rnd(2, 6) + fl.vy * 0.5, vz: rnd(-3, 3) + fl.vz * 0.8, life: rnd(0.8, 1.6), s0: rnd(0.1, 0.25) * (def.boss ? 2.5 : 1), s1: 0.05, c: pal, g: 'box', grav: 16, bounce: true, add: false, drag: 0.6 });
+        if (!def.boss) coinFly(e.x, e.y + (def.fly ? 0.3 : 1.2), e.z, def.elite ? 4 : e.ex ? 2 : 1);
+        if (e.pid === PID && (def.elite || (e.st && e.st !== 'pit') || (me() && me().wpn === 'sniper'))) hitStop(def.elite ? 0.09 : 0.05);
         burst(e.x, e.y + 1, e.z, hasCorpse ? 10 : 6, { c: hasCorpse ? [1, 0.75, 0.3] : [1, 0.35, 0.2], sp0: 1, sp1: 4, l0: 0.2, l1: 0.4, s0: hasCorpse ? 0.08 : 0.3, s1: 0.02 });
         if (e.bounty) floatNum(e.x, e.y + (def.fly ? 0.6 : 2.0), e.z, '+' + e.bounty, 'gold');
+        if (e.st && TD.STYLE[e.st] && e.st !== 'pit') floatNum(e.x, e.y + (def.fly ? 1.1 : 2.6), e.z, TD.STYLE[e.st].name, 'style');
+        if (S === sim && e.cb) comboHit(e.cb);
         if (e.pid === PID) { Snd.play('kill', e.x, e.z); if (MP.role === 'client') hitMarker('kill'); }
         if (S === sim && mode === 'play' && !Tut.on) storyKill(e);
         if (def.elite) feed(`精英「${def.name}」已被击杀`, 'good');
@@ -3091,6 +3360,14 @@ function handleEvents(S) {
         if (q) burst(q.x, 1.2, q.z, 16, { c: [0.4, 1, 0.6], sp0: 0.5, sp1: 2.5, l0: 0.4, l1: 0.8, s0: 0.1, grav: -3 });
         break;
       }
+      case 'pitFall': {
+        if (S === sim) pitFx(e.x, e.z, e.kind);
+        if (mode === 'play' && !Tut.on) sayPool('pitKill', { cd: 50, chance: 0.6 });
+        const pk = TD.PIT_KIND[e.kind]; if (pk) floatNum(e.x, 1.6, e.z, pk.kill + '！', 'style pit');
+        Snd.play('pit', e.x, e.z, { range: 70 });
+        break;
+      }
+      case 'shock': if (S === sim && e.pid !== PID) shockFx(e.x, e.y, e.z, e.yaw, e.cls, false); break;
       case 'combo': {
         if (e.k === 'napalm') { fireFx.push({ x: e.x, z: e.z, t: 0 }); break; }
         const C = { shatter: ['碎冰 ×2', [0.6, 0.9, 1]], ignite: ['爆燃！', [1, 0.5, 0.15]], air: ['空中连击', [1, 0.8, 0.3]], spread: ['毒素扩散', [0.4, 1, 0.4]] }[e.k];
@@ -3376,9 +3653,13 @@ const STORY = {
   monSeen(t) { return !!(this.d.m && this.d.m[t]); },
   markMon(t) { if (this.monSeen(t)) return; (this.d.m || (this.d.m = {}))[t] = 1; this.save(); },
   introSeen() { return !!this.d.i; },
+  hintSeen(k) { return !!(this.d.h && this.d.h[k]); },
+  markHint(k) { (this.d.h || (this.d.h = {}))[k] = 1; this.save(); },
   markIntro() { this.d.i = 1; this.save(); },
 };
-const portraitOf = who => (ST.PORTRAIT && ST.PORTRAIT[who]) || '';
+// 美术图片（art/ 目录内联进来的，没有就用原来的简笔图标）
+const ART = window.TD_ART || {};
+const portraitOf = who => ART['p_' + who] ? `<img class="artP" src="${ART['p_' + who]}" alt="">` : (ST.PORTRAIT && ST.PORTRAIT[who]) || '';
 function tkLine(who, text) {
   const c = CAST[who] || { name: '', col: '#cfd8e3' }, nar = who === 'nar';
   return `<li class="tkLine${nar ? ' nar' : ''}${who === 'rust' ? ' rust' : ''}" style="--tc:${c.col}">${nar ? '' : `<span class="tkP">${portraitOf(who)}</span>`}<div>${c.name ? `<b>${c.name}</b>` : ''}<p>${text}</p></div></li>`;
@@ -3455,6 +3736,8 @@ function storyBegin() {
   if (!ch) return;
   banner(`${ch.ch} · ${ch.title}`, ch.goal);
   if (!STORY.briefSeen(sim.def.id)) { sayLines(ch.brief, 3); STORY.markBrief(sim.def.id); RUN.lastStory = performance.now(); }
+  if (sim.pitTiles && sim.pitTiles.length && !STORY.hintSeen('pit')) { STORY.markHint('pit'); sayPool('pitHint', { pri: 1 }); }
+  { const nw = NEWT.list(); if (nw.length) { const out = nw.filter(id => !inLoad(id)), inn = nw.filter(inLoad); say('qian', `新装备到货：${nw.map(id => TRAP[id].name).join('、')}。` + (inn.length ? `陷阱栏里带「新」字的就是，${TOUCH ? '点「陷阱」' : '按 Tab '}看说明，拿去试试！` : '') + (out.length ? `${out.map(id => TRAP[id].name).join('、')}这局没带上——一次最多带 ${LOAD_MAX} 种，下次开局在「陷阱」一步里换上。` : ''), { pri: 2 }); } }
 }
 function storyWave(e) {
   if (Tut.on) return;
@@ -3500,6 +3783,7 @@ function bossCard(mtype) {
   const d = MON[mtype], b = ST.BOSS[mtype] || {};
   if (!d) return;
   $('bossCardN').textContent = d.name; $('bossCardE').textContent = b.epithet || ''; $('bossCardL').textContent = b.line || '';
+  { const a = ART['boss_' + mtype], im = $('bossCardA'); im.hidden = !a; if (a) im.src = a; }
   const el = $('bossCard'); el.hidden = true; void el.offsetWidth; el.hidden = false;
   $('banner').className = ''; bannerT = 0;   // 别和波次横幅叠在一起
   clearTimeout(bossCardT); bossCardT = setTimeout(() => { el.hidden = true; }, 3900);
@@ -3525,12 +3809,14 @@ function openBrief(id) {
   const ch = ST.CHAPTERS[id], def = MAPS[id]; if (!ch || !def) return false;
   Brief.map = id; Brief.lines = ch.brief || []; Brief.i = 0; Brief.t = 0.4;
   setText('brCh', `${ch.ch} · 主线`); setText('brTitle', ch.title); setText('brPlace', ch.place); setText('brGoal', '任务目标：' + ch.goal);
+  { const a = ART['ch_' + id], el = $('brArt'); el.hidden = !a; if (a) el.src = a; $('brief').classList.toggle('hasArt', !!a); }
   try { drawThumb($('brMap'), def); } catch (e) { /* 忽略 */ }
   const lanes = Object.keys(def.lanes).length, late = def.laneFrom ? Object.keys(def.laneFrom).length : 0, last = def.waves[def.waves.length - 1];
   const bosses = [...new Set(last.groups.filter(gr => MON[gr.t] && MON[gr.t].boss).map(gr => MON[gr.t].name))];
   $('brIntel').innerHTML = [['地图', def.name], ['出怪口', `${lanes} 个${late ? `（${late} 个中途开启）` : ''}`], ['波次', `${def.waves.length} 波`], ['终局 BOSS', bosses.join(' + ') || '—'], ['难度', DIFFS[diff] ? DIFFS[diff].name : '普通']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   const foes = newFoesOf(id).filter(t => !MON[t].boss);
-  $('brNew').innerHTML = foes.length ? `<span style="border:0;background:none;color:var(--faint);padding-left:0">本章新敌人</span>` + foes.map(t => `<span>${MON[t].name}</span>`).join('') : '';
+  const ci = MAP_LIST.findIndex(m => m.id === id) + 1, rew = Object.keys(UNLOCKS).filter(t => UNLOCKS[t].ch === ci && !isUnlocked(t));
+  $('brNew').innerHTML = (foes.length ? `<span class="lbl">本章新敌人</span>` + foes.map(t => `<span>${MON[t].name}</span>`).join('') : '') + (rew.length ? `<span class="lbl">通关奖励</span>` + rew.map(t => `<span class="rew">${TRAP[t].name}</span>`).join('') : '');
   $('brLog').innerHTML = '';
   show('brief', true);
   return true;
@@ -3640,32 +3926,34 @@ let popGrp = null;
 // 数字键：1-5 打开对应分组，分组展开时再按数字选组内第几个（按 1 再按 2 = 地面组第 2 个）
 function trapKey(n) {
   if (popGrp) {
-    const g = TRAP_GROUPS.find(x => x.id === popGrp);
-    if (g && n >= 1 && n <= g.traps.length) { selectTool(g.traps[n - 1]); closePop(); return; }
+    const g = TRAP_GROUPS.find(x => x.id === popGrp), id = g && g.traps[n - 1];
+    if (id) { selectTool(id); if (inLoad(id)) closePop(); return; }
   }
   const g = TRAP_GROUPS[n - 1];
-  if (g) openPop(g.id, true);
+  if (g && gTraps(g).length) openPop(g.id, true);
 }
 const keyCombo = id => { const gi = TRAP_GROUPS.findIndex(g => g.traps.includes(id)); return gi < 0 ? '' : `${gi + 1} ${TRAP_GROUPS[gi].traps.indexOf(id) + 1}`; };
 function slotHTML(id, key, name, cost) {
-  return `<span class="k">${key}</span>${svgIcon(id)}<span class="n">${name}</span>${cost ? `<span class="c">${cost}</span>` : '<span class="c inf">∞</span>'}`;
+  return `<span class="k">${key}</span>${svgIcon(id)}<span class="n">${name}</span>${cost ? `<span class="c">${cost}</span>` : '<span class="c inf">∞</span>'}${id !== 'gun' && NEWT.isNew(id) ? '<span class="newB">新</span>' : ''}`;
 }
 function setChip(g) {
   const el = document.querySelector(`#hotbar .grp[data-grp="${g.id}"]`); if (!el) return;
-  const t = TRAP[grpPick[g.id] || g.traps.find(isUnlocked) || g.traps[0]];
+  const L = gTraps(g); el.hidden = !L.length; if (!L.length) return;
+  const t = TRAP[grpPick[g.id] && L.includes(grpPick[g.id]) ? grpPick[g.id] : L[0]];
   el.dataset.id = t.id; el.className = 'slot grp cat-' + t.cat + (tool === t.id ? ' sel' : '') + (popGrp === g.id ? ' open' : '') + (isUnlocked(t.id) ? '' : ' locked');
-  el.innerHTML = slotHTML(t.id, String(TRAP_GROUPS.indexOf(g) + 1), t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (g.traps.length > 1 ? `<span class="more">${g.traps.length}</span>` : '');
+  el.innerHTML = slotHTML(t.id, String(TRAP_GROUPS.indexOf(g) + 1), t.name, sim ? sim.trapCost(t.id, PID) : t.cost) + (L.length > 1 ? `<span class="more">${L.length}</span>` : '') + (NEWT.isNew(t.id) || !L.some(id => NEWT.isNew(id)) ? '' : '<span class="newB">新</span>');
 }
 function openPop(gid, byKey) {
   popGrp = gid;
   const pop = $('trapPop'), g = TRAP_GROUPS.find(x => x.id === gid);
   for (const gg of TRAP_GROUPS) setChip(gg);
-  if (!g || (g.traps.length < 2 && !byKey)) { pop.hidden = true; popGrp = null; return; }
+  const GL = g ? gTraps(g) : [];
+  if (!g || !GL.length || (GL.length < 2 && !byKey)) { pop.hidden = true; popGrp = null; return; }
   pop.innerHTML = `<b class="pt">${g.name}</b>`;
-  for (const id of g.traps) {
+  for (const id of GL) {
     const t = TRAP[id], d = document.createElement('div');
-    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : '') + (isUnlocked(id) ? '' : ' locked'); d.dataset.id = id; if (!isUnlocked(id)) d.title = lockText(id);
-    d.innerHTML = slotHTML(id, String(g.traps.indexOf(id) + 1), t.name, sim ? sim.trapCost(id, PID) : t.cost);
+    d.className = 'slot cat-' + t.cat + (tool === id ? ' sel' : ''); d.dataset.id = id;
+    d.innerHTML = slotHTML(id, String(g.traps.indexOf(id) + 1), t.name, sim ? sim.trapCost(id, PID) : t.cost);   // 编号固定（按完整分组），没带的留空号
     d.addEventListener('pointerdown', ev => { ev.stopPropagation(); ev.preventDefault(); if (!isUnlocked(id)) { selectTool(id); return; } selectTool(id); closePop(); });
     pop.appendChild(d);
   }
@@ -3709,13 +3997,13 @@ function renderBook() {
   const box = $('bookList'); box.className = 'cdx bookCdx';
   box.innerHTML = '<div class="cdxList" id="bkL"></div><article class="cdxDetail" id="bkD"></article>';
   const L = $('bkL'), gold = sim ? sim.s.gold : 0;
-  L.innerHTML = TRAP_GROUPS.map((g, gi) => `<div class="cdxGrp"><h4>${gi + 1} · ${g.name}</h4><div class="cdxTiles">${g.traps.map(id => { const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost; return `<button type="button" class="cdxTile${isUnlocked(id) ? '' : ' locked'}${tool === id ? ' cur' : ''}" style="--cc: var(--c-${t.cat})" data-bk="${id}"><span class="ic">${svgIcon(id)}</span><span>${t.name}</span><em class="${gold < cost ? 'poor' : ''}">${isUnlocked(id) ? cost : '未解锁'}</em></button>`; }).join('')}</div></div>`).join('');
+  L.innerHTML = TRAP_GROUPS.map((g, gi) => `<div class="cdxGrp"><h4>${gi + 1} · ${g.name}</h4><div class="cdxTiles">${g.traps.map(id => { const t = TRAP[id], cost = sim ? sim.trapCost(id, PID) : t.cost; return `<button type="button" class="cdxTile${isUnlocked(id) ? '' : ' locked'}${tool === id ? ' cur' : ''}" style="--cc: var(--c-${t.cat})" data-bk="${id}"><span class="ic">${svgIcon(id)}</span><span>${t.name}</span><em class="${gold < cost ? 'poor' : ''}">${!isUnlocked(id) ? '未解锁' : inLoad(id) ? cost : '未携带'}</em>${NEWT.isNew(id) ? '<span class="newB">新</span>' : ''}</button>`; }).join('')}</div></div>`).join('');
   const show = id => {
     const it = (CODEX.trap || []).find(x => x.id === id); if (!it) return;
     for (const b of L.querySelectorAll('[data-bk]')) b.setAttribute('aria-current', b.dataset.bk === id ? 'true' : 'false');
     const D = $('bkD'); D.style.setProperty('--cc', `var(--c-${TRAP[id].cat})`);
     D.innerHTML = it.detail();
-    if (isUnlocked(id)) {
+    if (inLoad(id)) {
       const u = document.createElement('button'); u.type = 'button'; u.className = 'cta bkUse'; u.dataset.use = id; u.textContent = '选用';
       u.addEventListener('click', () => { selectTool(id); toggleBook(false); });
       (D.querySelector('header') || D).appendChild(u);
@@ -3724,7 +4012,7 @@ function renderBook() {
   };
   for (const b of L.querySelectorAll('[data-bk]')) {
     b.addEventListener('click', () => show(b.dataset.bk));
-    b.addEventListener('dblclick', () => { if (isUnlocked(b.dataset.bk)) { selectTool(b.dataset.bk); toggleBook(false); } });
+    b.addEventListener('dblclick', () => { if (inLoad(b.dataset.bk)) { selectTool(b.dataset.bk); toggleBook(false); } });
     if (!TOUCH) b.addEventListener('mouseenter', () => show(b.dataset.bk));
   }
   show(tool !== 'gun' ? tool : bookSel || TRAP_GROUPS[0].traps[0]);
@@ -3743,9 +4031,9 @@ function buildHotbar() {
     d.className = 'slot grp'; d.dataset.grp = g.id;
     d.addEventListener('pointerdown', ev => {
       ev.stopPropagation(); ev.preventDefault();
-      const id = grpPick[g.id] || g.traps.find(isUnlocked) || g.traps[0];
+      const L = gTraps(g), id = grpPick[g.id] && L.includes(grpPick[g.id]) ? grpPick[g.id] : L[0];
       if (popGrp === g.id) { closePop(); return; }
-      if (isUnlocked(id)) selectTool(id);
+      if (id) selectTool(id);
       openPop(g.id);
     });
     hb.appendChild(d);
@@ -3759,8 +4047,10 @@ function buildHotbar() {
 function selectTool(id) {
   if (tool === id) return;
   if (id !== 'gun' && !isUnlocked(id)) { toast(`${TRAP[id].name} ${lockText(id)}`, true); Snd.play('deny'); return; }
+  if (id !== 'gun' && !inLoad(id)) { toast(`这一局没有携带${TRAP[id].name} · 开局设置的「陷阱」一步可以调整出战配置`, true); Snd.play('deny'); return; }
   if (id !== 'gun' && myMount()) dismount();
   tool = id; vm.switchT = 0.25;
+  if (id !== 'gun' && NEWT.isNew(id)) NEWT.seen(id);
   { const g = id !== 'gun' && grpOf(id); if (g) grpPick[g.id] = id; if (popGrp && (!g || g.id !== popGrp)) closePop(); for (const gg of TRAP_GROUPS) setChip(gg); }
   for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === id);
   if (id !== 'gun') { const d = TRAP[id]; toast(`${d.name} · ${CAT_NAME[d.cat]} · ${sim ? sim.trapCost(id, PID) : d.cost} 金币`); }
@@ -3835,7 +4125,7 @@ function buildHelp() {
       return `<header><span class="ic">${svgIcon(id)}</span><h3>${t.name}</h3><span class="cdxMeta">${CAT_NAME[t.cat]} · ${t.cost} 金币 · 按 <span class="kb">${keyCombo(id)}</span></span></header>
         ${ST.TRAP_LORE[id] ? `<p class="cdxLore">${ST.TRAP_LORE[id]}</p>` : ''}
         <div class="cdxCols"><div>
-        ${isUnlocked(id) ? '' : `<p class="cdxLock">${lockText(id)}</p>`}
+        ${isUnlocked(id) ? '' : `<p class="cdxLock">${lockText(id)}</p>`}${PROG.mastLv(id) ? `<p class="cdxFoot">陷阱精通 Lv${PROG.mastLv(id)}：你建造的${t.name}伤害 +${PROG.mastLv(id) * 5}%${PROG.mastLv(id) >= 3 ? '，建造便宜 10%' : ''}</p>` : ''}
         <p>${desc}</p>
         ${dl(trapStats(t).map(([k, v]) => [k, v]))}<p class="cdxFoot">数值依次为 Lv1 / Lv2 / Lv3 / Lv4</p></div><div>
         ${TRAP_NOTE[id] ? `<p class="cdxNote">${TRAP_NOTE[id]}</p>` : ''}
@@ -3862,7 +4152,7 @@ function buildHelp() {
       ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}${(TD.WMODS[w.id] || []).length ? `<div class="cdxEvo"><h4>改装（买下后在军械库二选一，本局有效）</h4>${TD.WMODS[w.id].map(M => `<p><b>${M.name}</b>${M.desc} · ${M.cost} 金币</p>`).join('')}</div>` : ''}` }));
   cdxItem('wpn', { id: 'nade', grp: '技能', name: SKILL.nade.name, icon: svgIcon('nade'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('nade')}</span><h3>${SKILL.nade.name}</h3><span class="cdxMeta">按 C 投掷</span></header><p>抛物线投掷，${SKILL.nade.fuse} 秒后爆炸。</p>${dl([['伤害', SKILL.nade.dmg], ['范围', SKILL.nade.r + ' 米'], ['数量', `最多 ${SKILL.nade.max} 枚（突击兵 +1）`], ['充能', `每 ${SKILL.nade.recharge} 秒 1 枚`]])}` });
   cdxItem('wpn', { id: 'ult', grp: '技能', name: SKILL.ult.name, icon: svgIcon('ult'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('ult')}</span><h3>${SKILL.ult.name}</h3><span class="cdxMeta">能量满 100% 后按 Z</span></header><p>用枪造成伤害和击杀会积攒能量；满了以后对准地面呼叫，${SKILL.ult.delay} 秒后落下，大范围重创并眩晕敌人。</p>${dl([['伤害', SKILL.ult.dmg], ['范围', SKILL.ult.r + ' 米'], ['眩晕', SKILL.ult.stun + ' 秒']])}` });
-  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header>${ST.CLS_LORE[c.id] ? `<p class="cdxLore">${ST.CLS_LORE[c.id]}</p>` : ''}<p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
+  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header>${ST.CLS_LORE[c.id] ? `<p class="cdxLore">${ST.CLS_LORE[c.id]}</p>` : ''}<p>${c.desc}</p><p><b>震荡冲击（V）</b>：${c.shock}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
   // —— 关卡 ——
   for (const d of MAP_LIST) {
     cdxItem('map', { id: d.id, grp: '关卡', name: d.name, icon: `<canvas class="cdxThumb" data-map="${d.id}"></canvas>`, cat: d.outdoor ? 'hfloor' : 'floor', detail: () => {
@@ -3879,9 +4169,13 @@ function buildHelp() {
   R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
   R('respawn', '基础规则', '复活保护', '<p>阵亡后，守卫装甲的回传系统会在 5 秒后把你送回基地重建，回来后 10 秒内无敌。</p>');
   R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
-  R('unlock', '基础规则', '重型陷阱解锁', `<ul class="cdxTags">${Object.keys(UNLOCKS).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上。</p>`);
+  R('unlock', '基础规则', '陷阱解锁', `<p>新守卫上岗时只有六种基础陷阱：减速器、毒刺陷阱、自修复磁暴塔、激光发射器、粉碎锤、岗哨机枪。每打通一章主线（任意难度），老钳就会送来新装备：</p><ul class="cdxTags">${Object.keys(UNLOCKS).sort((a, b) => UNLOCKS[a].ch - UNLOCKS[b].ch).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上，可以在设置里导出存档或开启云存档。</p>`);
+  R('shock', '基础规则', '震荡冲击', `<p>按 V（手机右侧的「冲击」按钮）向准星方向扇形释放一道冲击波：造成伤害、击退并短暂眩晕前方的怪物，冷却 ${TD.SHOCK.cd} 秒。被推到坑边的怪物会直接掉下去。BOSS 只吃伤害。</p><ul class="cdxTags">${CLASSES.map(c => `<li><b>${c.name}</b>：${c.shock}</li>`).join('')}</ul>`);
+  R('combo', '基础规则', '连杀与花式击杀', '<p>2.5 秒内接连击杀会累积全队连杀数：5 连杀起每只额外 +1 金币，10 连杀 +2，20 连杀 +3。花式击杀另有赏金：空中击杀（被弹飞时打死）、碎冰（冻住时被粉碎锤砸死）、爆燃（点燃毒雾）各 +3 金币，场景杀 +5 金币。</p>');
+  R('load', '基础规则', '出战配置与陷阱精通', `<p>一局最多带 ${LOAD_MAX} 种陷阱上场：开局设置的最后一步「陷阱」里挑选（解锁的陷阱不到 ${LOAD_MAX} 种时全部带上）。联机时每人各带各的。</p><p>主菜单「天赋」里的<b>陷阱精通</b>可以用功勋星单独强化每一种陷阱：每级伤害 +5%，满 3 级后建造再便宜 10%，只对你自己建造的陷阱生效。</p>`);
   R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（晶核被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
   R('height', '地形', '高地与崖壁', '<p>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯、斜坡或梯子，往下可以直接跳。通道旁高出 2.5 米以上的崖壁可以挂墙壁陷阱。</p>');
+  R('pit', '地形', '场景杀', '<p>部分地图的通道旁有陷坑：空间站的气闸、要塞的古井、熔炉的熔岩池、深渊、流沙坑、裂谷、液氮池。用弹射板或震荡冲击把怪物推下去就是一击必杀，额外 +5 金币。BOSS、飞行、倒挂在天花板上和不吃击退的怪物不会掉下去。小地图上的黑色方块就是坑。</p>');
   R('deck', '地形', '二层桥', '<p>桥面能站人、两侧有护栏；只有桥底下有天花板，露天的地方不能放粉碎锤。小地图上琥珀色方块是桥，亮色区域是高处，白色箭头指向上坡，绿色短横是梯子。</p>');
   R('lab', '科研舱', '科研舱', '<p>每张地图都有一间科研舱（小地图上的紫色「科」）。走到科研终端旁按 F，用全队共享的金币研究科技，全队生效、本局有效；旁边的补给柜可以补满生命、手雷和弹药。</p>');
   TD.TECH.forEach((t, i) => R('tech-' + t.id, '科研科技', t.name, `<p>${t.desc(1)}，每级叠加，最高 ${TD.TECH_MAX} 级。</p>${dl([['每级花费', t.cost.join(' / ') + ' 金币']])}`));
@@ -3973,7 +4267,7 @@ function buildMinimap(S) {
   cv.width = S.W * k; cv.height = S.H * k; cv.style.width = cv.width + 'px'; cv.style.height = cv.height + 'px';
   mapBase = document.createElement('canvas'); mapBase.width = S.W * k; mapBase.height = S.H * k;
   const g = mapBase.getContext('2d');
-  const C = { [TILE.WALL]: '#0b1017', [TILE.LANE]: '#2b3947', [TILE.FLOOR]: '#3a424c', [TILE.PAD]: '#5b4a2a', [TILE.BASE]: '#1f4c5c', [TILE.SPAWN]: '#5a2024' };
+  const C = { [TILE.WALL]: '#0b1017', [TILE.LANE]: '#2b3947', [TILE.FLOOR]: '#3a424c', [TILE.PAD]: '#5b4a2a', [TILE.BASE]: '#1f4c5c', [TILE.SPAWN]: '#5a2024', [TILE.PIT]: '#04060a' };
   paintTiles(g, S, k, C);
   g.strokeStyle = 'rgba(255,90,80,.55)'; g.lineWidth = 1; g.setLineDash([2, 2]);
   for (const lane of S.lanes) { g.beginPath(); S.paths[lane].pts.forEach((p, i) => { const X = p.x / T * k, Y = p.z / T * k; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }); g.stroke(); }
@@ -4036,7 +4330,7 @@ function netBanner() {
 }
 function updateHUD(dt) {
   netBanner();
-  updateTalk(dt); storyScan(dt);
+  updateTalk(dt); storyScan(dt); updateCombo(dt);
   if (sim && mode === 'play') bossTremor(sim, dt);
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
@@ -4105,12 +4399,17 @@ function updateHUD(dt) {
       setText('wpn', `${W.name} · R 换弹 · Q 切枪 · B 军械库`);
       setText('magNum', '/ ' + p.mag);
     }
+    if (MP.role === 'client' && !p._mastOk) { p.mast = PROG.mastObj(); p._mastOk = 1; }   // 联机队友：本地显示的陷阱价格也算上精通折扣
     setText('nadeN', String(p.nades));
     setStyle($('nadeFill'), 'width', (p.nades >= (p.nadeMax || SKILL.nade.max) ? 100 : (1 - p.nadeT / SKILL.nade.recharge) * 100).toFixed(0) + '%');
     $('skNade').classList.toggle('empty', p.nades < 1);
     setText('ultN', p.energy >= 100 ? '就绪' : Math.floor(p.energy) + '%');
     setStyle($('ultFill'), 'width', Math.min(100, p.energy).toFixed(0) + '%');
     $('skUlt').classList.toggle('ready', p.energy >= 100);
+    const shR = Math.max(0, shockReady - timeNow), shCd = TD.SHOCK.cd * (p.cls === 'scout' ? 0.6 : 1);
+    setText('shockN', shR > 0 ? Math.ceil(shR) + ' 秒' : '就绪');
+    setStyle($('shockFill'), 'width', ((1 - Math.min(1, shR / shCd)) * 100).toFixed(0) + '%');
+    $('skShock').classList.toggle('ready', shR <= 0);
     const gs = $('hotbar').firstChild;
     if (gs && cache.gunSlot !== p.wpn) { cache.gunSlot = p.wpn; gs.querySelector('svg').outerHTML = svgIcon(p.wpn); gs.querySelector('.n').textContent = W.name; }
     if (shopOpen) renderShop();
@@ -4319,7 +4618,7 @@ addEventListener('mouseup', e => { if (e.button === 0) mouse.l = false; if (e.bu
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 addEventListener('wheel', e => {
   if (mode !== 'play') return;
-  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps).filter(isUnlocked)];
+  const ids = ['gun', ...TRAP_GROUPS.flatMap(g => g.traps).filter(inLoad)];
   let i = ids.indexOf(tool);
   i = (i + (e.deltaY > 0 ? 1 : -1) + ids.length) % ids.length;
   selectTool(ids[i]);
@@ -4367,7 +4666,8 @@ function onKey(code, e) {
     case 'KeyB': toggleShop(); break;
     case 'KeyF': useDevice(); break;
     case 'KeyT': doPing(); break;
-    case 'KeyV': toggleQuick(); break;
+    case 'KeyY': toggleQuick(); break;
+    case 'KeyV': useShock(); break;
     case 'KeyC': throwNade(); break;
     case 'KeyZ': callStrike(); break;
     case 'KeyR': if (!myMount()) reloadReq = true; break;
@@ -4999,6 +5299,7 @@ function newGame(state, prebuilt) {
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0; buildFx.clear(); railFx.length = blinkFx.length = auraFx.length = fireFx.length = 0;
   parts.length = 0; tracers.length = 0; rings.length = 0; lights.length = 0;
   const p = sim.s.players[PID]; cam.yaw = p ? p.yaw : 0; cam.pitch = 0;
+  runLoad = new Set(LOAD.list(sim && sim.def && sim.def.id));
   tool = 'gun'; buildHotbar(); selectTool('gun'); for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === 'gun');
   buildMinimap(sim);
   $('feed').innerHTML = '';
@@ -5019,7 +5320,7 @@ const TUT_STEPS = [
   { t: '升级陷阱', d: () => TOUCH ? '对准一个陷阱，点「升级」' : `对准一个陷阱按 ${K_('KeyE')} 升级（${K_('KeyX')} 拆除，布防阶段全额返还）`, ok: (T0, s) => s.traps.some(t => t.lv >= 2) },
   { t: '开战', d: () => TOUCH ? '准备好了就点「开战」，提前开战还有金币奖励' : `准备好了按 ${K_('KeyG')} 提前开战，剩余倒计时会换成金币奖励`, ok: (T0, s) => s.phase === 'wave' },
   { t: '射击', d: () => TOUCH ? '按「开火」射击，按「瞄准」开镜；打死 3 只怪' : '左键射击、右键瞄准，打头伤害更高；打死 3 只怪', ok: (T0, s, p) => p.kills >= 3 },
-  { t: '更多玩法', d: () => TOUCH ? '「军械」买新武器，走到紫色「科」科研舱按「互动」研究科技。守住这一波吧！' : `${K_('KeyB')} 打开军械库买新武器；走到小地图上紫色「科」的科研舱按 ${K_('KeyF')} 研究科技；${K_('KeyH')} 查看图鉴。守住这一波吧！`, ok: T0 => T0.stepT > 9 },
+  { t: '更多玩法', d: () => TOUCH ? '「冲击」按钮放震荡冲击，把怪推开（推进坑里直接秒杀）；「军械」买新武器，走到紫色「科」科研舱按「互动」研究科技。守住这一波吧！' : `${K_('KeyV')} 震荡冲击把怪推开（推进坑里直接秒杀）；${K_('KeyB')} 打开军械库买新武器；走到紫色「科」科研舱按 ${K_('KeyF')} 研究科技。守住这一波吧！`, ok: T0 => T0.stepT > 10 },
 ];
 // 每一步要高亮的东西：els = 界面上要点的按钮，zone = 手机上要拖动的半屏，keys = 电脑上要按的键（显示成按键图标）
 const popOpen = g => popGrp === g;
@@ -5032,7 +5333,7 @@ const TUT_HI = [
   () => TOUCH ? { els: ['#tbUp'] } : { keys: [keyName(keyOf('KeyE'))] },
   () => TOUCH ? { els: ['#tbReady'] } : { keys: [keyName(keyOf('KeyG'))] },
   () => TOUCH ? { els: ['#tbFire', '#tbAds'], aim: 1 } : { keys: ['鼠标左键', '鼠标右键'] },
-  () => TOUCH ? { els: ['#touchUI [data-k="KeyB"]', '#touchUI [data-k="Tab"]'] } : { keys: [keyName(keyOf('KeyB')), 'Tab', keyName(keyOf('KeyH'))] },
+  () => TOUCH ? { els: ['#tbShock', '#touchUI [data-k="KeyB"]'] } : { keys: [keyName(keyOf('KeyV')), keyName(keyOf('KeyB')), keyName(keyOf('KeyF'))] },
 ];
 const Tut = { on: false, i: 0, moved: 0, turned: 0, stepT: 0, lx: 0, lz: 0, lyaw: 0 };
 // 把高亮圈 / 指示箭头 / 按键图标摆到位，并把引导卡片挪到不挡住目标的位置
@@ -5084,7 +5385,7 @@ function startTutorial() {
   S.addPlayer(PID, MP.name || '你', false, PROG.personal(), selCls);
   S.s.gold += 600;
   beginPlay(S, true);
-  Tut.on = true; Tut.i = 0; Tut.moved = 0; Tut.turned = 0; Tut.stepT = 0;
+  Tut.on = true; Tut.i = 0; Tut.moved = 0; Tut.turned = 0; Tut.stepT = 0; buildHotbar();
   talkReset(); sayPool('tutStart', { pri: 3 });
   const p = sim.s.players[PID]; Tut.lx = p.x; Tut.lz = p.z; Tut.lyaw = cam.yaw;
   renderTut();
@@ -5092,6 +5393,7 @@ function startTutorial() {
 function stopTutorial(done) {
   if (!Tut.on) return;
   Tut.on = false; $('tut').hidden = true; $('tut').style.visibility = ''; $('tutHi').hidden = true; tutSetDone();
+  buildHotbar(); for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === tool);
   if (done) { banner('新手引导完成', '接下来就靠你守住晶核了！在主菜单可以随时重新打开引导'); Snd.play('clear'); sayPool('tutDone', { pri: 3 }); $('tutBtn').classList.remove('pulse'); }
 }
 function renderTut() {
@@ -5130,7 +5432,7 @@ function beginPlay(S, gesture) {
   Snd.init(); Snd.ambient(true);
   newGame(null, S);
   mode = 'play';
-  show('menu', false); show('end', false); show('pause', false); show('help', false); show('hud', true);
+  show('menu', false); show('end', false); show('share', false); show('pause', false); show('help', false); show('hud', true);
   const n = Object.keys(sim.s.players).length, lanes = sim.lanes.length;
   feed('布防阶段：沿红色路线在通道地面、墙壁、天花板布置陷阱', '');
   feed(TOUCH ? '点顶部陷阱栏选择陷阱，对准位置按「放置」；对准陷阱可升级 / 拆除' : '按 1-5 打开陷阱分组、再按数字选择（Tab 查看全部），左键放置；对准陷阱按 E 升级、X 拆除', '');
@@ -5141,6 +5443,7 @@ function beginPlay(S, gesture) {
   if (TOUCH) { applyTouchLayout(); requestAnimationFrame(applyTouchLayout); }
   if (MP.role !== 'client') ensureBgTicker();
   talkReset(); runReset();
+  shockReady = 0; Combo.n = 0; Combo.t = 0; $('combo').hidden = true; $('comboBig').hidden = true; shockFxs.length = 0;
   setTimeout(storyBegin, 0);
 }
 function pauseGame() {
@@ -5229,15 +5532,15 @@ function fillCtrlHelp() {
     '<span class="kb">左键</span>射击 / 放置陷阱', '<span class="kb">右键</span>瞄准 / 收起陷阱',
     `<span class="kb">1-5</span>打开陷阱分组，再按数字选择 · <span class="kb">Tab</span>陷阱一览 · ${K('KeyQ')}步枪 / 切枪`, `${K('KeyE')}升级 · ${K('KeyX')}拆除陷阱`,
     `${K('KeyB')}军械库 · ${K('KeyF')}互动`, `${K('KeyC')}手雷 · ${K('KeyZ')}轨道打击`,
-    `${K('KeyT')}标记 · ${K('KeyV')}快捷消息 · <span class="kb">Enter</span>打字聊天`, `${K('KeyG')}提前开战 / 联机准备`,
+    `${K('KeyV')}震荡冲击 · ${K('KeyT')}标记 · ${K('KeyY')}快捷消息 · <span class="kb">Enter</span>打字聊天`, `${K('KeyG')}提前开战 / 联机准备`,
     `${K('KeyM')}大地图 · ${K('KeyH')}图鉴`, `<span class="kb">Esc</span>${K('KeyP')}暂停 / 设置`,
   ].map(h => `<div>${h}</div>`).join('');
   const mk = document.querySelector('#menu .keys');
   if (mk) mk.innerHTML = box.innerHTML;
 }
 /* ---------- 触屏按钮：自定义位置 / 大小 / 透明度 ---------- */
-const TB_DRAG = ['tbFire', 'tbJump', 'tbReload', 'tbAds', 'tbNade', 'tbUlt', 'tbSwap', 'tbUtil', 'tbCtx'];
-const TB_NAME = { tbFire: '开火', tbJump: '跳跃', tbReload: '换弹', tbAds: '瞄准', tbNade: '手雷', tbUlt: '轨道打击', tbSwap: '切枪', tbUtil: '左侧按钮栏', tbCtx: '底部操作栏' };
+const TB_DRAG = ['tbFire', 'tbJump', 'tbReload', 'tbAds', 'tbNade', 'tbUlt', 'tbShock', 'tbSwap', 'tbUtil', 'tbCtx'];
+const TB_NAME = { tbFire: '开火', tbJump: '跳跃', tbReload: '换弹', tbAds: '瞄准', tbNade: '手雷', tbUlt: '轨道打击', tbShock: '震荡冲击', tbSwap: '切枪', tbUtil: '左侧按钮栏', tbCtx: '底部操作栏' };
 const TB_MIN = 0.5, TB_MAX = 2;
 let tbEdit = null, tbEditFrom = '', tbSel = null;
 const tbSize = id => clamp(+settings.tb.size[id] || 1, TB_MIN, TB_MAX);
@@ -5335,7 +5638,7 @@ function initTouchEditor() {
   applyTouchLayout();
 }
 /* ---------- 存档：导出 / 导入 / 云存档 ---------- */
-const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings', 'jhsw-story'];
+const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings', 'jhsw-story', 'jhsw-newtrap', 'jhsw-mast', 'jhsw-load'];
 const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
 const b64d = str => { const s = atob(str); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 async function pipeBytes(u8, stream) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(stream)).arrayBuffer()); }
@@ -5511,7 +5814,7 @@ function toMenu() {
   if (MP.role === 'client') MP.gid = null;
   clearTags(); renderMP();
   corpses.length = 0; decals.length = 0; bossFx = null; slowmoT = 0;
-  show('hud', false); show('pause', false); show('end', false); show('help', false); show('menu', true);
+  show('hud', false); show('pause', false); show('end', false); show('share', false); show('help', false); show('menu', true);
   if (document.pointerLockElement) document.exitPointerLock();
   makeDemo();
   goScreen(MP.role !== 'solo' ? 'mp' : 'home');
@@ -5531,6 +5834,8 @@ function showEnd() {
   const rows = [
     ['地图', sim.def.name + (s.endless ? ' · 无尽' : '') + (s.daily ? ' · 每日挑战' : '')], ['难度', DIFFS[s.diff].name + (s.mut && s.mut.length ? ` · ${s.mut.map(id => MUT[id].name).join('·')}` : '')], ['到达波次', s.endless ? `第 ${s.wave} 波` : `${s.wave} / ${sim.waves.length}`], ['晶核剩余', `${Math.ceil(s.crystal.hp)} / ${s.crystal.max}`],
     ['击杀', s.stats.kills], ['漏怪', s.stats.leaks], ['用时', `${Math.floor(dur / 60)} 分 ${Math.floor(dur % 60)} 秒`],
+    ['最高连杀', `${s.stats.bestCombo || 0} 连杀`], ['花式赏金', `${(s.stats.styleGold || 0).toLocaleString()} 金币`],
+    ...(sim.pitTiles && sim.pitTiles.length ? [['场景杀', `${(s.stats.styles && s.stats.styles.pit) || 0} 只`]] : []),
     ['陷阱输出', `${Math.round(s.stats.dmgTrap).toLocaleString()}（${Math.round(s.stats.dmgTrap / total * 100)}%）`],
     ['枪械输出', `${Math.round(s.stats.dmgGun).toLocaleString()}（${Math.round(s.stats.dmgGun / total * 100)}%）`],
     ['建造陷阱', `${s.stats.built} 个`], ['总花费', `${s.stats.spent.toLocaleString()} 金币`],
@@ -5540,10 +5845,10 @@ function showEnd() {
   {
     const bt = s.stats.byTrap || {}, ent = Object.entries(bt).filter(([, v]) => v > 0.5).sort((a, b) => b[1] - a[1]);
     const sum = ent.reduce((a, [, v]) => a + v, 0) || 1, top = ent.length ? ent[0][1] : 1;
-    const NAME = { device: '地图机关', other: '其他（自爆 / 连锁）' };
+    const NAME = { device: '地图机关', other: '其他（自爆 / 连锁）', pit: '场景杀（坑）' };
     $('endTrapList').innerHTML = ent.map(([k, v]) => {
       const t = TRAP[k], pct = v / sum * 100;
-      return `<li style="--cc: var(--c-${t ? t.cat : 'gun'})"><span class="ic">${svgIcon(t ? k : 'ult')}</span><b>${t ? t.name : NAME[k] || k}</b><span class="bar"><i style="width:${(v / top * 100).toFixed(1)}%"></i></span><em>${Math.round(v).toLocaleString()}<strong>${pct >= 9.95 ? pct.toFixed(0) : pct.toFixed(1)}%</strong></em></li>`;
+      return `<li style="--cc: var(--c-${t ? t.cat : 'gun'})"><span class="ic">${svgIcon(t ? k : k === 'pit' ? 'push' : 'ult')}</span><b>${t ? t.name : NAME[k] || k}</b><span class="bar"><i style="width:${(v / top * 100).toFixed(1)}%"></i></span><em>${Math.round(v).toLocaleString()}<strong>${pct >= 9.95 ? pct.toFixed(0) : pct.toFixed(1)}%</strong></em></li>`;
     }).join('');
     $('endTraps').hidden = !ent.length;
   }
@@ -5585,6 +5890,8 @@ function showEnd() {
     if (s.endless) ACH.d.c.endlessBest = Math.max(ACH.n('endlessBest'), s.wave);
     if (win && MP.role !== 'solo' && Object.keys(s.players).length > 1) ACH.add('coopWin');
     if (win && me) ACH.add('cls_' + me.cls);
+    ACH.add('pits', (s.stats.styles && s.stats.styles.pit) || 0);
+    ACH.d.c.bestCombo = Math.max(ACH.n('bestCombo'), s.stats.bestCombo || 0);
     ACH.save();
   }
   const newAch = ACH.check({ win: win && !s.endless, trapPct: s.stats.dmgTrap / total, gunPct: s.stats.dmgGun / total, cats, traps: s.traps.length, built: s.stats.built });
@@ -5597,7 +5904,7 @@ function showEnd() {
   if (gained > 0) msg.push(`获得 ★ ×${gained} · 可用星星 ${PROG.stars() - PROG.spent()}，到主菜单「天赋」里加点`);
   if (newAch.length) msg.push(`达成成就：${newAch.map(a => `「${a.name}」`).join('')}`);
   const newly = locked0.filter(id => UNLOCKS[id].ok());
-  if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`); buildHotbar(); }
+  if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => `${TRAP[id].name}（${grpOf(id) ? grpOf(id).name : ''}）`).join('、')}！下一局起就能用`); buildHotbar(); }
   const rk0 = rankOf(stars0), rk1 = rankOf(PROG.stars());
   if (rk1.i > rk0.i) msg.push(`军衔晋升：${rk1.name}！`);
   $('endStar').hidden = !msg.length; $('endStar').textContent = msg.join(' · ');
@@ -5612,7 +5919,89 @@ function showEnd() {
   $('endGrade').textContent = grade;
   $('endGrade').className = 'grade g' + grade;
   $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 晶核 ${best.hp} · 评级 ${best.grade}`;
+  // 战报分享图要用的数据
+  endInfo = {
+    map: s.map, win, grade, stars: runStars, endless: !!s.endless, daily: s.daily || '', wave: s.wave, waves: sim.waves.length,
+    diff: DIFFS[s.diff].name, ch: ST.CHAPTERS[s.map] || null, mapName: sim.def.name, hp: Math.ceil(s.crystal.hp), hpMax: s.crystal.max,
+    kills: s.stats.kills, combo: s.stats.bestCombo || 0, pit: (s.stats.styles && s.stats.styles.pit) || 0, hasPit: !!(sim.pitTiles && sim.pitTiles.length),
+    styleGold: s.stats.styleGold || 0, dur, trapPct: Math.round(s.stats.dmgTrap / total * 100), gunPct: Math.round(s.stats.dmgGun / total * 100),
+    name: (s.players[PID] && s.players[PID].name) || MP.name || '守卫', cls: CLS[(s.players[PID] && s.players[PID].cls) || selCls].name, rank: rankOf(PROG.stars()).name,
+    team: Object.keys(s.players).length, mut: (s.mut || []).map(id => MUT[id].name),
+  };
   show('end', true);
+}
+/* ---------- 战报分享图：一张 1200×675 的图片，可以保存或直接分享 ---------- */
+let endInfo = null, shareURL = '';
+function drawShareCard(I) {
+  const W = 1200, H = 675, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'), css = getComputedStyle(document.documentElement);
+  const FD = css.getPropertyValue('--f-disp').trim() || 'sans-serif', FN = css.getPropertyValue('--f-num').trim() || 'monospace', FU = getComputedStyle(document.body).fontFamily || 'sans-serif';
+  const cy = '#5fe3ff', gold = '#ffb547', ok = '#6cf0a4', bad = '#ff5266', ink = '#e8f1f7', dim = 'rgba(214, 228, 238, .62)';
+  // 背景：章节插图（有的话）+ 暗角；没有就用深色渐变 + 晶格线
+  const bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#071019'); bg.addColorStop(1, '#0d1d2a'); g.fillStyle = bg; g.fillRect(0, 0, W, H);
+  const img = I.artImg;
+  if (img) { const r = Math.max(W / img.width, H / img.height), iw = img.width * r, ih = img.height * r; g.globalAlpha = 0.55; g.drawImage(img, (W - iw) / 2, (H - ih) / 2, iw, ih); g.globalAlpha = 1; }
+  else { g.strokeStyle = 'rgba(95, 227, 255, .07)'; g.lineWidth = 1; for (let i = -H; i < W; i += 48) { g.beginPath(); g.moveTo(i, H); g.lineTo(i + H, 0); g.stroke(); } }
+  const vg = g.createLinearGradient(0, 0, W, 0); vg.addColorStop(0, 'rgba(4, 8, 13, .92)'); vg.addColorStop(0.62, 'rgba(4, 8, 13, .72)'); vg.addColorStop(1, 'rgba(4, 8, 13, .45)'); g.fillStyle = vg; g.fillRect(0, 0, W, H);
+  // 边框（切角）
+  g.strokeStyle = 'rgba(95, 227, 255, .35)'; g.lineWidth = 2; g.beginPath(); g.moveTo(40, 20); g.lineTo(W - 20, 20); g.lineTo(W - 20, H - 40); g.lineTo(W - 40, H - 20); g.lineTo(20, H - 20); g.lineTo(20, 40); g.closePath(); g.stroke();
+  // 标题
+  g.textBaseline = 'alphabetic'; g.fillStyle = cy; g.font = `42px ${FD}`; g.fillText('晶核守卫', 64, 92);
+  g.fillStyle = dim; g.font = `20px ${FU}`; g.fillText('作战报告 · ' + new Date().toLocaleDateString('zh-CN'), 270, 90);
+  // 章节 / 地图
+  const head = I.ch && !I.endless && !I.daily ? `${I.ch.ch} · ${I.ch.title}` : I.endless ? '无尽防线' : I.daily ? '每日挑战 ' + I.daily : I.mapName;
+  g.fillStyle = ink; g.font = `52px ${FD}`; g.fillText(head, 64, 176);
+  g.fillStyle = dim; g.font = `22px ${FU}`;
+  g.fillText(`${I.mapName} · ${I.diff}${I.mut.length ? ' · 突变 ' + I.mut.join('、') : ''}${I.team > 1 ? ` · ${I.team} 人联机` : ''}`, 66, 214);
+  // 结果
+  g.font = `bold 34px ${FU}`; g.fillStyle = I.win ? ok : bad;
+  g.fillText(I.endless ? `坚持到第 ${I.wave} 波` : I.win ? '胜利 · 晶核守住了' : `失败 · 第 ${I.wave} / ${I.waves} 波`, 64, 272);
+  // 评级 + 星星
+  const GC = { S: gold, A: ok, B: cy, C: '#c9d6df', D: bad }[I.grade] || ink;
+  { const rg = g.createRadialGradient(W - 200, 190, 10, W - 200, 190, 220); rg.addColorStop(0, GC + '44'); rg.addColorStop(1, GC + '00'); g.fillStyle = rg; g.fillRect(W - 440, 0, 440, 420);
+    g.save(); g.translate(W - 200, 185); g.rotate(Math.PI / 4); g.strokeStyle = GC + '55'; g.lineWidth = 2; g.strokeRect(-118, -118, 236, 236); g.strokeStyle = GC + '22'; g.strokeRect(-150, -150, 300, 300); g.restore(); }
+  g.textAlign = 'center'; g.fillStyle = GC; g.font = `bold 190px ${FN}`; g.shadowColor = GC; g.shadowBlur = 30; g.fillText(I.grade, W - 200, 250); g.shadowBlur = 0;
+  if (!I.endless && !I.daily) { g.font = `46px ${FU}`; for (let i = 0; i < 3; i++) { g.fillStyle = i < I.stars ? gold : 'rgba(255, 255, 255, .16)'; g.fillText('★', W - 260 + i * 60, 312); } }
+  g.textAlign = 'left';
+  // 数据格子
+  const cells = [['击杀', String(I.kills)], ['最高连杀', String(I.combo)], I.hasPit ? ['场景杀', String(I.pit)] : ['花式赏金', String(I.styleGold)], ['晶核剩余', `${I.hp}/${I.hpMax}`],
+    ['用时', `${Math.floor(I.dur / 60)}:${String(Math.floor(I.dur % 60)).padStart(2, '0')}`], ['陷阱输出', I.trapPct + '%'], ['枪械输出', I.gunPct + '%'], I.hasPit ? ['花式赏金', String(I.styleGold)] : ['到达波次', String(I.wave)]];
+  cells.forEach(([k, v], i) => {
+    const x = 64 + (i % 4) * 268, y = 352 + Math.floor(i / 4) * 118;
+    g.fillStyle = 'rgba(255, 255, 255, .05)'; g.fillRect(x, y, 248, 98);
+    g.fillStyle = cy; g.fillRect(x, y, 3, 98);
+    g.fillStyle = dim; g.font = `20px ${FU}`; g.fillText(k, x + 18, y + 34);
+    g.fillStyle = ink; g.font = `bold 40px ${FN}`; g.fillText(v, x + 18, y + 80);
+  });
+  // 玩家
+  g.fillStyle = ink; g.font = `24px ${FU}`; g.fillText(`${I.name} · ${I.cls} · 军衔「${I.rank}」`, 64, 622);
+  g.fillStyle = dim; g.font = `18px ${FN}`; g.textAlign = 'right'; g.fillText('jhsw-game.xialuoxi.com', W - 48, 622); g.textAlign = 'left';
+  return cv;
+}
+function openShare() {
+  if (!endInfo) return;
+  const I = Object.assign({}, endInfo), a = ART['ch_' + I.map];
+  const go = () => {
+    try { shareURL = drawShareCard(I).toDataURL('image/png'); } catch (e) { toast('生成战报图失败', true); return; }
+    $('shareImg').src = shareURL; show('share', true);
+    $('shareTip').textContent = window.JhswApk ? '点「保存到相册」，或者直接分享给朋友' : TOUCH ? '长按图片可以保存；也可以点下面的按钮' : '点「保存图片」下载 PNG';
+  };
+  if (a) { const im = new Image(); im.onload = () => { I.artImg = im; go(); }; im.onerror = go; im.src = a; } else go();
+}
+function shareName() { return `晶核守卫战报-${endInfo ? endInfo.map : 'run'}-${Date.now().toString(36)}.png`; }
+function saveShare() {
+  if (!shareURL) return;
+  if (window.JhswApk && window.JhswApk.saveImage) { const r = String(window.JhswApk.saveImage(shareURL.split(',')[1], shareName())); toast(r === 'ok' ? '已保存到相册「晶核守卫」' : '保存失败（系统版本太旧？可以截图保存）', r !== 'ok'); return; }
+  const a = document.createElement('a'); a.href = shareURL; a.download = shareName(); document.body.appendChild(a); a.click(); a.remove();
+}
+async function sendShare() {
+  if (!shareURL) return;
+  if (window.JhswApk && window.JhswApk.shareImage) { const r = String(window.JhswApk.shareImage(shareURL.split(',')[1], shareName())); if (r !== 'ok') toast('分享失败，可以先保存到相册', true); return; }
+  try {
+    const blob = await (await fetch(shareURL)).blob(), file = new File([blob], shareName(), { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: '晶核守卫 · 战报' }); return; }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  saveShare();
 }
 
 // 菜单背景：演示局
@@ -5678,6 +6067,7 @@ function frame(now) {
   updateCine(dt); updateBrief(dt);
   adaptQuality(dt); fpsMeter(dt);
   if (slowmoT > 0) { slowmoT -= dt; timeScale = slowmoT > 0.5 ? 0.3 : lerp(1, 0.3, slowmoT / 0.5); } else timeScale = 1;
+  if (hitStopT > 0) { hitStopT -= dt; timeScale = Math.min(timeScale, 0.06); }
   const sdt = dt * timeScale;
   const fxdt = mode === 'pause' ? 0 : sdt;
   const S = mode === 'menu' ? demo : sim;
@@ -5903,7 +6293,7 @@ function drawThumb(cv, def) {
   const S = new Sim({ map: def.id }), k = 3;
   cv.width = S.W * k; cv.height = S.H * k;
   const g = cv.getContext('2d');
-  const C = { [TILE.WALL]: '#0b1017', [TILE.LANE]: '#33475a', [TILE.FLOOR]: '#465260', [TILE.PAD]: '#6b5730', [TILE.BASE]: '#1f5a6c', [TILE.SPAWN]: '#7a2a30' };
+  const C = { [TILE.WALL]: '#0b1017', [TILE.LANE]: '#33475a', [TILE.FLOOR]: '#465260', [TILE.PAD]: '#6b5730', [TILE.BASE]: '#1f5a6c', [TILE.SPAWN]: '#7a2a30', [TILE.PIT]: '#04060a' };
   paintTiles(g, S, k, C);
   g.strokeStyle = 'rgba(255,110,95,.8)'; g.lineWidth = 1;
   for (const l of S.lanes) { g.beginPath(); S.paths[l].pts.forEach((p, i) => { const X = p.x / T * k, Y = p.z / T * k; i ? g.lineTo(X, Y) : g.moveTo(X, Y); }); g.stroke(); }
@@ -5919,13 +6309,14 @@ function buildMapCards() {
     const chp = ST.CHAPTERS[def.id];
     btn.innerHTML = `<canvas aria-hidden="true"></canvas><span class="mc-n"><i>${String(def.order).padStart(2, '0')}</i>${def.name}</span>${chp ? `<span class="mc-c">${chp.ch} · ${chp.title}</span>` : ''}<span class="mc-s">出怪口 ×${lanes}${late ? `（${late} 个中途开启）` : ''} · ${def.waves.length} 波</span><span class="mc-b"></span>`;
     try { drawThumb(btn.querySelector('canvas'), def); } catch (e) { console.warn(e); }
+    if (ART['ch_' + def.id]) { btn.classList.add('hasArt'); btn.style.setProperty('--art', `url("${ART['ch_' + def.id]}")`); }
     btn.addEventListener('click', () => { if (selMap === def.id || selMode === 'daily') return; selMap = def.id; refreshSel(); makeDemo(); });
     box.appendChild(btn);
   }
 }
 /* ---------- 主菜单导航：首页 → 单人游戏 / 多人游戏 → 开局设置（关卡 → 模式 → 难度 → 职业）---------- */
 let menuScr = 'home', setupStep = 0;
-const SETUP_STEPS = 4;
+const SETUP_STEPS = 5;
 function goScreen(scr) {
   menuScr = scr;
   const m = $('menu'); m.dataset.scr = scr;
@@ -5934,6 +6325,28 @@ function goScreen(scr) {
   renderMP(); updateMenuSum();
   const f = m.querySelector(`:scope > [data-scr="${scr}"] ${scr === 'home' ? '.hBtn.primary' : '.backBtn'}`);
   if (f && !TOUCH) f.focus({ preventScroll: true });
+}
+// 开局设置第 5 步：出战陷阱（最多 8 种）
+function renderLoadout() {
+  const un = LOAD.unlocked(), cur = LOAD.list(), free = un.length <= LOAD_MAX, box = $('loadGrid');
+  setText('loadN', `${cur.length} / ${LOAD_MAX}`);
+  setText('loadTip', free ? `已解锁的陷阱还不到 ${LOAD_MAX} 种，全部带上。打通主线章节会解锁更多陷阱，到时候就得挑着带了。` : `一局最多带 ${LOAD_MAX} 种陷阱，点一下带上 / 取下。带「新」字的是刚解锁的。${MP.role !== 'solo' ? '联机时每人各带各的。' : ''}`);
+  $('loadAuto').hidden = free;
+  box.innerHTML = '';
+  for (const g of TRAP_GROUPS) for (const id of g.traps) {
+    const t = TRAP[id], lock = !isUnlocked(id), on = cur.includes(id);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ldT' + (on ? ' on' : '') + (lock ? ' locked' : ''); b.style.setProperty('--cc', `var(--c-${t.cat})`);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.disabled = lock || free;
+    b.innerHTML = `<span class="ic">${svgIcon(id)}</span><b>${t.name}</b><small>${lock ? (UNLOCKS[id] ? UNLOCKS[id].how : '未解锁') : `${g.name} · ${t.cost} 金币${PROG.mastLv(id) ? ' · 精通 ' + PROG.mastLv(id) : ''}`}</small>${NEWT.isNew(id) ? '<span class="newB">新</span>' : ''}`;
+    if (!lock && !free) b.addEventListener('click', () => {
+      const sel = LOAD.list();
+      if (sel.includes(id)) sel.splice(sel.indexOf(id), 1);
+      else if (sel.length >= LOAD_MAX) { toast(`最多带 ${LOAD_MAX} 种陷阱，先取下一种`, true); Snd.play('deny'); return; }
+      else sel.push(id);
+      LOAD.set(sel); renderLoadout(); updateMenuSum();
+    });
+    box.appendChild(b);
+  }
 }
 function setStep(i) {
   setupStep = Math.max(0, Math.min(SETUP_STEPS - 1, i));
@@ -5944,7 +6357,11 @@ function setStep(i) {
     li.querySelector('button').setAttribute('aria-current', k === setupStep ? 'step' : 'false');
   }
   const last = setupStep === SETUP_STEPS - 1;
-  $('stepNext').hidden = last; $('startBtn').hidden = !last;
+  if (setupStep === 4) renderLoadout();
+  // 职业这一步就可以直接开始（出战配置是可选的最后一步）
+  $('stepNext').hidden = last; $('startBtn').hidden = setupStep < SETUP_STEPS - 2;
+  $('stepNext').textContent = setupStep === SETUP_STEPS - 2 ? '出战陷阱' : '下一步';
+  $('stepNext').classList.toggle('ghostBtn', setupStep === SETUP_STEPS - 2); $('stepNext').classList.toggle('cta', setupStep !== SETUP_STEPS - 2);
   $('stepPrev').hidden = setupStep === 0;
   const st = document.querySelector('#menu .steps'); if (st) st.scrollTop = 0;
 }
@@ -5959,9 +6376,10 @@ function setupMenuNav() {
   $('setupBack').addEventListener('click', setupBack);
   $('stepPrev').addEventListener('click', () => setStep(setupStep - 1));
   $('stepNext').addEventListener('click', () => setStep(setupStep + 1));
+  $('loadAuto').addEventListener('click', () => { LOAD.d = null; LOAD.save(); renderLoadout(); updateMenuSum(); });
   for (const li of document.querySelectorAll('#stepper li')) li.querySelector('button').addEventListener('click', () => setStep(+li.dataset.stepi));
   // 房间里的“下一步”：房主去选关卡，队友直接去选职业
-  $('roomNext').addEventListener('click', () => { setupStep = MP.role === 'client' ? SETUP_STEPS - 1 : 0; goScreen('setup'); });
+  $('roomNext').addEventListener('click', () => { setupStep = MP.role === 'client' ? SETUP_STEPS - 2 : 0; goScreen('setup'); });
   addEventListener('keydown', e => {
     if (mode !== 'menu' || e.key !== 'Escape' || anyFullPage()) return;
     if (menuScr === 'setup') setupBack(); else if (menuScr === 'mp') goScreen('home');
@@ -5971,7 +6389,7 @@ function setupMenuNav() {
 function anyFullPage() { return ['settings', 'help', 'talents', 'lb', 'achv', 'brief'].some(id => $(id) && !$(id).hidden); }
 function updateMenuSum() {
   const room = MP.role !== 'solo' ? ` · 房间 ${MP.code.toUpperCase()}` : '';
-  const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 主线'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
+  const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 主线'} · ${CLS[selCls].name} · 陷阱 ${LOAD.list().length}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
   const d = $('dSum'); if (d) d.textContent = txt;
   const el = $('mSum'); if (!el) return;
   el.textContent = txt;
@@ -6049,6 +6467,19 @@ function renderTalents() {
     plus.addEventListener('click', () => { PROG.tal[t.id] = r + 1; PROG.save(); renderTalents(); showBest(); });
     bt.append(minus, plus);
     row.append(nm, bt, ds, pips); box.appendChild(row);
+  }
+  // 陷阱精通：每种陷阱单独加点（第 1 / 2 / 3 级花 1 / 2 / 3 颗星）
+  const mb = $('mastList'); mb.innerHTML = '';
+  for (const g of TRAP_GROUPS) for (const id of g.traps) {
+    const t = TRAP[id], r = PROG.mastLv(id), lock = !isUnlocked(id);
+    const row = document.createElement('div'); row.className = 'mastRow' + (r ? ' has' : '') + (lock ? ' locked' : ''); row.style.setProperty('--cc', `var(--c-${t.cat})`);
+    row.innerHTML = `<span class="ic">${svgIcon(id)}</span><b>${t.name}</b><span class="pips">${[0, 1, 2].map(i => `<i class="${i < r ? 'on' : ''}"></i>`).join('')}</span><span class="md">${lock ? lockText(id) : r ? `伤害 +${r * 5}%${r >= 3 ? '，建造便宜 10%' : ''}` : '未精通'}</span>`;
+    const bt = document.createElement('span'); bt.className = 'bt';
+    const minus = document.createElement('button'); minus.type = 'button'; minus.textContent = '−'; minus.disabled = r <= 0; minus.setAttribute('aria-label', '降低 ' + t.name + ' 精通');
+    const plus = document.createElement('button'); plus.type = 'button'; plus.textContent = '+'; plus.disabled = lock || r >= MAST_MAX || left < r + 1; if (r < MAST_MAX) plus.title = `升到 ${r + 1} 级需要 ★${r + 1}`; plus.setAttribute('aria-label', '提升 ' + t.name + ' 精通');
+    minus.addEventListener('click', () => { PROG.mast[id] = r - 1; PROG.save(); renderTalents(); showBest(); });
+    plus.addEventListener('click', () => { PROG.mast[id] = r + 1; PROG.save(); renderTalents(); showBest(); });
+    bt.append(minus, plus); row.appendChild(bt); mb.appendChild(row);
   }
 }
 let mpNoteText = '', mpNoteBad = false;
@@ -6164,13 +6595,13 @@ function bindUI() {
   const cb = $('clsSeg');
   for (const c of CLASSES) {
     const b = document.createElement('button'); b.type = 'button'; b.dataset.cls = c.id;
-    b.innerHTML = `<b>${c.name}</b><small>${c.desc}</small>`;
+    b.innerHTML = `<b>${c.name}</b><small>${c.desc}</small><small class="clsShock">V · ${c.shock}</small>`;
     b.addEventListener('click', () => { selCls = c.id; try { localStorage.setItem('jhsw-cls', c.id); } catch (e) { /* 无存储 */ } syncCls(); if (MP.role === 'client') clientPresence(true); });
     cb.appendChild(b);
   }
   syncCls();
   $('talClose').addEventListener('click', () => show('talents', false));
-  $('talReset').addEventListener('click', () => { PROG.tal = {}; PROG.save(); renderTalents(); showBest(); });
+  $('talReset').addEventListener('click', () => { PROG.tal = {}; PROG.mast = {}; PROG.save(); renderTalents(); showBest(); });
   $('dailySub').textContent = (() => { const d = dailySpec(todayStr()); return `${MAPS[d.map].name} · ${DIFFS[d.diff].name}`; })();
   refreshSel();
   // 第一次点「进入战场」（单人）时自动进入新手引导
@@ -6218,6 +6649,11 @@ function bindUI() {
   $('lbClose').addEventListener('click', () => show('lb', false));
   for (const b of document.querySelectorAll('[data-lbsrc]')) b.addEventListener('click', () => { lbSrc = b.dataset.lbsrc; renderLb(); });
   $('againBtn').addEventListener('click', () => { if (MP.role === 'client') return; show('end', false); startGame(); });
+  $('shareBtn').addEventListener('click', openShare);
+  $('shareSave').addEventListener('click', saveShare);
+  $('shareSend').addEventListener('click', sendShare);
+  $('shareClose').addEventListener('click', () => show('share', false));
+  $('share').addEventListener('click', ev => { if (ev.target === $('share')) show('share', false); });
   $('nextBtn').addEventListener('click', () => {
     const nx = $('nextBtn').dataset.map; if (!nx || !MAPS[nx] || MP.role !== 'solo') return;
     show('end', false); selMap = nx; selMode = 'std'; refreshSel(); toMenu(); goScreen('setup'); startGame();
@@ -6400,6 +6836,7 @@ window.__back = () => {
   }
   if (Cine.on) { cineEnd(); return true; }
   if (!$('brief').hidden) { closeBrief(); return true; }
+  if (!$('share').hidden) { show('share', false); return true; }
   if (!$('help').hidden) { show('help', false); return true; }
   if (!$('lb').hidden) { show('lb', false); return true; }
   if (!$('achv').hidden) { show('achv', false); return true; }
@@ -6421,6 +6858,7 @@ function updateTouchHUD(p, lo, di) {
     $('tbReload').classList.toggle('low', p.ammo <= 6);
     setText('tbNadeN', String(p.nades)); $('tbNade').classList.toggle('empty', p.nades < 1);
     setText('tbUltN', p.energy >= 100 ? '就绪' : Math.floor(p.energy) + '%'); $('tbUlt').classList.toggle('ready', p.energy >= 100);
+    { const shR = Math.max(0, shockReady - timeNow); setText('tbShockN', shR > 0 ? String(Math.ceil(shR)) : '冲击'); $('tbShock').classList.toggle('cd', shR > 0); }
     setText('tbWpn', WSHORT[p.wpn] || '步枪');
   }
   const nearUse = mode === 'play' && p && !p.dead && (nearLabObj() || nearDevice() >= 0 || myMount() || nearGatling());
@@ -6437,6 +6875,9 @@ function updateTouchHUD(p, lo, di) {
 function start(data) {
   bindUI();
   makeDemo();
+  // 主菜单海报 / 序章背景（有图才显示）
+  if (ART.menu_bg) { $('menuArt').style.backgroundImage = `radial-gradient(ellipse 60% 80% at 50% 50%, rgba(3, 6, 10, .72), rgba(3, 6, 10, .25)), url("${ART.menu_bg}")`; $('menu').classList.add('hasArt'); }
+  if (ART.prologue) { $('cine').style.setProperty('--art', `url("${ART.prologue}")`); $('cine').classList.add('hasArt'); }
   if (data && data.state) {
     try {
       newGame(JSON.parse(data.state));
@@ -6452,7 +6893,7 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom(), Talk, STORY, playPrologue, openBrief };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom(), Talk, STORY, playPrologue, openBrief, useShock, comboHit, Combo, shockFx, pitFx, say, coinFly, hitStop, openShare, renderLoadout, get shockFxs() { return shockFxs; } };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();
