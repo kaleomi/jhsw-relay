@@ -4,7 +4,7 @@
 import os, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 src = open(os.path.join(HERE, 'index.src.html'), encoding='utf-8').read()
-for key, fn in [('ENGINE', 'engine.js'), ('SIM', 'sim.js'), ('PROTO', 'proto.js'), ('RELAY', 'relay.js'), ('ASSETS', 'assets.js'), ('GAME', 'game.js')]:
+for key, fn in [('ENGINE', 'engine.js'), ('SIM', 'sim.js'), ('PROTO', 'proto.js'), ('RELAY', 'relay.js'), ('ASSETS', 'assets.js'), ('STORY', 'story.js'), ('GAME', 'game.js')]:
     code = open(os.path.join(HERE, fn), encoding='utf-8').read()
     assert '</script' not in code, fn
     src = src.replace('/*__%s__*/' % key, '\n' + code + '\n')

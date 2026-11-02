@@ -116,7 +116,7 @@ const MP = {
 };
 const AWAY_GRACE = 90000, HOST_GRACE = 60000;
 try { MP.name = (localStorage.getItem('jhsw-nick') || '').slice(0, 12); } catch (e) { /* 无存储 */ }
-if (!MP.name) MP.name = '特工' + Math.floor(100 + Math.random() * 900);
+if (!MP.name) MP.name = '守卫' + Math.floor(100 + Math.random() * 900);
 const NET_CMDS = new Set(['build', 'upgrade', 'sell', 'ready', 'dmg', 'buy', 'wmod', 'rocket', 'nade', 'ult', 'use', 'research', 'resupply']);
 const cleanName = v => String(v || '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, 12);
 const r2n = v => Math.round(v * 100) / 100, r3n = v => Math.round(v * 1000) / 1000;
@@ -541,8 +541,8 @@ function gameCfg() {
 }
 /* ---------- 局外成长：星星与天赋 ---------- */
 const DIFF_IDS = ['normal', 'hard', 'hell'];
-// 三星评价：通关 1 颗；水晶剩 70% 以上 2 颗；水晶无损 3 颗
-const STAR_RULES = ['通关', '水晶剩余 ≥ 70%', '水晶无损（满血通关）'];
+// 三星评价：通关 1 颗；晶核剩 70% 以上 2 颗；晶核无损 3 颗
+const STAR_RULES = ['通关', '晶核剩余 ≥ 70%', '晶核无损（满血通关）'];
 const starsOf = r => !r || !r.win ? 0 : r.grade === 'S' ? 3 : r.grade === 'A' ? 2 : 1;
 const starStr = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 const PROG = {
@@ -598,7 +598,8 @@ const winsOn = d => MAP_LIST.filter(m => { const r = loadBest()[bestKey(m.id, d,
 const ACHS = [
   { id: 'tut', name: '初来乍到', desc: '完成新手引导', star: 1, ok: () => tutDone() },
   { id: 'win1', name: '首战告捷', desc: '通关任意关卡', star: 1, ok: () => DIFF_IDS.some(d => winsOn(d) > 0) },
-  { id: 'perfect', name: '完美防线', desc: '任意关卡拿到三星（水晶无损通关）', star: 1, ok: () => MAP_LIST.some(m => DIFF_IDS.some(d => starsOf(loadBest()[bestKey(m.id, d, 'std')]) >= 3)) },
+  { id: 'perfect', name: '完美防线', desc: '任意关卡拿到三星（晶核无损通关）', star: 1, ok: () => MAP_LIST.some(m => DIFF_IDS.some(d => starsOf(loadBest()[bestKey(m.id, d, 'std')]) >= 3)) },
+  { id: 'story', name: '真相大白', desc: '通关主线第七章「冰封真相」', star: 2, ok: () => mapWon('cryolab') },
   { id: 'normalAll', name: '全线告捷', desc: '所有关卡都在普通难度通关', star: 2, prog: () => [winsOn('normal'), MAP_LIST.length], ok: () => winsOn('normal') >= MAP_LIST.length },
   { id: 'hardAll', name: '钢铁防线', desc: '所有关卡都在困难难度通关', star: 3, prog: () => [winsOn('hard'), MAP_LIST.length], ok: () => winsOn('hard') >= MAP_LIST.length },
   { id: 'hell1', name: '炼狱行者', desc: '任意关卡在炼狱难度通关', star: 2, ok: () => winsOn('hell') > 0 },
@@ -976,7 +977,7 @@ function buildCommonStatic(S, TH) {
       E.pushBeam('box', tx, gy, tz, tx - tmp.dx * 0.45 - rx * 0.4, gy2, tz - tmp.dz * 0.45 - rz * 0.4, 0.13, 0.01, ch);
     }
   }
-  // 水晶基座
+  // 晶核基座
   const cp = S.crystalPos, CG = cp.y || 0;
   E.push('cyl', cp.x, CG + 0.25, cp.z, 0, 4.6, 0.5, 4.6, col(0.16, 0.2, 0.24, 1, 0, 0, 4));
   E.push('cyl', cp.x, CG + 0.55, cp.z, 0, 3.2, 0.12, 3.2, col(0.22, 0.3, 0.36));
@@ -2414,7 +2415,7 @@ function evoFx(S, tr, since) {
 }
 
 /* ============================================================
- * 水晶 / 传送门 / 弹体 / 其他玩家
+ * 晶核 / 传送门 / 弹体 / 其他玩家
  * ============================================================ */
 let crystalHitT = 0;
 function drawCrystal(S) {
@@ -3035,6 +3036,7 @@ function handleEvents(S) {
         burst(e.x, e.y + 1, e.z, hasCorpse ? 10 : 6, { c: hasCorpse ? [1, 0.75, 0.3] : [1, 0.35, 0.2], sp0: 1, sp1: 4, l0: 0.2, l1: 0.4, s0: hasCorpse ? 0.08 : 0.3, s1: 0.02 });
         if (e.bounty) floatNum(e.x, e.y + (def.fly ? 0.6 : 2.0), e.z, '+' + e.bounty, 'gold');
         if (e.pid === PID) { Snd.play('kill', e.x, e.z); if (MP.role === 'client') hitMarker('kill'); }
+        if (S === sim && mode === 'play' && !Tut.on) storyKill(e);
         if (def.elite) feed(`精英「${def.name}」已被击杀`, 'good');
         if (def.boss) { feed(`BOSS「${def.name}」被击败！`, 'good'); shake(0.6); Snd.play('boom'); }
         break;
@@ -3043,7 +3045,8 @@ function handleEvents(S) {
         crystalHitT = 0.6; alarm();
         const cp = S.crystalPos;
         burst(cp.x, 2.6, cp.z, 18, { c: [1, 0.3, 0.3], sp0: 2, sp1: 8, s0: 0.2 });
-        feed(`${MON[e.mtype].name} 冲击水晶 -${e.dmg}`, 'bad');
+        feed(`${MON[e.mtype].name} 冲击晶核 -${e.dmg}`, 'bad');
+        if (S === sim && !Tut.on) storyCore(S);
         Snd.play('core');
         if (e.mtype === 'boss') shake(1);
         break;
@@ -3136,13 +3139,14 @@ function handleEvents(S) {
       case 'waveStart': {
         portalFlare.A = portalFlare.B = 2;
         const total = e.total;
-        banner(e.boss ? `第 ${e.wave} / ${total} 波 · 终局` : `第 ${e.wave} / ${total} 波`, e.name + (e.tip ? ' — ' + e.tip : ''), e.boss);
+        banner(e.boss ? `第 ${e.wave} / ${total} 波 · 终局` : `第 ${e.wave} / ${total} 波`, e.name + (e.tip && !chatterOn() ? ' — ' + e.tip : ''), e.boss);
+        if (S === sim) storyWave(e);
         feed(`第 ${e.wave} 波「${e.name}」来袭，共 ${e.count} 只` + (e.bonus ? `，提前开战 +${e.bonus} 金币` : ''), '');
         Snd.play('wave');
         break;
       }
-      case 'waveClear': banner(`第 ${e.wave} 波 清除`, `波次奖励 +${e.bonus} 金币 · 布防阶段 30 秒`, false, 'clear'); Snd.play('clear'); break;
-      case 'boss': { const bd = MON[e.mtype] || MON.boss; feed(`BOSS「${bd.name}」出现在${e.laneName || ''}出怪口！`, 'bad'); if (TD.BOSS_TIP && TD.BOSS_TIP[e.mtype]) feed(TD.BOSS_TIP[e.mtype], 'bad'); Snd.play('boss'); shake(0.4); break; }
+      case 'waveClear': banner(`第 ${e.wave} 波 清除`, `波次奖励 +${e.bonus} 金币 · 布防阶段 30 秒`, false, 'clear'); Snd.play('clear'); if (S === sim && !Tut.on) sayPool('waveClear', { cd: 60, chance: 0.45 }); break;
+      case 'boss': { const bd = MON[e.mtype] || MON.boss; if (S === sim) { bossCard(e.mtype); const ch = curChapter(); if (ch && ch.boss && !RUN.bossSaid) { RUN.bossSaid = true; sayLines(ch.boss, 3); } } feed(`BOSS「${bd.name}」出现在${e.laneName || ''}出怪口！`, 'bad'); if (TD.BOSS_TIP && TD.BOSS_TIP[e.mtype]) feed(TD.BOSS_TIP[e.mtype], 'bad'); Snd.play('boss'); shake(0.4); break; }
       case 'burrow': case 'surface': {
         const m = S._mById.get(e.id), x = m ? m.x : e.x, z = m ? m.z : e.z;
         for (let i = 0; i < 14; i++) particle({ x: x + rnd(-0.7, 0.7), y: 0.2, z: z + rnd(-0.7, 0.7), vx: rnd(-3, 3), vy: rnd(2, 6), vz: rnd(-3, 3), life: rnd(0.5, 0.9), s0: rnd(0.08, 0.2), s1: 0.05, c: [0.35, 0.27, 0.2], g: 'box', grav: 14, bounce: true, add: false });
@@ -3153,6 +3157,7 @@ function handleEvents(S) {
       case 'hacked': {
         burst(e.x, e.y + 0.6, e.z, 16, { c: [0.3, 1, 0.5], sp0: 1, sp1: 4, s0: 0.08, l0: 0.3, l1: 0.6 });
         feed(`${TRAP[e.trap] ? TRAP[e.trap].name : '陷阱'} 被骇客工兵骇入，瘫痪 10 秒`, 'bad');
+        if (S === sim) sayPool('hacked', { cd: 45 });
         Snd.play('hack', e.x, e.z, { range: 60 });
         break;
       }
@@ -3187,6 +3192,7 @@ function handleEvents(S) {
       case 'laneOpen': {
         for (const l of e.lanes) portalFlare[l] = 3;
         feed(`新出怪口开启：${e.names.join('、')}`, 'bad'); Snd.play('emp'); shake(0.3);
+        if (S === sim && performance.now() - RUN.lastStory > 4000) sayPool('laneOpen', { cd: 10, pri: 2 });
         setTimeout(() => banner('新出怪口开启', e.names.join('、') + ' · 注意分兵布防', true), 3300);
         break;
       }
@@ -3201,7 +3207,7 @@ function handleEvents(S) {
         rings.push({ x: e.x, z: e.z, y: 1.5, r0: 1, r1: e.r, t: 0, life: 0.6, c: [0.45, 0.85, 1] });
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: e.r, t: 0, life: 0.7, c: [0.45, 0.85, 1] });
         flashLight(e.x, 4, e.z, 18, [0.4, 0.8, 1], 2, 0.3);
-        if (e.n) feed(`BOSS 释放 EMP，${e.n} 个陷阱短暂瘫痪`, 'bad');
+        if (e.n) { feed(`BOSS 释放 EMP，${e.n} 个陷阱短暂瘫痪`, 'bad'); if (S === sim) sayPool('emp', { cd: 40 }); }
         Snd.play('emp', e.x, e.z, { range: 80 });
         break;
       }
@@ -3217,6 +3223,7 @@ function handleEvents(S) {
         if (e.phase === 2) { banner(`${nm} · 第二阶段`, '套上能量护盾并召唤护卫——电系陷阱、电磁炮破盾最快', true); feed(`${nm} 进入第二阶段：能量护盾 + 护卫`, 'bad'); }
         else { banner(`${nm} · 狂暴`, '移动加快、技能冷却大幅缩短，再召唤一批护卫——全力输出！', true); feed(`${nm} 进入狂暴阶段！`, 'bad'); }
         Snd.play('roar', e.x, e.z, { range: 120 }); Snd.play('boss'); shakeAt(e.x, e.z, 0.7, 60);
+        if (S === sim) sayPool(e.phase === 2 ? 'bossPhase2' : 'bossPhase3', { pri: 2 });
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: 12, t: 0, life: 0.7, c: e.phase === 2 ? [0.45, 0.88, 1] : [1, 0.3, 0.2] });
         break;
       }
@@ -3228,7 +3235,7 @@ function handleEvents(S) {
         break;
       }
       case 'wmod': { const q = S.s.players[e.pid], M = (TD.WMODS[e.w] || []).find(x => x.id === e.m); if (q && M && e.pid !== PID) feed(`${q.name} 把 ${WPN[e.w].name} 改装成「${M.name}」`, 'good'); break; }
-      case 'buy': { const q = S.s.players[e.pid]; if (q && WPN[e.w]) feed(`${e.pid === PID ? '你' : q.name} 购买了 ${WPN[e.w].name}（${WPN[e.w].cost} 金币）`, 'good'); Snd.play('buy'); break; }
+      case 'buy': { const q = S.s.players[e.pid]; if (q && WPN[e.w]) feed(`${e.pid === PID ? '你' : q.name} 购买了 ${WPN[e.w].name}（${WPN[e.w].cost} 金币）`, 'good'); Snd.play('buy'); if (S === sim && e.pid === PID && !Tut.on) sayPool('buy', { cd: 30, pri: 2 }); break; }
       case 'wswitch': if (e.pid === PID) Snd.play('switch'); break;
       case 'throw': { const q = S.s.players[e.pid]; Snd.play('throw', q && e.pid !== PID ? q.x : undefined, q ? q.z : undefined); break; }
       case 'rocket': { const q = S.s.players[e.pid]; if (q && e.pid !== PID) Snd.play('rocketFire', q.x, q.z); break; }
@@ -3252,15 +3259,15 @@ function handleEvents(S) {
         Snd.play('strike', e.x, e.z, { range: 150 });
         break;
       }
-      case 'pdead': if (e.pid === PID) { feed('你倒下了，5 秒后在基地复活', 'bad'); } else if (S.s.players[e.pid]) feed(`${S.s.players[e.pid].name} 倒下了`, 'bad'); break;
-      case 'pjoin': if (MP.role !== 'solo' && e.pid !== PID) feed(`${e.name} 加入了战斗`, 'good'); break;
+      case 'pdead': if (e.pid === PID) { feed('你倒下了，回传系统 5 秒后把你送回基地', 'bad'); if (S === sim && !Tut.on) sayPool('death', { cd: 25, pri: 2 }); } else if (S.s.players[e.pid]) feed(`${S.s.players[e.pid].name} 倒下了`, 'bad'); break;
+      case 'pjoin': if (MP.role !== 'solo' && e.pid !== PID) { feed(`${e.name} 加入了战斗`, 'good'); if (S === sim) sayPool('coopJoin', { cd: 300 }); } break;
       case 'pleave': if (MP.role !== 'solo') feed(`${e.name} 离开了战斗`, 'bad'); break;
       case 'pready': if (e.pid !== PID && e.on && S.s.players[e.pid]) feed(`${S.s.players[e.pid].name} 已准备开战`, ''); break;
       case 'respawn': if (e.pid === PID) { const p = S.s.players[PID]; cam.yaw = 0; cam.pitch = 0; void p; } break;
       case 'reload': if (e.pid === PID) Snd.play('reload'); break;
       case 'jump': if (e.pid === PID) Snd.play('jump'); break;
-      case 'victory': endTimer = 2.2; Snd.play('win'); banner('胜利', '核心水晶守住了', false, 'clear'); break;
-      case 'defeat': endTimer = 2.2; Snd.play('lose'); banner('核心水晶被摧毁', '防线失守', true); break;
+      case 'victory': endTimer = 2.2; Snd.play('win'); banner('胜利', '晶核守住了 · 一个都没放过去', false, 'clear'); break;
+      case 'defeat': endTimer = 2.2; Snd.play('lose'); banner('晶核被摧毁', '防线失守', true); break;
     }
   }
 }
@@ -3353,6 +3360,245 @@ function banner(t, s, danger, cls) {
 }
 let toastT = 0;
 function toast(t, bad) { const el = $('toast'); el.textContent = t; el.className = 'on' + (bad ? ' bad' : ''); toastT = 1.6; }
+
+/* ============================================================
+ * 剧情：无线电对话、任务简报、序章、BOSS 登场（文字都在 story.js）
+ * ============================================================ */
+const ST = window.TD_STORY || { CAST: {}, PORTRAIT: {}, LINES: {}, CHAPTERS: {}, CHAPTER_ORDER: [], BOSS: {}, MON_INTRO: {}, MON_LORE: {}, TRAP_LORE: {}, WPN_LORE: {}, CLS_LORE: {}, WORLD: [], PROLOGUE: [], RANKS: [[0, '守卫']] };
+const CAST = ST.CAST;
+// 自动化测试里默认不弹剧情（序章 / 简报），测试脚本设置 window.__story 才打开
+const storyAuto = () => !!window.__story || !navigator.webdriver;
+const STORY = {
+  d: (() => { try { return JSON.parse(localStorage.getItem('jhsw-story') || '{}') || {}; } catch (e) { return {}; } })(),
+  save() { try { localStorage.setItem('jhsw-story', JSON.stringify(this.d)); } catch (e) { /* 无存储 */ } },
+  briefSeen(id) { return !!(this.d.b && this.d.b[id]); },
+  markBrief(id) { (this.d.b || (this.d.b = {}))[id] = 1; this.save(); },
+  monSeen(t) { return !!(this.d.m && this.d.m[t]); },
+  markMon(t) { if (this.monSeen(t)) return; (this.d.m || (this.d.m = {}))[t] = 1; this.save(); },
+  introSeen() { return !!this.d.i; },
+  markIntro() { this.d.i = 1; this.save(); },
+};
+const portraitOf = who => (ST.PORTRAIT && ST.PORTRAIT[who]) || '';
+function tkLine(who, text) {
+  const c = CAST[who] || { name: '', col: '#cfd8e3' }, nar = who === 'nar';
+  return `<li class="tkLine${nar ? ' nar' : ''}${who === 'rust' ? ' rust' : ''}" style="--tc:${c.col}">${nar ? '' : `<span class="tkP">${portraitOf(who)}</span>`}<div>${c.name ? `<b>${c.name}</b>` : ''}<p>${text}</p></div></li>`;
+}
+// 说话的“嘀嘀”声：每个角色音高不同
+function talkBlip(who, soft) {
+  const c = CAST[who];
+  if (!Snd.ctx || !c || !c.pitch || !(settings.vol > 0)) return;
+  const f = 330 * c.pitch * (0.9 + Math.random() * 0.22);
+  try { Snd.tone(who === 'rust' ? 'sawtooth' : 'square', f, f * 0.95, 0.045, (who === 'rust' ? 0.032 : 0.022) * (soft ? 0.6 : 1), 0); } catch (e) { /* 忽略 */ }
+}
+// 当前这局对应的主线章节（无尽 / 每日 / 新手引导没有）
+function curChapter() { return sim && !sim.s.endless && !sim.s.daily && !Tut.on ? ST.CHAPTERS[sim.def.id] || null : null; }
+const chatterOn = () => settings.chatter !== false;
+/* ---------- 无线电对话框 ---------- */
+const Talk = { q: [], cur: null, typed: 0, hold: 0, gap: 0, cd: {} };
+function say(who, text, opt) {
+  opt = opt || {};
+  if (!CAST[who] || !text || (!chatterOn() && !opt.force)) return;
+  const pri = opt.pri || 1;
+  // 闲聊（优先级 1）不排队：前面有话就丢掉
+  if (pri <= 1 && (Talk.q.length || (Talk.cur && Talk.cur.pri > 1))) return;
+  if (Talk.q.length >= 6) Talk.q.splice(Talk.q.findIndex(x => x.pri <= pri) >>> 0, 1);
+  Talk.q.push({ who, text, pri });
+}
+function sayLines(lines, pri) { for (const l of lines || []) say(l[0], l[1], { pri: pri || 3 }); }
+function sayPool(key, opt) {
+  const pool = ST.LINES[key]; if (!pool || !pool.length) return false;
+  opt = opt || {};
+  const now = performance.now();
+  if (opt.cd && Talk.cd[key] && now - Talk.cd[key] < opt.cd * 1000) return false;
+  if (opt.chance !== undefined && Math.random() > opt.chance) return false;
+  Talk.cd[key] = now;
+  const l = pool[Math.floor(Math.random() * pool.length)];
+  say(l[0], l[1], opt);
+  return true;
+}
+function talkReset() { Talk.q.length = 0; Talk.cur = null; Talk.gap = 0; $('talk').hidden = true; }
+function updateTalk(dt) {
+  const box = $('talk');
+  if (!Talk.cur) {
+    if (Talk.gap > 0) { Talk.gap -= dt; if (Talk.gap <= 0 && !Talk.q.length) box.hidden = true; return; }
+    const nx = Talk.q.shift();
+    if (!nx) return;
+    Talk.cur = nx; Talk.typed = 0; Talk.hold = 0;
+    const c = CAST[nx.who] || {};
+    box.style.setProperty('--tc', c.col || 'var(--crys)');
+    box.className = nx.who === 'rust' ? 'rust' : '';
+    $('talkP').innerHTML = portraitOf(nx.who);
+    $('talkName').textContent = c.name || ''; $('talkRole').textContent = c.role || '';
+    $('talkText').textContent = '';
+    box.hidden = false; void box.offsetWidth;
+  }
+  const cu = Talk.cur, L = cu.text.length;
+  if (Talk.typed < L) {
+    const b = Math.floor(Talk.typed);
+    Talk.typed = Math.min(L, Talk.typed + dt * 32);
+    const n = Math.floor(Talk.typed);
+    if (n !== b) { $('talkText').textContent = cu.text.slice(0, n); if (n % 3 === 1) talkBlip(cu.who); }
+  } else {
+    Talk.hold += dt;
+    if (Talk.hold > Math.max(2.4, L * 0.075) * (Talk.q.length ? 0.7 : 1)) { Talk.cur = null; Talk.gap = 0.3; box.classList.add('out'); }
+  }
+}
+/* ---------- 本局剧情状态 ---------- */
+const RUN = { seen: new Set(), scanT: 0, hit: false, half: false, low: false, kills: [], bossSaid: false, lastStory: 0, tip: '' };
+function runReset() { RUN.seen = new Set(); RUN.scanT = 0; RUN.hit = RUN.half = RUN.low = RUN.bossSaid = false; RUN.kills = []; RUN.lastStory = 0; RUN.tip = ''; }
+// 开局：章节标题横幅；没看过简报（联机）就在无线电里补上
+function storyBegin() {
+  if (!sim || Tut.on) return;
+  const ch = curChapter();
+  if (sim.s.endless) { sayPool('endless', { pri: 3 }); banner('无尽防线', '锈潮没有尽头 · 能守多久守多久'); return; }
+  if (sim.s.daily) { sayPool('daily', { pri: 3 }); return; }
+  if (!ch) return;
+  banner(`${ch.ch} · ${ch.title}`, ch.goal);
+  if (!STORY.briefSeen(sim.def.id)) { sayLines(ch.brief, 3); STORY.markBrief(sim.def.id); RUN.lastStory = performance.now(); }
+}
+function storyWave(e) {
+  if (Tut.on) return;
+  const ch = curChapter();
+  RUN.tip = e.tip || '';
+  // 情报里点名的敌人：算作已经介绍过
+  if (e.tip) for (const t in MON) if (e.tip.includes(MON[t].name)) STORY.markMon(t);
+  if (ch && ch.waves && ch.waves[e.wave]) { sayLines(ch.waves[e.wave], 3); RUN.lastStory = performance.now(); }
+  if (e.tip) say('prism', e.tip, { pri: 2 });
+}
+// 新敌人第一次出现：棱镜介绍一句
+function storyScan(dt) {
+  if (!sim || mode !== 'play' || Tut.on) return;
+  RUN.scanT -= dt; if (RUN.scanT > 0) return; RUN.scanT = 0.6;
+  for (const m of sim.s.monsters) {
+    const t = m.type;
+    if (RUN.seen.has(t)) continue;
+    RUN.seen.add(t);
+    if (STORY.monSeen(t)) continue;
+    STORY.markMon(t);
+    if (MON[t].boss || (RUN.tip && RUN.tip.includes(MON[t].name))) continue;
+    if (ST.MON_INTRO[t]) say('prism', '新目标 · ' + ST.MON_INTRO[t], { pri: 2 });
+  }
+}
+function storyCore(S) {
+  const f = S.s.crystal.hp / S.s.crystal.max;
+  if (!RUN.hit) { RUN.hit = true; sayPool('crystalHit', { pri: 2 }); }
+  else if (f < 0.25 && !RUN.low) { RUN.low = RUN.half = true; sayPool('crystalLow', { pri: 3 }); }
+  else if (f < 0.5 && !RUN.half) { RUN.half = true; sayPool('crystalHalf', { pri: 2 }); }
+}
+function storyKill(e) {
+  if (MON[e.mtype] && MON[e.mtype].boss) { sayPool('bossDown', { pri: 2 }); return; }
+  if (e.pid) return;
+  // 陷阱连杀：2 秒内 7 只以上
+  const now = performance.now();
+  RUN.kills.push(now);
+  while (RUN.kills.length && now - RUN.kills[0] > 2000) RUN.kills.shift();
+  if (RUN.kills.length >= 7) { RUN.kills.length = 0; sayPool('multiKill', { cd: 45 }); }
+}
+/* ---------- BOSS 登场标题卡 ---------- */
+let bossCardT = 0;
+function bossCard(mtype) {
+  const d = MON[mtype], b = ST.BOSS[mtype] || {};
+  if (!d) return;
+  $('bossCardN').textContent = d.name; $('bossCardE').textContent = b.epithet || ''; $('bossCardL').textContent = b.line || '';
+  const el = $('bossCard'); el.hidden = true; void el.offsetWidth; el.hidden = false;
+  $('banner').className = ''; bannerT = 0;   // 别和波次横幅叠在一起
+  clearTimeout(bossCardT); bossCardT = setTimeout(() => { el.hidden = true; }, 3900);
+}
+/* ---------- 军衔 ---------- */
+function rankOf(stars) {
+  let i = 0; for (let k = 0; k < ST.RANKS.length; k++) if (stars >= ST.RANKS[k][0]) i = k;
+  const nx = ST.RANKS[i + 1];
+  return { i, name: ST.RANKS[i][1], next: nx ? nx[1] : '', need: nx ? nx[0] - stars : 0 };
+}
+/* ---------- 任务简报（主线每章开打前） ---------- */
+const Brief = { map: null, i: 0, t: 0, lines: [] };
+function chapterIndex(id) { return ST.CHAPTER_ORDER.indexOf(id); }
+function newFoesOf(id) {
+  const idx = chapterIndex(id), before = new Set();
+  ST.CHAPTER_ORDER.slice(0, Math.max(0, idx)).forEach(k => MAPS[k] && MAPS[k].waves.forEach(w => w.groups.forEach(gr => before.add(gr.t))));
+  const out = [];
+  MAPS[id].waves.forEach(w => w.groups.forEach(gr => { if (!before.has(gr.t) && !out.includes(gr.t) && MON[gr.t]) out.push(gr.t); }));
+  return out;
+}
+const wantBrief = id => MP.role === 'solo' && selMode === 'std' && !!ST.CHAPTERS[id] && storyAuto() && (settings.briefAlways || !STORY.briefSeen(id));
+function openBrief(id) {
+  const ch = ST.CHAPTERS[id], def = MAPS[id]; if (!ch || !def) return false;
+  Brief.map = id; Brief.lines = ch.brief || []; Brief.i = 0; Brief.t = 0.4;
+  setText('brCh', `${ch.ch} · 主线`); setText('brTitle', ch.title); setText('brPlace', ch.place); setText('brGoal', '任务目标：' + ch.goal);
+  try { drawThumb($('brMap'), def); } catch (e) { /* 忽略 */ }
+  const lanes = Object.keys(def.lanes).length, late = def.laneFrom ? Object.keys(def.laneFrom).length : 0, last = def.waves[def.waves.length - 1];
+  const bosses = [...new Set(last.groups.filter(gr => MON[gr.t] && MON[gr.t].boss).map(gr => MON[gr.t].name))];
+  $('brIntel').innerHTML = [['地图', def.name], ['出怪口', `${lanes} 个${late ? `（${late} 个中途开启）` : ''}`], ['波次', `${def.waves.length} 波`], ['终局 BOSS', bosses.join(' + ') || '—'], ['难度', DIFFS[diff] ? DIFFS[diff].name : '普通']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  const foes = newFoesOf(id).filter(t => !MON[t].boss);
+  $('brNew').innerHTML = foes.length ? `<span style="border:0;background:none;color:var(--faint);padding-left:0">本章新敌人</span>` + foes.map(t => `<span>${MON[t].name}</span>`).join('') : '';
+  $('brLog').innerHTML = '';
+  show('brief', true);
+  return true;
+}
+function briefNext(all) {
+  const log = $('brLog');
+  do {
+    const l = Brief.lines[Brief.i]; if (!l) break;
+    log.insertAdjacentHTML('beforeend', tkLine(l[0], l[1]));
+    if (!all) for (let k = 0; k < 4; k++) setTimeout(() => talkBlip(l[0], true), k * 55);
+    Brief.i++;
+  } while (all);
+  log.scrollTop = log.scrollHeight;
+  const l = Brief.lines[Brief.i - 1];
+  Brief.t = l ? 1.3 + l[1].length * 0.055 : 0;
+}
+function updateBrief(dt) {
+  if ($('brief').hidden || Brief.i >= Brief.lines.length) return;
+  Brief.t -= dt; if (Brief.t <= 0) briefNext(false);
+}
+function closeBrief() { show('brief', false); Brief.map = null; }
+function briefGo() {
+  const id = Brief.map; closeBrief();
+  if (id) STORY.markBrief(id);
+  beginPlay(null, true);
+}
+/* ---------- 序章 ---------- */
+const Cine = { on: false, i: 0, typed: 0, hold: 0, lines: [] };
+function playPrologue() {
+  if (!ST.PROLOGUE.length) return;
+  Cine.on = true; Cine.i = -1; Cine.lines = ST.PROLOGUE;
+  show('menu', false); $('cine').hidden = false;
+  cineNext();
+}
+function cineNext() {
+  Cine.i++;
+  const l = Cine.lines[Cine.i];
+  if (!l) { cineEnd(); return; }
+  const c = CAST[l[0]] || {};
+  $('cine').style.setProperty('--tc', c.col || '#cfd8e3');
+  $('cineP').innerHTML = l[0] === 'nar' ? '' : portraitOf(l[0]);
+  $('cineWho').textContent = c.name || '';
+  $('cineLine').textContent = '';
+  Cine.typed = 0; Cine.hold = 0;
+}
+function cineTap() {
+  if (!Cine.on) return;
+  Snd.init();
+  const l = Cine.lines[Cine.i];
+  if (l && Cine.typed < l[1].length) { Cine.typed = l[1].length; $('cineLine').textContent = l[1]; return; }
+  cineNext();
+}
+function cineEnd() {
+  Cine.on = false; $('cine').hidden = true; STORY.markIntro();
+  if (mode === 'menu') { show('menu', true); goScreen('home'); }
+  if (!tutDone()) $('tutBtn').classList.add('pulse');
+}
+function updateCine(dt) {
+  if (!Cine.on) return;
+  const l = Cine.lines[Cine.i]; if (!l) return;
+  const L = l[1].length;
+  if (Cine.typed < L) {
+    const b = Math.floor(Cine.typed);
+    Cine.typed = Math.min(L, Cine.typed + dt * (l[0] === 'nar' ? 20 : 26));
+    const n = Math.floor(Cine.typed);
+    if (n !== b) { $('cineLine').textContent = l[1].slice(0, n); if (l[0] !== 'nar' && n % 3 === 1) talkBlip(l[0]); }
+  } else if ((Cine.hold += dt) > 1.6 + L * 0.05) cineNext();
+}
 
 const ICONS = {
   gun: '<path d="M2 10h14l2-2h4v4h-3l-1 2h-5l-1 4H8l1-4H2z"/>',
@@ -3587,6 +3833,7 @@ function buildHelp() {
     cdxItem('trap', { id, grp: `${gi + 1} · ${g.name}`, name: t.name, icon: svgIcon(id), cat: t.cat, locked: () => !isUnlocked(id), detail: () => {
       const ev = EVO[id], desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
       return `<header><span class="ic">${svgIcon(id)}</span><h3>${t.name}</h3><span class="cdxMeta">${CAT_NAME[t.cat]} · ${t.cost} 金币 · 按 <span class="kb">${keyCombo(id)}</span></span></header>
+        ${ST.TRAP_LORE[id] ? `<p class="cdxLore">${ST.TRAP_LORE[id]}</p>` : ''}
         <div class="cdxCols"><div>
         ${isUnlocked(id) ? '' : `<p class="cdxLock">${lockText(id)}</p>`}
         <p>${desc}</p>
@@ -3602,25 +3849,27 @@ function buildHelp() {
     cdxItem('mon', { id: k, grp, name: m.name, icon: svgIcon(m.boss ? 'ult' : m.fly ? 'aa' : 'spike'), cat: m.boss ? 'heavy' : m.elite || m.heavy ? 'wall' : m.fly ? 'ceil' : 'floor', detail: () => {
       const tags = monTags(k);
       return `<header><h3>${m.name}</h3><span class="cdxMeta">${grp}</span></header>
+        ${ST.MON_LORE[k] ? `<p class="cdxLore">${ST.MON_LORE[k]}</p>` : ''}
         <div class="cdxCols"><div>
-        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['击杀奖励', m.bounty + ' 金币'], ['漏到水晶', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 水晶生命']])}
+        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['击杀奖励', m.bounty + ' 金币'], ['漏到晶核', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 晶核生命']])}
         ${tags.length ? `<ul class="cdxTags">${tags.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p>基础单位，没有特殊能力。</p>'}</div><div>
         ${TD.BOSS_TIP && TD.BOSS_TIP[k] ? `<p class="cdxNote">${TD.BOSS_TIP[k]}</p>` : ''}
         ${MON_COUNTER[k] ? `<div class="cdxEvo"><h4>怎么对付</h4><p>${MON_COUNTER[k]}</p></div>` : ''}</div></div>`;
     } });
   }
   // —— 武器与职业 ——
-  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header><p>${w.desc}</p>
+  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header>${ST.WPN_LORE[w.id] ? `<p class="cdxLore">${ST.WPN_LORE[w.id]}</p>` : ''}<p>${w.desc}</p>
       ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}${(TD.WMODS[w.id] || []).length ? `<div class="cdxEvo"><h4>改装（买下后在军械库二选一，本局有效）</h4>${TD.WMODS[w.id].map(M => `<p><b>${M.name}</b>${M.desc} · ${M.cost} 金币</p>`).join('')}</div>` : ''}` }));
   cdxItem('wpn', { id: 'nade', grp: '技能', name: SKILL.nade.name, icon: svgIcon('nade'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('nade')}</span><h3>${SKILL.nade.name}</h3><span class="cdxMeta">按 C 投掷</span></header><p>抛物线投掷，${SKILL.nade.fuse} 秒后爆炸。</p>${dl([['伤害', SKILL.nade.dmg], ['范围', SKILL.nade.r + ' 米'], ['数量', `最多 ${SKILL.nade.max} 枚（突击兵 +1）`], ['充能', `每 ${SKILL.nade.recharge} 秒 1 枚`]])}` });
   cdxItem('wpn', { id: 'ult', grp: '技能', name: SKILL.ult.name, icon: svgIcon('ult'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('ult')}</span><h3>${SKILL.ult.name}</h3><span class="cdxMeta">能量满 100% 后按 Z</span></header><p>用枪造成伤害和击杀会积攒能量；满了以后对准地面呼叫，${SKILL.ult.delay} 秒后落下，大范围重创并眩晕敌人。</p>${dl([['伤害', SKILL.ult.dmg], ['范围', SKILL.ult.r + ' 米'], ['眩晕', SKILL.ult.stun + ' 秒']])}` });
-  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header><p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
+  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header>${ST.CLS_LORE[c.id] ? `<p class="cdxLore">${ST.CLS_LORE[c.id]}</p>` : ''}<p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
   // —— 关卡 ——
   for (const d of MAP_LIST) {
     cdxItem('map', { id: d.id, grp: '关卡', name: d.name, icon: `<canvas class="cdxThumb" data-map="${d.id}"></canvas>`, cat: d.outdoor ? 'hfloor' : 'floor', detail: () => {
       const n = Object.keys(d.lanes).length, late = d.laneFrom ? Object.keys(d.laneFrom) : [], boss = d.waves[d.waves.length - 1];
       const bossT = (boss.groups || []).filter(g => MON[g.t] && MON[g.t].boss).map(g => MON[g.t].name);
-      return `<header><h3>${d.name}</h3><span class="cdxMeta">${d.sub}${d.outdoor ? ' · 室外' : ' · 室内'}</span></header><p>${d.desc}</p>
+      const chp = ST.CHAPTERS[d.id];
+      return `<header><h3>${d.name}</h3><span class="cdxMeta">${chp ? chp.ch + '「' + chp.title + '」 · ' : ''}${d.sub}${d.outdoor ? ' · 室外' : ' · 室内'}</span></header>${chp ? `<p class="cdxLore">${chp.sum}</p>` : ''}<p>${d.desc}</p>
         ${dl([['出怪口', n + ' 个' + (late.length ? `（${late.map(l => `${d.laneNames[l] || l} 第 ${d.laneFrom[l]} 波开启`).join('，')}）` : '')], ['波次', d.waves.length + ' 波'], ['初始金币', d.gold], ['终局 BOSS', bossT.join(' + ') || '—'], ['地图机关', (d.devices || []).map(dv => devName(dv)).join('、') || '无'], ['科研舱', (d.labs || []).length ? '有' : '无']].concat(d.ladders ? [['梯子', d.ladders.length + ' 处（谷底爬回崖顶）']] : []))}
         <canvas class="cdxBig" data-map="${d.id}"></canvas>`;
     } });
@@ -3628,16 +3877,25 @@ function buildHelp() {
   // —— 机制 ——
   const R = (id, grp, name, body) => cdxItem('rule', { id, grp, name, icon: '', cat: 'gun', detail: () => `<header><h3>${name}</h3><span class="cdxMeta">${grp}</span></header>${body}` });
   R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
-  R('respawn', '基础规则', '复活保护', '<p>阵亡 5 秒后在基地复活，复活后 10 秒内无敌。</p>');
+  R('respawn', '基础规则', '复活保护', '<p>阵亡后，守卫装甲的回传系统会在 5 秒后把你送回基地重建，回来后 10 秒内无敌。</p>');
   R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
   R('unlock', '基础规则', '重型陷阱解锁', `<ul class="cdxTags">${Object.keys(UNLOCKS).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上。</p>`);
-  R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
+  R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（晶核被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
   R('height', '地形', '高地与崖壁', '<p>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯、斜坡或梯子，往下可以直接跳。通道旁高出 2.5 米以上的崖壁可以挂墙壁陷阱。</p>');
   R('deck', '地形', '二层桥', '<p>桥面能站人、两侧有护栏；只有桥底下有天花板，露天的地方不能放粉碎锤。小地图上琥珀色方块是桥，亮色区域是高处，白色箭头指向上坡，绿色短横是梯子。</p>');
   R('lab', '科研舱', '科研舱', '<p>每张地图都有一间科研舱（小地图上的紫色「科」）。走到科研终端旁按 F，用全队共享的金币研究科技，全队生效、本局有效；旁边的补给柜可以补满生命、手雷和弹药。</p>');
   TD.TECH.forEach((t, i) => R('tech-' + t.id, '科研科技', t.name, `<p>${t.desc(1)}，每级叠加，最高 ${TD.TECH_MAX} 级。</p>${dl([['每级花费', t.cost.join(' / ') + ' 金币']])}`));
   COMBOS.forEach(c => R('combo-' + c.name, '陷阱联动', c.name, `<p>${c.desc}</p>`));
-  for (const kind of ['trap', 'mon', 'wpn', 'map', 'rule']) renderCodexList(kind);
+  // —— 背景：序章 / 世界观 / 人物 / 主线章节 ——
+  const pIc = who => `<span style="color:${(CAST[who] || {}).col || 'inherit'};display:grid">${portraitOf(who)}</span>`;
+  const tx = lines => `<ol class="brLog cdxTalk">${(lines || []).map(l => tkLine(l[0], l[1])).join('')}</ol>`;
+  cdxItem('lore', { id: 'prologue', grp: '世界观', name: '序章', icon: pIc('prism'), cat: 'gun', detail: () => `<header><h3>序章 · 锈潮再临</h3><span class="cdxMeta">首次启动时播放</span><button type="button" class="cta small cdxUse" data-cine="1">重看序章</button></header>${tx(ST.PROLOGUE)}` });
+  for (const w of ST.WORLD) cdxItem('lore', { id: w.id, grp: w.grp, name: w.name, icon: w.who ? pIc(w.who) : '', cat: w.who ? 'pad' : 'floor', detail: () => `<header>${w.who ? `<span class="ic" style="width:40px;height:40px">${pIc(w.who)}</span>` : ''}<h3>${w.name}</h3>${w.who && CAST[w.who] ? `<span class="cdxMeta">${CAST[w.who].role}</span>` : ''}</header>${w.text}` });
+  for (const id of ST.CHAPTER_ORDER) {
+    const ch = ST.CHAPTERS[id], def = MAPS[id]; if (!ch || !def) continue;
+    cdxItem('lore', { id: 'ch-' + id, grp: '主线章节', name: `${ch.ch} ${ch.title}`, icon: '', cat: def.outdoor ? 'hfloor' : 'floor', detail: () => `<header><h3>${ch.ch} · ${ch.title}</h3><span class="cdxMeta">${ch.place} · 地图「${def.name}」</span></header><p>${ch.sum}</p><p class="cdxNote">任务目标：${ch.goal}</p><h4 class="cdxH4">任务简报</h4>${tx(ch.brief)}${mapWon(id) ? `<h4 class="cdxH4">结尾</h4>${tx(ch.win)}` : '<p class="cdxFoot">通关这一章后解锁结尾的通讯记录。</p>'}` });
+  }
+  for (const kind of ['trap', 'mon', 'wpn', 'map', 'rule', 'lore']) renderCodexList(kind);
 }
 const cdxSel = {};
 function renderCodexList(kind) {
@@ -3778,6 +4036,7 @@ function netBanner() {
 }
 function updateHUD(dt) {
   netBanner();
+  updateTalk(dt); storyScan(dt);
   if (sim && mode === 'play') bossTremor(sim, dt);
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
@@ -4075,6 +4334,8 @@ addEventListener('keydown', e => {
 function onKey(code, e) {
   if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && mode === 'play') e.preventDefault();
   // 整页浮层（设置 / 图鉴 / 天赋）优先响应 Esc
+  if (Cine.on && (code === 'Escape' || code === 'Space' || code === 'Enter')) { if (code === 'Escape') cineEnd(); else cineTap(); return; }
+  if (!$('brief').hidden) { if (code === 'Escape') closeBrief(); else if (code === 'Enter') briefGo(); else if (code === 'Space') briefNext(false); return; }
   if (code === 'Escape' || (code === 'KeyH' && !$('help').hidden)) {
     if (!$('settings').hidden) { closeSettings(); return; }
     if (!$('help').hidden) { closeHelp(); return; }
@@ -4499,7 +4760,7 @@ function drawLabs(S, dt) {
     drawHolo(S, h, lvs);
   }
 }
-// 全息战术沙盘：整张地图缩小到台面上方，实时显示路线、水晶、敌人与队友
+// 全息战术沙盘：整张地图缩小到台面上方，实时显示路线、晶核、敌人与队友
 function drawHolo(S, h, lvs) {
   const t = timeNow, Y = 1.18 + S.floorH(h.x, h.z), R = 1.05, k = 2 * R / (Math.max(S.W, S.H) * T);
   const ox = h.x - S.W * T * k / 2, oz = h.z - S.H * T * k / 2;
@@ -4674,7 +4935,7 @@ function buyMod(w, mid) {
     const q = me();
     if (MP.role === 'client' && q) { q.mods = Object.assign({}, q.mods, { [w]: mid }); if (q.wpn === w) { q.mag = TD.pwOf(q, w).mag; q.ammo = q.mag; q.reloadT = 0; } }
     ACH.add('mods'); ACH.save();
-    toast(`${WPN[w].name} 已改装：${M.name}`); Snd.play('upgrade'); cache.shop = '';
+    toast(`${WPN[w].name} 已改装：${M.name}`); Snd.play('upgrade'); cache.shop = ''; sayPool('wmod', { pri: 2 });
   });
 }
 function buyWeapon(i) {
@@ -4824,13 +5085,14 @@ function startTutorial() {
   S.s.gold += 600;
   beginPlay(S, true);
   Tut.on = true; Tut.i = 0; Tut.moved = 0; Tut.turned = 0; Tut.stepT = 0;
+  talkReset(); sayPool('tutStart', { pri: 3 });
   const p = sim.s.players[PID]; Tut.lx = p.x; Tut.lz = p.z; Tut.lyaw = cam.yaw;
   renderTut();
 }
 function stopTutorial(done) {
   if (!Tut.on) return;
   Tut.on = false; $('tut').hidden = true; $('tut').style.visibility = ''; $('tutHi').hidden = true; tutSetDone();
-  if (done) { banner('新手引导完成', '接下来就靠你守住水晶了！在主菜单可以随时重新打开引导'); Snd.play('clear'); }
+  if (done) { banner('新手引导完成', '接下来就靠你守住晶核了！在主菜单可以随时重新打开引导'); Snd.play('clear'); sayPool('tutDone', { pri: 3 }); $('tutBtn').classList.remove('pulse'); }
 }
 function renderTut() {
   const st = TUT_STEPS[Tut.i]; if (!st) return;
@@ -4859,6 +5121,7 @@ function updateTut(dt) {
 function startGame() {
   if (MP.role === 'host') { hostStartGame(); return; }
   if (MP.role === 'client') return;
+  if (wantBrief(selMap) && openBrief(selMap)) return;
   beginPlay(null, true);
 }
 // 进入一局：S 为预先构建好的 Sim（联机），gesture 表示由点击触发（可以请求锁定鼠标）
@@ -4872,16 +5135,18 @@ function beginPlay(S, gesture) {
   feed('布防阶段：沿红色路线在通道地面、墙壁、天花板布置陷阱', '');
   feed(TOUCH ? '点顶部陷阱栏选择陷阱，对准位置按「放置」；对准陷阱可升级 / 拆除' : '按 1-5 打开陷阱分组、再按数字选择（Tab 查看全部），左键放置；对准陷阱按 E 升级、X 拆除', '');
   if (MP.role !== 'solo') feed(`联机房间 ${MP.code.toUpperCase()} · ${n} 名玩家 · 金币全队共享`, 'good');
-  banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向核心水晶 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
+  banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向晶核 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
   if (gesture) requestLock();
   if (gesture && TOUCH) goFullscreen();
   if (TOUCH) { applyTouchLayout(); requestAnimationFrame(applyTouchLayout); }
   if (MP.role !== 'client') ensureBgTicker();
+  talkReset(); runReset();
+  setTimeout(storyBegin, 0);
 }
 function pauseGame() {
   if (mode !== 'play') return;
   mode = 'pause';
-  $('pauseTitle').textContent = MP.role === 'solo' ? '已暂停' : '菜单';
+  { const ch = curChapter(); $('pauseTitle').textContent = (MP.role === 'solo' ? '已暂停' : '菜单') + (ch ? ` · ${ch.ch} ${ch.title}` : ''); }
   $('pauseNote').hidden = MP.role === 'solo';
   $('quitBtn').textContent = sim && sim.s.endless && MP.role !== 'client' && sim.s.wave >= 1 ? '结算并退出（计入排行榜）' : MP.role === 'host' ? '结束本局，回到房间' : MP.role === 'client' ? '离开房间' : '返回主菜单';
   show('pause', true);
@@ -5070,7 +5335,7 @@ function initTouchEditor() {
   applyTouchLayout();
 }
 /* ---------- 存档：导出 / 导入 / 云存档 ---------- */
-const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings'];
+const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings', 'jhsw-story'];
 const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
 const b64d = str => { const s = atob(str); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 async function pipeBytes(u8, stream) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(stream)).arrayBuffer()); }
@@ -5256,7 +5521,7 @@ function showEnd() {
   show('pause', false); show('help', false);
   if (document.pointerLockElement) document.exitPointerLock();
   const s = sim.s, win = s.phase === 'victory';
-  $('endTitle').textContent = win ? `胜利 · ${sim.def.name}守住了` : (s.endless ? (s.quit ? `无尽模式 · 主动结算 · 坚持到第 ${s.wave} 波` : `无尽模式结束 · 坚持到第 ${s.wave} 波`) : '失败 · 核心水晶被摧毁');
+  $('endTitle').textContent = win ? `胜利 · ${sim.def.name}守住了` : (s.endless ? (s.quit ? `无尽模式 · 主动结算 · 坚持到第 ${s.wave} 波` : `无尽模式结束 · 坚持到第 ${s.wave} 波`) : '失败 · 晶核被摧毁');
   const lbr = submitEndless();
   setText('endLb', lbr ? `本局得分 ${lbr.score.toLocaleString()} · 本机第 ${lbr.localRank} 名${MP.role === 'client' ? '' : ' · 正在上传在线榜…'}` : '');
   $('endLb').hidden = !lbr;
@@ -5264,7 +5529,7 @@ function showEnd() {
   const total = s.stats.dmgGun + s.stats.dmgTrap || 1;
   const dur = Math.max(0, s.time - s.stats.startTime);
   const rows = [
-    ['地图', sim.def.name + (s.endless ? ' · 无尽' : '') + (s.daily ? ' · 每日挑战' : '')], ['难度', DIFFS[s.diff].name + (s.mut && s.mut.length ? ` · ${s.mut.map(id => MUT[id].name).join('·')}` : '')], ['到达波次', s.endless ? `第 ${s.wave} 波` : `${s.wave} / ${sim.waves.length}`], ['水晶剩余', `${Math.ceil(s.crystal.hp)} / ${s.crystal.max}`],
+    ['地图', sim.def.name + (s.endless ? ' · 无尽' : '') + (s.daily ? ' · 每日挑战' : '')], ['难度', DIFFS[s.diff].name + (s.mut && s.mut.length ? ` · ${s.mut.map(id => MUT[id].name).join('·')}` : '')], ['到达波次', s.endless ? `第 ${s.wave} 波` : `${s.wave} / ${sim.waves.length}`], ['晶核剩余', `${Math.ceil(s.crystal.hp)} / ${s.crystal.max}`],
     ['击杀', s.stats.kills], ['漏怪', s.stats.leaks], ['用时', `${Math.floor(dur / 60)} 分 ${Math.floor(dur % 60)} 秒`],
     ['陷阱输出', `${Math.round(s.stats.dmgTrap).toLocaleString()}（${Math.round(s.stats.dmgTrap / total * 100)}%）`],
     ['枪械输出', `${Math.round(s.stats.dmgGun).toLocaleString()}（${Math.round(s.stats.dmgGun / total * 100)}%）`],
@@ -5298,7 +5563,7 @@ function showEnd() {
   $('againBtn').textContent = MP.role === 'host' ? '全队再来一局' : '再来一局';
   $('menuBtn').textContent = MP.role === 'solo' ? '返回主菜单' : '回到房间';
   $('endWait').hidden = MP.role !== 'client';
-  // 评级：胜利按水晶剩余与漏怪评 S/A/B/C，失败按到达波次
+  // 评级：胜利按晶核剩余与漏怪评 S/A/B/C，失败按到达波次
   const hpF = s.crystal.hp / s.crystal.max;
   const NW = sim.waves.length, extra = s.wave - NW;
   const grade = s.endless ? (extra >= 15 ? 'S' : extra >= 10 ? 'A' : extra >= 5 ? 'B' : extra >= 1 ? 'C' : 'D')
@@ -5333,10 +5598,20 @@ function showEnd() {
   if (newAch.length) msg.push(`达成成就：${newAch.map(a => `「${a.name}」`).join('')}`);
   const newly = locked0.filter(id => UNLOCKS[id].ok());
   if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`); buildHotbar(); }
+  const rk0 = rankOf(stars0), rk1 = rankOf(PROG.stars());
+  if (rk1.i > rk0.i) msg.push(`军衔晋升：${rk1.name}！`);
   $('endStar').hidden = !msg.length; $('endStar').textContent = msg.join(' · ');
+  // 主线：结尾对话 + 下一章
+  const ch = !s.endless && !s.daily ? ST.CHAPTERS[s.map] : null, lines = ch ? (win ? ch.win : ch.lose) : null;
+  $('endStory').hidden = !(lines && lines.length && chatterOn());
+  $('endStoryList').innerHTML = lines ? lines.map(l => tkLine(l[0], l[1])).join('') : '';
+  const ci = chapterIndex(s.map), nx = ci >= 0 ? ST.CHAPTER_ORDER[ci + 1] : null;
+  $('nextBtn').hidden = !(win && ch && nx && MAPS[nx] && MP.role === 'solo');
+  if (nx && ST.CHAPTERS[nx]) $('nextBtn').textContent = `下一章：${ST.CHAPTERS[nx].title} ›`;
+  $('nextBtn').dataset.map = nx || '';
   $('endGrade').textContent = grade;
   $('endGrade').className = 'grade g' + grade;
-  $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 水晶 ${best.hp} · 评级 ${best.grade}`;
+  $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 晶核 ${best.hp} · 评级 ${best.grade}`;
   show('end', true);
 }
 
@@ -5400,6 +5675,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   timeNow += dt;
+  updateCine(dt); updateBrief(dt);
   adaptQuality(dt); fpsMeter(dt);
   if (slowmoT > 0) { slowmoT -= dt; timeScale = slowmoT > 0.5 ? 0.3 : lerp(1, 0.3, slowmoT / 0.5); } else timeScale = 1;
   const sdt = dt * timeScale;
@@ -5620,6 +5896,7 @@ function showBest() {
   $('dailyBest').textContent = PROG.dailyWins().includes(d.date) ? '今日已通关 ★' : dr ? `今日最佳 第 ${dr.wave} 波` : '';
   ACH.check(null);
   $('starTag').textContent = `★ ${PROG.stars() - PROG.spent()}`;
+  { const tot = PROG.stars(), rk = rankOf(tot); $('rankTag').innerHTML = `守卫 七号 · <b>${rk.name}</b> · 功勋星 <em>★${tot}</em>${rk.next ? ` · 再得 ★${rk.need} 晋升${rk.next}` : ''}`; }
   setText('achTag', `${Object.keys(ACH.d.done).filter(id => ACHS.some(a => a.id === id)).length} / ${ACHS.length}`);
 }
 function drawThumb(cv, def) {
@@ -5639,7 +5916,8 @@ function buildMapCards() {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'mapCard'; btn.dataset.map = def.id;
     const lanes = Object.keys(def.lanes).length, late = def.laneFrom ? Object.keys(def.laneFrom).length : 0;
-    btn.innerHTML = `<canvas aria-hidden="true"></canvas><span class="mc-n"><i>${String(def.order).padStart(2, '0')}</i>${def.name}</span><span class="mc-s">出怪口 ×${lanes}${late ? `（${late} 个中途开启）` : ''} · ${def.waves.length} 波</span><span class="mc-b"></span>`;
+    const chp = ST.CHAPTERS[def.id];
+    btn.innerHTML = `<canvas aria-hidden="true"></canvas><span class="mc-n"><i>${String(def.order).padStart(2, '0')}</i>${def.name}</span>${chp ? `<span class="mc-c">${chp.ch} · ${chp.title}</span>` : ''}<span class="mc-s">出怪口 ×${lanes}${late ? `（${late} 个中途开启）` : ''} · ${def.waves.length} 波</span><span class="mc-b"></span>`;
     try { drawThumb(btn.querySelector('canvas'), def); } catch (e) { console.warn(e); }
     btn.addEventListener('click', () => { if (selMap === def.id || selMode === 'daily') return; selMap = def.id; refreshSel(); makeDemo(); });
     box.appendChild(btn);
@@ -5690,10 +5968,10 @@ function setupMenuNav() {
   });
   goScreen('home');
 }
-function anyFullPage() { return ['settings', 'help', 'talents', 'lb', 'achv'].some(id => $(id) && !$(id).hidden); }
+function anyFullPage() { return ['settings', 'help', 'talents', 'lb', 'achv', 'brief'].some(id => $(id) && !$(id).hidden); }
 function updateMenuSum() {
   const room = MP.role !== 'solo' ? ` · 房间 ${MP.code.toUpperCase()}` : '';
-  const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 标准'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
+  const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 主线'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
   const d = $('dSum'); if (d) d.textContent = txt;
   const el = $('mSum'); if (!el) return;
   el.textContent = txt;
@@ -5865,7 +6143,7 @@ function renderMP() {
   // 导航相关文字
   const rn = $('roomNext'); if (rn) rn.textContent = MP.role === 'client' ? '下一步：选择职业' : '下一步：选择关卡';
   const ms = $('mpSub'); if (ms) ms.textContent = inRoom ? `在房间 ${MP.code.toUpperCase()} 中 · ${MP.role === 'host' ? 1 + MP.roster.length : (MP.hostPres && Array.isArray(MP.hostPres.roster) ? MP.hostPres.roster.length : 1)} 人` : on && MP.connected ? `创建或加入房间 · 在线 ${Math.max(1, MP.lobbyPeers.length)} 人` : '创建或加入房间，最多 4 人合作';
-  const ss = $('soloSub'); if (ss) ss.textContent = inRoom ? '先离开联机房间' : '选择关卡、模式、难度和职业';
+  const ss = $('soloSub'); if (ss) ss.textContent = inRoom ? '先离开联机房间' : `主线 ${ST.CHAPTER_ORDER.length || MAP_LIST.length} 章 · 无尽 · 每日挑战`;
   const tl = $('setupTitle'); if (tl) tl.textContent = inRoom ? `联机房间 ${MP.code.toUpperCase()}${MP.role === 'client' ? ' · 房主设置' : ''}` : '单人游戏';
   if (!inRoom && menuScr === 'setup' && renderMP.wasRoom) goScreen('mp');
   renderMP.wasRoom = inRoom;
@@ -5940,6 +6218,25 @@ function bindUI() {
   $('lbClose').addEventListener('click', () => show('lb', false));
   for (const b of document.querySelectorAll('[data-lbsrc]')) b.addEventListener('click', () => { lbSrc = b.dataset.lbsrc; renderLb(); });
   $('againBtn').addEventListener('click', () => { if (MP.role === 'client') return; show('end', false); startGame(); });
+  $('nextBtn').addEventListener('click', () => {
+    const nx = $('nextBtn').dataset.map; if (!nx || !MAPS[nx] || MP.role !== 'solo') return;
+    show('end', false); selMap = nx; selMode = 'std'; refreshSel(); toMenu(); goScreen('setup'); startGame();
+  });
+  $('brGo').addEventListener('click', briefGo);
+  $('brBack').addEventListener('click', closeBrief);
+  $('brAll').addEventListener('click', () => briefNext(true));
+  $('brLog').addEventListener('click', () => briefNext(false));
+  $('cine').addEventListener('click', e => { if (e.target.closest('#cineSkip')) return; cineTap(); });
+  $('cineSkip').addEventListener('click', e => { e.stopPropagation(); cineEnd(); });
+  $('cdxD-lore').addEventListener('click', e => { if (e.target.closest('[data-cine]')) { closeHelp(); if (mode === 'menu') playPrologue(); } });
+  const chatterBtn = $('chatterBtn'), briefBtn = $('briefBtn');
+  const syncStory = () => {
+    const on = settings.chatter !== false; chatterBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); chatterBtn.textContent = on ? '开' : '关';
+    briefBtn.setAttribute('aria-pressed', settings.briefAlways ? 'true' : 'false'); briefBtn.textContent = settings.briefAlways ? '每次' : '首次';
+  };
+  syncStory();
+  chatterBtn.addEventListener('click', () => { settings.chatter = settings.chatter === false; if (!settings.chatter) talkReset(); syncStory(); saveSettings(); });
+  briefBtn.addEventListener('click', () => { settings.briefAlways = !settings.briefAlways; syncStory(); saveSettings(); });
   $('menuBtn').addEventListener('click', toMenu);
   $('nick').value = MP.name;
   $('nick').addEventListener('change', () => { setNick($('nick').value); $('nick').value = MP.name; });
@@ -6101,6 +6398,8 @@ window.__back = () => {
     if (bookOpen) toggleBook(false); else if (chatOpen) closeChat(); else if (labOpen) toggleLab(false); else if (shopOpen) toggleShop(false); else if (evoTrap !== null) closeEvo(); else if (quickOpen) toggleQuick(false); else pauseGame();
     return true;
   }
+  if (Cine.on) { cineEnd(); return true; }
+  if (!$('brief').hidden) { closeBrief(); return true; }
   if (!$('help').hidden) { show('help', false); return true; }
   if (!$('lb').hidden) { show('lb', false); return true; }
   if (!$('achv').hidden) { show('achv', false); return true; }
@@ -6147,11 +6446,13 @@ function start(data) {
     } catch (e) { console.warn('恢复失败', e); }
   }
   requestAnimationFrame(t => { lastT = t; frame(t); });
+  if (mode === 'menu' && !STORY.introSeen() && storyAuto()) playPrologue();
+  else if (!tutDone() && mode === 'menu') $('tutBtn').classList.add('pulse');
 }
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom() };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom(), Talk, STORY, playPrologue, openBrief };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();

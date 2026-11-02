@@ -421,6 +421,20 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 #endStats div { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 #endStats dt { font-size: 12px; color: var(--dim); letter-spacing: .12em; }
 #endStats dd { margin: 2px 0 0; font-family: var(--f-num); font-size: 19px; font-weight: 600; }
+@media (max-height: 560px) {
+  #end .modal { padding: 12px 18px 14px; gap: 8px; width: min(860px, calc(100% - 20px)); }
+  #end .modal h2 { font-size: 22px; letter-spacing: .08em; }
+  #end .grade { font-size: 40px; }
+  .endStars li { padding: 3px 8px; font-size: 11.5px; } .endStars li i { font-size: 16px; }
+  #endStats { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px 10px; }
+  #endStats div { padding-bottom: 2px; }
+  #endStats dt { font-size: 10.5px; letter-spacing: 0; } #endStats dd { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .endStar { font-size: 12px; }
+  #endStory ol { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 10px; }
+  #endStory h3 { display: none; }
+  #endStory .tkLine p { font-size: 11.5px; line-height: 1.4; }
+  #endTraps h3 { margin-bottom: 4px; font-size: 12px; } #endTrapList li { font-size: 11.5px; }
+}
 .tblWrap { overflow-x: auto; }
 #trapTable, #wpnTable, #evoTable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
 #trapTable th, #wpnTable th, #evoTable th { text-align: left; font-weight: 500; font-size: 12px; color: var(--dim); letter-spacing: .1em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
@@ -507,6 +521,102 @@ h3 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: .2em; color: 
 .wmod em { grid-column: 2; grid-row: 1; font-style: normal; font-family: var(--f-num); font-size: 12px; color: var(--gold); }
 .wmod.poor { opacity: .55; }
 .wmodTag { margin-left: 8px; padding: 1px 6px; font-size: 11px; font-weight: 500; color: #1b1204; background: var(--gold); vertical-align: middle; }
+/* ---------- 剧情：无线电对话 / BOSS 登场 / 任务简报 / 序章 ---------- */
+#talk { position: absolute; left: calc(16px + env(safe-area-inset-left, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: min(430px, 42vw); display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 12px 10px 9px; background: linear-gradient(100deg, rgba(6, 14, 22, .92), rgba(6, 12, 20, .78)); border: 1px solid rgba(95, 227, 255, .28); border-left: 3px solid var(--tc, var(--crys)); clip-path: var(--cut); pointer-events: none; z-index: 6; animation: talkIn .22s ease-out; transition: opacity .35s; }
+#talk[hidden] { display: none; }
+#talk.out { opacity: 0; }
+@keyframes talkIn { from { transform: translateX(-14px); opacity: 0; } }
+#talk .tkP { width: 46px; height: 46px; color: var(--tc, var(--crys)); background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); display: grid; place-items: center; }
+#talk .tkP svg { width: 40px; height: 40px; }
+#talk .tkN { display: flex; align-items: baseline; gap: 8px; }
+#talk .tkN b { font-size: 14px; color: var(--tc, var(--crys)); letter-spacing: .06em; }
+#talk .tkN small { font-size: 11px; color: var(--faint); }
+#talk p { margin: 3px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-height: 1.5em; }
+#talk.rust { border-color: rgba(255, 106, 77, .45); background: linear-gradient(100deg, rgba(28, 8, 6, .92), rgba(16, 6, 6, .78)); }
+#talk.rust p { color: #ffd6cc; font-style: italic; }
+body.touch #talk { top: calc(4px + env(safe-area-inset-top, 0px)); bottom: auto; left: calc(6px + env(safe-area-inset-left, 0px)); width: min(300px, 30vw); grid-template-columns: 30px minmax(0, 1fr); gap: 7px; padding: 5px 8px 6px 6px; z-index: 8; }
+body.touch #talk .tkP { width: 30px; height: 30px; } body.touch #talk .tkP svg { width: 26px; height: 26px; }
+body.touch #talk .tkN b { font-size: 12px; } body.touch #talk .tkN small { display: none; }
+body.touch #talk p { font-size: 11.5px; line-height: 1.4; margin-top: 1px; }
+#bossCard { position: absolute; left: 50%; top: 31%; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; padding: 14px 34px 16px; text-align: center; pointer-events: none; background: radial-gradient(ellipse at center, rgba(60, 8, 10, .78), rgba(20, 4, 6, 0) 72%); animation: bossIn 3.8s ease-out forwards; z-index: 5; }
+#bossCard[hidden] { display: none; }
+#bossCard small { font-size: 12px; letter-spacing: .5em; color: var(--danger); }
+#bossCard b { font-family: var(--f-disp); font-weight: 400; font-size: clamp(30px, 5.2vw, 60px); letter-spacing: .14em; color: #fff; text-shadow: 0 0 26px rgba(255, 82, 102, .8); }
+#bossCard span { font-size: 15px; color: #ffcabf; letter-spacing: .12em; }
+#bossCard em { font-style: normal; font-size: 12.5px; color: var(--dim); max-width: 34em; }
+@keyframes bossIn { 0% { opacity: 0; transform: translateX(-50%) scale(1.3); } 8% { opacity: 1; transform: translateX(-50%) scale(1); } 82% { opacity: 1; } 100% { opacity: 0; } }
+.rankTag { margin: 6px 0 0; font-size: 13px; color: var(--dim); letter-spacing: .08em; }
+.rankTag b { color: var(--crys); font-weight: 600; } .rankTag em { font-style: normal; color: var(--gold); }
+.h2s { margin-left: 8px; font-family: var(--f-body, inherit); font-size: 13px; letter-spacing: .1em; color: var(--faint); font-weight: 400; }
+#endStory { display: grid; gap: 6px; }
+#endStory h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--faint); }
+#endStory ol, .brLog { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tkLine { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 9px; align-items: start; }
+.tkLine .tkP { width: 34px; height: 34px; color: var(--tc); background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); display: grid; place-items: center; }
+.tkLine .tkP svg { width: 30px; height: 30px; }
+.tkLine b { font-size: 12.5px; color: var(--tc); letter-spacing: .05em; }
+.tkLine p { margin: 1px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
+.tkLine.rust p { color: #ffd6cc; font-style: italic; }
+.tkLine.nar { grid-template-columns: minmax(0, 1fr); }
+.tkLine.nar p { color: var(--dim); }
+#brief { background: radial-gradient(ellipse at 30% 20%, rgba(20, 40, 56, .6), rgba(3, 6, 10, .95) 70%); backdrop-filter: blur(4px); z-index: 40; }
+.brIn { margin: auto; box-sizing: border-box; width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: grid; grid-template-columns: minmax(260px, 34%) minmax(0, 1fr); gap: 18px; padding: 20px 22px; background: linear-gradient(165deg, rgba(10, 18, 28, .96), rgba(5, 9, 15, .95)); border: 1px solid var(--line); border-top: 2px solid var(--crys); clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); min-height: 0; }
+.brSide { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.brCh { font-size: 13px; letter-spacing: .4em; color: var(--crys); }
+.brSide h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 40px; letter-spacing: .14em; color: #fff; text-shadow: 0 0 22px rgba(95, 227, 255, .35); }
+.brPlace { font-size: 13px; color: var(--dim); }
+#brMap { width: 100%; max-height: 170px; object-fit: contain; image-rendering: pixelated; background: #05080c; border: 1px solid var(--line); }
+.brGoal { margin: 0; padding: 6px 10px; font-size: 13.5px; color: var(--ink); background: rgba(95, 227, 255, .07); border-left: 2px solid var(--crys); }
+.brIntel { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 12.5px; }
+.brIntel dt { color: var(--faint); } .brIntel dd { margin: 0; color: var(--ink); }
+.brNew { display: flex; flex-wrap: wrap; gap: 4px; }
+.brNew span { padding: 2px 8px; font-size: 12px; color: var(--gold); background: rgba(255, 181, 71, .08); border: 1px solid rgba(255, 181, 71, .3); }
+.brTalk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; }
+.brTalk h3 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .1em; }
+.brTalk h3 small { margin-left: 8px; font-weight: 400; font-size: 12px; color: var(--faint); }
+.brLog { overflow-y: auto; align-content: start; padding-right: 4px; cursor: pointer; min-height: 120px; scrollbar-width: thin; }
+.brLog .tkLine { animation: talkIn .25s ease-out; }
+.brBtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.brBtns .cta { min-width: 160px; }
+@media (max-height: 560px) {
+  .brIn { padding: 10px 14px; gap: 12px; max-height: calc(100vh - 12px); grid-template-columns: minmax(200px, 30%) minmax(0, 1fr); }
+  .brSide { gap: 4px; } .brSide h2 { font-size: 26px; } #brMap { display: none; }
+  .brGoal { font-size: 12px; padding: 4px 8px; } .brIntel { font-size: 11.5px; }
+  .brNew span { font-size: 11px; padding: 1px 6px; }
+  .tkLine { grid-template-columns: 28px minmax(0, 1fr); gap: 7px; } .tkLine .tkP { width: 28px; height: 28px; } .tkLine .tkP svg { width: 24px; height: 24px; }
+  .tkLine p { font-size: 12px; line-height: 1.45; } .tkLine b { font-size: 11.5px; }
+  .brLog { gap: 4px; min-height: 0; }
+  .brBtns .cta { min-width: 120px; padding: 8px 14px; }
+}
+#cine { position: fixed; inset: 0; z-index: 60; display: grid; align-items: end; justify-items: center; padding-bottom: 13vh; cursor: pointer; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .55)); }
+#cine[hidden] { display: none; }
+#cine .cBar { position: absolute; left: 0; right: 0; height: 11vh; background: #000; }
+#cine .cBar.top { top: 0; } #cine .cBar.bot { bottom: 0; }
+#cine .cBox { position: relative; display: flex; gap: 14px; align-items: flex-start; width: min(820px, calc(100vw - 48px)); padding: 14px 18px; background: rgba(2, 6, 10, .62); border-left: 3px solid var(--tc, rgba(255, 255, 255, .35)); }
+#cine .cP { flex: none; width: 48px; height: 48px; color: var(--tc); display: grid; place-items: center; }
+#cine .cP:empty { display: none; }
+#cine .cP svg { width: 44px; height: 44px; }
+#cine b { display: block; font-size: 14px; color: var(--tc); letter-spacing: .08em; margin-bottom: 4px; }
+#cine b:empty { display: none; }
+#cine p { margin: 0; font-size: clamp(15px, 2.1vw, 20px); line-height: 1.7; color: #e9f3fa; letter-spacing: .04em; min-height: 3.4em; }
+#cine .cHint { position: absolute; bottom: 3.5vh; font-size: 12px; color: rgba(255, 255, 255, .45); letter-spacing: .3em; }
+#cineSkip { position: absolute; top: calc(11vh + 12px); right: 18px; padding: 6px 14px; font: inherit; font-size: 13px; color: rgba(255, 255, 255, .7); background: rgba(0, 0, 0, .4); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
+.cdxH4 { margin: 4px 0 0; font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--faint); }
+.cdxDetail .cdxTalk { cursor: default; min-height: auto; overflow: visible; padding: 0; }
+#cdxL-lore .cdxTile .ic { width: 18px; height: 18px; }
+@media (max-height: 560px) {
+  #cdxL-lore .cdxTiles { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 3px; }
+  #cdxL-lore .cdxTile { padding: 3px 5px; font-size: 11px; gap: 4px; }
+  #cdxL-lore .cdxTile .ic { width: 13px; height: 13px; }
+  #cdxL-lore .cdxGrp h4 { margin-bottom: 2px; font-size: 10.5px; }
+  .cdxDetail .cdxTalk .tkLine p { font-size: 11.5px; }
+}
+.cdxDetail .cdxTalk .tkLine { animation: none; }
+.cdxUse { margin-left: auto; padding: 6px 14px; font-size: 13px; }
+.cdxLore { padding: 6px 10px; color: var(--dim) !important; font-style: italic; border-left: 2px solid rgba(255, 255, 255, .15); }
+.hBtn.pulse { animation: hPulse 1.4s ease-in-out infinite; }
+@keyframes hPulse { 50% { box-shadow: 0 0 0 2px rgba(108, 240, 164, .55), 0 0 26px rgba(108, 240, 164, .4); } }
+.mapCard .mc-c { font-size: 11.5px; color: var(--crys); letter-spacing: .06em; }
 .endStar { margin: 0; color: var(--gold); font-size: 14px; }
 .endStars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .endStars li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--faint); background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
@@ -900,7 +1010,7 @@ body.tEditOnly #hud { background: #05080c; }
   <div id="nums"></div>
   <div id="topbar">
     <div class="crys">
-      <div class="lbl"><span>核心水晶</span><b id="crysNum">100 / 100</b></div>
+      <div class="lbl"><span>晶核</span><b id="crysNum">100 / 100</b></div>
       <div class="bar"><i id="crysFill"></i></div>
     </div>
     <div id="phase"><span id="waveTxt"></span><span id="phaseTxt"></span><span id="timerTxt"></span></div>
@@ -921,6 +1031,8 @@ body.tEditOnly #hud { background: #05080c; }
   <div id="tut" hidden><div class="tutTop"><span id="tutStep"></span><button type="button" id="tutSkip">跳过引导</button></div><b id="tutT"></b><p id="tutD"></p><div class="tutProg"><i id="tutBar"></i></div></div>
   <div id="lockHint" hidden>点击画面锁定鼠标继续</div>
   <div id="banner"><div class="b1" id="bannerT"></div><div class="b2" id="bannerS"></div></div>
+  <div id="talk" hidden aria-live="polite"><span class="tkP" id="talkP"></span><div class="tkB"><div class="tkN"><b id="talkName"></b><small id="talkRole"></small></div><p id="talkText"></p></div></div>
+  <div id="bossCard" hidden><small>BOSS 登场</small><b id="bossCardN"></b><span id="bossCardE"></span><em id="bossCardL"></em></div>
   <div id="toast"></div>
   <div id="bottom">
     <div id="vitals">
@@ -967,14 +1079,14 @@ body.tEditOnly #hud { background: #05080c; }
     <div id="bookList"></div>
   </div>
   <div id="shop" hidden>
-    <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
+    <div class="shopHead"><h3>老钳的军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
     <div id="shopList"></div>
   </div>
   <div id="lab" hidden>
     <div class="shopHead"><h3>科研终端</h3><span>按 1-5 研究 · F / Esc 关闭 · 花全队共享金币，效果全队生效</span><button type="button" class="pClose" data-close="lab" aria-label="关闭">✕</button></div>
     <div id="labList"></div>
   </div>
-  <div id="deadMsg" hidden>你已阵亡 · <b id="respawnT">5</b> 秒后在基地复活</div>
+  <div id="deadMsg" hidden>守卫装甲失效 · 回传系统 <b id="respawnT">5</b> 秒后把你送回基地</div>
   <div id="touchUI" hidden>
     <div id="tzMove"></div>
     <div id="tzLook"></div>
@@ -1011,12 +1123,13 @@ body.tEditOnly #hud { background: #05080c; }
     <header class="brand">
       <div class="core" aria-hidden="true"><i></i><i></i><i></i></div>
       <h1>晶核<em>守卫</em></h1>
-      <p class="tagline">第一人称塔防射击 · 守住核心水晶</p>
+      <p class="tagline">锈潮来袭 · 一个都别想过去</p>
+      <p class="rankTag" id="rankTag"></p>
     </header>
     <div id="menuErr" hidden></div>
     <div id="touchNote" hidden>本游戏需要键盘和鼠标，请在电脑上游玩。</div>
     <nav class="homeNav" aria-label="主菜单">
-      <button type="button" class="hBtn" id="tutBtn"><b>新手引导</b><small>9 步学会布防、升级和射击</small></button>
+      <button type="button" class="hBtn" id="tutBtn"><b>新手引导</b><small>守卫队入职训练 · 9 步学会布防、升级和射击</small></button>
       <button type="button" class="hBtn primary" id="soloBtn"><b>单人游戏</b><small id="soloSub">选择关卡、模式、难度和职业</small></button>
       <button type="button" class="hBtn primary" id="mpBtn"><b>多人游戏</b><small id="mpSub">创建或加入房间，最多 4 人合作</small></button>
       <div class="hGrid">
@@ -1081,7 +1194,7 @@ body.tEditOnly #hud { background: #05080c; }
       </div>
       <div class="step" data-step="1" hidden>
         <div class="seg segBig" role="group" aria-label="模式">
-          <button type="button" data-mode="std" aria-pressed="true"><b>标准</b><small>打完全部波次，击败终局 BOSS</small></button>
+          <button type="button" data-mode="std" aria-pressed="true"><b>主线</b><small>按章节推进剧情，打完全部波次、击败终局 BOSS</small></button>
           <button type="button" data-mode="endless" aria-pressed="false"><b>无尽</b><small>坚持越久越好，成绩上排行榜</small></button>
           <button type="button" data-mode="daily" aria-pressed="false"><b>每日挑战</b><small id="dailySub">每天一套固定组合</small><em id="dailyBest"></em></button>
         </div>
@@ -1132,6 +1245,8 @@ body.tEditOnly #hud { background: #05080c; }
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
         <div class="setRow gfxRow"><div><b>画质</b><span class="fine">分辨率、材质细节、远处物件和光源数量；手机发热或掉帧时调低（卡顿时也会自动降分辨率）</span></div><div class="seg gfxSeg" id="gfxSeg"></div></div>
+        <div class="setRow"><div><b>剧情对话</b><span class="fine">战斗中棱镜、老钳和锈母的无线电插话（屏幕左下角，不会暂停游戏）</span></div><button type="button" class="ghostBtn small" id="chatterBtn" aria-pressed="true">开</button></div>
+        <div class="setRow"><div><b>任务简报</b><span class="fine">主线每章开打前的简报与对话：只在第一次显示，或每次都显示</span></div><button type="button" class="ghostBtn small" id="briefBtn" aria-pressed="false">首次</button></div>
         <div class="setRow"><div><b>屏幕震动</b><span class="fine">爆炸、BOSS 脚步和践踏时画面晃动（离得越近越明显），晕 3D 可以关闭</span></div><button type="button" class="ghostBtn small" id="shakeBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>显示帧率</b><span class="fine">左上角显示每秒帧数和当前渲染分辨率，方便判断手机能否跑得动</span></div><button type="button" class="ghostBtn small" id="fpsBtn" aria-pressed="false">关</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
@@ -1179,18 +1294,46 @@ body.tEditOnly #hud { background: #05080c; }
     <ul id="endTeam" hidden></ul>
     <p id="endLb" class="endStar" hidden></p>
     <p id="endStar" class="endStar" hidden></p>
+    <section id="endStory" hidden><h3>通讯记录</h3><ol id="endStoryList"></ol></section>
     <p id="endWait" class="fine" style="margin:0" hidden>等待房主开始下一局；你也可以先回到房间。</p>
     <div class="row2">
+      <button type="button" class="cta" id="nextBtn" hidden>下一章 ›</button>
       <button type="button" class="cta" id="againBtn">再来一局</button>
       <button type="button" class="ghostBtn" id="menuBtn">返回主菜单</button>
     </div>
   </div>
 </div>
 
+<div id="brief" class="overlay" hidden>
+  <div class="brIn">
+    <aside class="brSide">
+      <div class="brCh" id="brCh"></div>
+      <h2 id="brTitle"></h2>
+      <div class="brPlace" id="brPlace"></div>
+      <canvas id="brMap" aria-hidden="true"></canvas>
+      <p class="brGoal" id="brGoal"></p>
+      <dl class="brIntel" id="brIntel"></dl>
+      <div class="brNew" id="brNew"></div>
+    </aside>
+    <section class="brTalk">
+      <h3>任务简报 <small>点对话区继续</small></h3>
+      <ol class="brLog" id="brLog"></ol>
+      <div class="brBtns"><button type="button" class="ghostBtn" id="brBack">返回</button><button type="button" class="ghostBtn" id="brAll">显示全部</button><button type="button" class="cta" id="brGo">开始布防</button></div>
+    </section>
+  </div>
+</div>
+
+<div id="cine" hidden>
+  <div class="cBar top"></div><div class="cBar bot"></div>
+  <div class="cBox"><span class="cP" id="cineP"></span><div><b id="cineWho"></b><p id="cineLine"></p></div></div>
+  <div class="cHint">点击继续</div>
+  <button type="button" id="cineSkip">跳过 ›</button>
+</div>
+
 <div id="talents" class="overlay" hidden>
   <div class="modal">
-    <div class="talHead"><h2>天赋</h2><div id="talStars" class="talStars"></div></div>
-    <p class="fine" style="margin:0">星星来源：每张地图的普通 / 困难 / 炼狱各有三星评价（通关 ★ · 水晶剩 70% 以上 ★★ · 水晶无损 ★★★），无尽模式超过剧本 10 波 ★，每赢一次每日挑战 ★，完成成就也有星星。天赋第 1 / 2 / 3 级分别花 1 / 2 / 3 颗星，可以随时重置。全队效果的天赋（标 ◆）在联机时以房主的为准。</p>
+    <div class="talHead"><h2>天赋 <small class="h2s">守卫队训练营</small></h2><div id="talStars" class="talStars"></div></div>
+    <p class="fine" style="margin:0">星星来源：每张地图的普通 / 困难 / 炼狱各有三星评价（通关 ★ · 晶核剩 70% 以上 ★★ · 晶核无损 ★★★），无尽模式超过剧本 10 波 ★，每赢一次每日挑战 ★，完成成就也有星星。天赋第 1 / 2 / 3 级分别花 1 / 2 / 3 颗星，可以随时重置。全队效果的天赋（标 ◆）在联机时以房主的为准。</p>
     <div id="talList" class="talList"></div>
     <div class="row2"><button type="button" class="cta" id="talClose">完成</button><button type="button" class="ghostBtn" id="talReset">全部重置</button></div>
   </div>
@@ -1198,9 +1341,9 @@ body.tEditOnly #hud { background: #05080c; }
 
 <div id="achv" class="overlay fullPage" hidden>
   <div class="fpIn">
-    <div class="fpHead"><h2>成就</h2><div id="achSum" class="achSum"></div><button type="button" class="fpClose" id="achClose" aria-label="关闭成就">✕ 关闭</button></div>
+    <div class="fpHead"><h2>成就 <small class="h2s">守卫档案</small></h2><div id="achSum" class="achSum"></div><button type="button" class="fpClose" id="achClose" aria-label="关闭成就">✕ 关闭</button></div>
     <div class="fpBody achBody">
-      <section class="achMaps"><h3>关卡评价 <small>通关 ★ · 水晶剩 70% 以上 ★★ · 水晶无损 ★★★</small></h3><div id="achMapList" class="achMapList"></div></section>
+      <section class="achMaps"><h3>关卡评价 <small>通关 ★ · 晶核剩 70% 以上 ★★ · 晶核无损 ★★★</small></h3><div id="achMapList" class="achMapList"></div></section>
       <section><h3>成就</h3><div id="achList" class="achList"></div></section>
     </div>
   </div>
@@ -1211,7 +1354,7 @@ body.tEditOnly #hud { background: #05080c; }
     <div class="fpHead"><h2>排行榜</h2><nav class="fpTabs" id="lbTabs"></nav><button type="button" class="fpClose" id="lbClose" aria-label="关闭排行榜">✕ 关闭</button></div>
     <div class="fpBody">
       <div class="lbSrc"><button type="button" data-lbsrc="online" aria-pressed="true">在线榜</button><button type="button" data-lbsrc="local" aria-pressed="false">本机记录</button><span id="lbNote" class="fine"></span></div>
-      <p class="fine" style="margin:0">无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动上传。分数 =（到达波次 × 1000 + 击杀 × 2 + 剩余水晶 × 5）× 难度系数（困难 ×1.4，炼狱 ×1.9）× 突变系数。</p>
+      <p class="fine" style="margin:0">无尽模式结束（晶核被摧毁，或在暂停菜单里「结算并退出」）时自动上传。分数 =（到达波次 × 1000 + 击杀 × 2 + 剩余晶核 × 5）× 难度系数（困难 ×1.4，炼狱 ×1.9）× 突变系数。</p>
       <ol id="lbList" class="lbList"></ol>
     </div>
   </div>
@@ -1220,10 +1363,11 @@ body.tEditOnly #hud { background: #05080c; }
 <div id="help" class="overlay fullPage" hidden>
   <div class="fpIn cdxIn">
     <div class="fpHead"><h2>图鉴</h2><nav class="fpTabs" id="helpTabs">
-      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="wpn">武器与职业</button><button type="button" data-htab="map">关卡</button><button type="button" data-htab="rule">机制</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
+      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="wpn">武器与职业</button><button type="button" data-htab="map">关卡</button><button type="button" data-htab="lore">背景</button><button type="button" data-htab="rule">机制</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
     </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
     <div class="fpBody cdxBody">
       <section data-htab="trap" class="cdx"><div class="cdxList" id="cdxL-trap"></div><article class="cdxDetail" id="cdxD-trap"></article></section>
+      <section data-htab="lore" class="cdx" hidden><div class="cdxList" id="cdxL-lore"></div><article class="cdxDetail" id="cdxD-lore"></article></section>
       <section data-htab="mon" class="cdx" hidden><div class="cdxList" id="cdxL-mon"></div><article class="cdxDetail" id="cdxD-mon"></article></section>
       <section data-htab="wpn" class="cdx" hidden><div class="cdxList" id="cdxL-wpn"></div><article class="cdxDetail" id="cdxD-wpn"></article></section>
       <section data-htab="map" class="cdx" hidden><div class="cdxList" id="cdxL-map"></div><article class="cdxDetail" id="cdxD-map"></article></section>
@@ -2019,7 +2163,7 @@ const TRAPS = [
     cd: 0.6, range: 4.2, dmg: [30, 50, 78, 115], chains: 3,
     desc: '地面 · 阻挡类，堵路并电击周围敌人，持续自我修复' },
   { id: 'sentry', key: '5', name: '岗哨机枪', cat: 'pad', cost: 260, cd: 0.25, range: [16, 17, 18, 19], dmg: [22, 36, 56, 82],
-    desc: '炮台位 · 对地对空，优先射击最接近水晶的敌人' },
+    desc: '炮台位 · 对地对空，优先射击最接近晶核的敌人' },
   { id: 'aa', key: '6', name: '防空导弹', cat: 'pad', cost: 240, cd: 1.4, range: [24, 25, 26, 28], dmg: [150, 250, 380, 560], splash: 2.6,
     desc: '炮台位 · 只打空中单位，追踪导弹带溅射' },
   { id: 'laser', key: '7', name: '激光发射器', cat: 'wall', cost: 150, cd: 0.2, dmg: [12, 20, 31, 46],
@@ -2078,7 +2222,7 @@ const MUT = {}; MUTATORS.forEach(m => { MUT[m.id] = m; });
 const TALENTS = [
   { id: 'startGold', name: '启动资金', max: 3, team: true, desc: r => `开局金币 +${80 * r}` },
   { id: 'engineer', name: '工程学', max: 3, team: true, desc: r => `陷阱造价与升级费用 -${3 * r}%` },
-  { id: 'crystal', name: '强化水晶', max: 3, team: true, desc: r => `水晶生命 +${10 * r}` },
+  { id: 'crystal', name: '强化晶核', max: 3, team: true, desc: r => `晶核生命 +${10 * r}` },
   { id: 'prep', name: '快速部署', max: 1, team: true, desc: r => `第一波前的布防时间 +${15 * r} 秒` },
   { id: 'gunDmg', name: '枪械专精', max: 3, desc: r => `枪械伤害 +${8 * r}%` },
   { id: 'vitality', name: '战地急救', max: 2, desc: r => `生命上限 +${20 * r}` },
@@ -2118,7 +2262,7 @@ const DEVICE = {
 // 科研舱：终端旁按 F 研究全队科技（花共享金币，本局有效）；补给柜按 F 补满生命 / 手雷 / 弹药
 const TECH = [
   { id: 'overclock', name: '陷阱超频', short: '超频', cost: [400, 800, 1300], desc: r => `所有陷阱与机关伤害 +${8 * r}%` },
-  { id: 'armor', name: '水晶装甲', short: '装甲', cost: [300, 600, 950], desc: r => `水晶生命上限 +${15 * r}（每级研究时立即回复 15 点）` },
+  { id: 'armor', name: '晶核装甲', short: '装甲', cost: [300, 600, 950], desc: r => `晶核生命上限 +${15 * r}（每级研究时立即回复 15 点）` },
   { id: 'salvage', name: '战利品回收', short: '回收', cost: [350, 700, 1100], desc: r => `击杀赏金 +${10 * r}%` },
   { id: 'ammo', name: '弹药工艺', short: '弹药', cost: [300, 600, 950], desc: r => `全队枪械与手雷伤害 +${12 * r}%` },
   { id: 'repair', name: '纳米维修', short: '维修', cost: [300, 600, 950], desc: r => `磁暴塔与通道炮台每秒多回 ${r}% 耐久，瘫痪时间 -${20 * r}%` },
@@ -2209,9 +2353,9 @@ const SKILL = {
 const g = (t, n, lane, gap, at) => ({ t, n, lane, gap, at });
 
 /* ---------- 地图 ----------
- * lanes：每个出怪口一条完整折线（终点都是水晶），折线经过的格子 ±1 挖成 3 格宽通道
+ * lanes：每个出怪口一条完整折线（终点都是晶核），折线经过的格子 ±1 挖成 3 格宽通道
  * laneFrom：该出怪口从第几波开始启用（中途开启新出怪口）
- * rooms：玩家专用区域 [x0,z0,x1,z1,类型]；pads：炮台位；base：水晶房间
+ * rooms：玩家专用区域 [x0,z0,x1,z1,类型]；pads：炮台位；base：晶核房间
  */
 const ST_M = [[18, 16], [18, 21], [8, 21], [8, 27], [20, 27]];
 const FT_M = [[20, 17], [20, 21], [13, 21], [13, 26], [20, 26], [20, 30]];
@@ -2219,7 +2363,7 @@ const CL_M = [[20, 16], [16, 16], [16, 10], [11, 10], [11, 23], [6, 23], [6, 17]
 const MAPS = {
   station: {
     id: 'station', order: 1, name: '空间站·中枢', sub: '双路汇合', w: 37, h: 32, gold: 1100, theme: 'station',
-    desc: '两条路线在中段汇合后蛇形通向水晶。经典入门图，适合在汇合口堵路集火。',
+    desc: '两条路线在中段汇合后蛇形通向晶核。经典入门图，适合在汇合口堵路集火。',
     lanes: {
       A: [[4, 2], [4, 10], [12, 10], [12, 16]].concat(ST_M),
       B: [[32, 2], [32, 10], [24, 10], [24, 16]].concat(ST_M),
@@ -2280,7 +2424,7 @@ const MAPS = {
   },
   furnace: {
     id: 'furnace', order: 3, name: '熔炉核心', sub: '四角夹击', w: 41, h: 41, gold: 1700, goldMul: 1.35, bossMul: 0.85, theme: 'furnace',
-    desc: '水晶位于熔炉正中。四个角落各有一道出怪口，两两汇合后从南北两侧逼近；南侧两口会在中途开启。',
+    desc: '晶核位于熔炉正中。四个角落各有一道出怪口，两两汇合后从南北两侧逼近；南侧两口会在中途开启。',
     lanes: {
       A: [[3, 3], [3, 11], [10, 11], [10, 5], [20, 5], [20, 9], [14, 9], [14, 13], [20, 13], [20, 20]],
       B: [[37, 3], [37, 11], [30, 11], [30, 5], [20, 5], [20, 9], [14, 9], [14, 13], [20, 13], [20, 20]],
@@ -2314,7 +2458,7 @@ const MAPS = {
   },
   abyss: {
     id: 'abyss', order: 4, name: '深渊回廊', sub: '五门逐开', w: 48, h: 31, gold: 1500, goldMul: 1.1, theme: 'abyss',
-    desc: '五道出怪口随波次陆续开启：北、南两路汇入上下支线，西侧直道最后开启，全部在主干道汇合冲向东侧水晶。',
+    desc: '五道出怪口随波次陆续开启：北、南两路汇入上下支线，西侧直道最后开启，全部在主干道汇合冲向东侧晶核。',
     lanes: {
       A: [[3, 3], [12, 3], [12, 7], [24, 7], [24, 15], [44, 15]],
       B: [[20, 2], [20, 7], [24, 7], [24, 15], [44, 15]],
@@ -2355,7 +2499,7 @@ const MAPS = {
   },
   outpost: {
     id: 'outpost', order: 5, name: '荒原前哨', sub: '高地 · 二层桥', w: 44, h: 40, gold: 1500, goldMul: 1.15, theme: 'outdoor', outdoor: true,
-    desc: '露天的山地前哨。怪物从北面高地沿两条斜坡冲下盆地，汇合后穿过二层桥底冲向水晶；西侧小路中途开启。站在台地和桥上居高临下，只有桥底下能挂天花板陷阱。',
+    desc: '露天的山地前哨。怪物从北面高地沿两条斜坡冲下盆地，汇合后穿过二层桥底冲向晶核；西侧小路中途开启。站在台地和桥上居高临下，只有桥底下能挂天花板陷阱。',
     lanes: {
       A: [[5, 2], [5, 9], [14, 9], [14, 24], [21, 24], [21, 35]],
       B: [[38, 2], [38, 9], [28, 9], [28, 24], [21, 24], [21, 35]],
@@ -2393,7 +2537,7 @@ const MAPS = {
   },
   cryolab: {
     id: 'cryolab', order: 7, name: '冰封实验室', sub: '三路汇流 · 低温回廊', w: 44, h: 34, gold: 1600, goldMul: 1.2, bossMul: 0.8, theme: 'cryo',
-    desc: '北、南两路沿实验室外环绕行，在中央十字汇合后进入长长的低温回廊，绕两道弯才抵达西侧水晶；东侧冷却管道中途开启。回廊有天花板，攀顶蛛会从顶上爬过地面陷阱。',
+    desc: '北、南两路沿实验室外环绕行，在中央十字汇合后进入长长的低温回廊，绕两道弯才抵达西侧晶核；东侧冷却管道中途开启。回廊有天花板，攀顶蛛会从顶上爬过地面陷阱。',
     lanes: {
       A: [[40, 2], [40, 8], [30, 8], [30, 3], [20, 3]].concat(CL_M),
       B: [[40, 31], [40, 25], [30, 25], [30, 30], [20, 30]].concat(CL_M),
@@ -3666,7 +3810,7 @@ class Sim {
         case 'rail': {
           if (tr.cd > 0) break;
           const R = def.range, ox = tr.wx, oy = tr.wy + 2.3, oz = tr.wz;
-          // 优先级：BOSS > 精英 / 重甲 > 离水晶最近
+          // 优先级：BOSS > 精英 / 重甲 > 离晶核最近
           const cand = [];
           for (const m of s.monsters) {
             if (m.dead || !this.canLock(m)) continue;
@@ -3709,7 +3853,7 @@ class Sim {
             if (d >= def.minRange && d <= R) g.push(m);
           }
           if (!g.length) { tr.cd = 0; break; }
-          // 找怪最密集的落点（同等密度优先离水晶近的）
+          // 找怪最密集的落点（同等密度优先离晶核近的）
           let best = null, bs = -1;
           for (let i = 0; i < g.length && i < 60; i++) {
             const a = g[i]; let sc = 0;
@@ -5179,6 +5323,366 @@ window.TD_ASSETS = {"robot":{"n":7214,"ni":9711,"nb":36,"nf":213,"i32":false,"po
 </script>
 <script>
 /* ============================================================
+ * 晶核守卫 · 世界观与剧情（纯数据：角色、章节对话、插话、图鉴档案）
+ * 改文字只需要改这个文件。
+ *
+ * 一句话设定：边境星域的每颗「晶核」都是跃迁晶格上的一扇门；吞食晶核的纳米瘟疫「锈潮」
+ * 卷土重来，你是晶核守卫队仅剩的见习守卫「七号」——守卫队的信条是「让它们走进来」。
+ * ============================================================ */
+(function (root) {
+'use strict';
+
+/* ---------- 角色 ---------- */
+// pitch：说话时“嘀嘀”声的音高；col：名字颜色
+const CAST = {
+  me: { name: '七号', role: '见习守卫 · 你', col: '#5fe3ff', pitch: 1.05 },
+  prism: { name: '棱镜', role: '战术 AI', col: '#9ff3ff', pitch: 1.6 },
+  qian: { name: '老钳', role: '守卫队军械官', col: '#ffb547', pitch: 0.72 },
+  hq: { name: '守卫队总部', role: '远程通讯', col: '#6cf0a4', pitch: 1.25 },
+  han: { name: '韩策', role: '星穹矿业 · 边境事务主管', col: '#c9b8ff', pitch: 0.95 },
+  rust: { name: '锈母', role: '锈潮意识 · 截获的信号', col: '#ff6a4d', pitch: 0.42 },
+  nar: { name: '', role: '', col: '#cfd8e3', pitch: 0 },
+};
+// 头像：原创的简笔图标（currentColor 取角色颜色）
+const PORTRAIT = {
+  me: '<svg viewBox="0 0 48 48"><path d="M9 31c0-10 7-18 15-18s15 8 15 18v5H9z" fill="#13222e" stroke="currentColor" stroke-width="1.6"/><rect x="13" y="22" width="22" height="6.5" rx="3.2" fill="currentColor"/><path d="M15 36v5M33 36v5M7 41h34" stroke="currentColor" stroke-width="1.8"/><path d="M24 13V8" stroke="currentColor" stroke-width="1.4"/><circle cx="24" cy="7" r="1.6" fill="currentColor"/></svg>',
+  prism: '<svg viewBox="0 0 48 48"><path d="M24 6l16 31H8z" fill="rgba(95,227,255,.14)" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M24 6v31M15.5 22.5h17" stroke="currentColor" stroke-width="1" opacity=".55"/><circle cx="24" cy="25" r="3.6" fill="currentColor"/><path d="M4 42h40" stroke="currentColor" stroke-width="1.2" opacity=".5"/></svg>',
+  qian: '<svg viewBox="0 0 48 48"><path d="M8 40c1-8 6-12 12-12h3" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="20" cy="18" r="9" fill="#2b1f10" stroke="currentColor" stroke-width="1.6"/><circle cx="16.5" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><circle cx="23.5" cy="17" r="2.6" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M14 23c2 3 10 3 12 0" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M27 30l7 7M33 29l6-5M36 39l6-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  hq: '<svg viewBox="0 0 48 48"><path d="M24 5l16 6v12c0 10-7 17-16 20-9-3-16-10-16-20V11z" fill="rgba(108,240,164,.12)" stroke="currentColor" stroke-width="1.6"/><path d="M24 13l6.5 10L24 34l-6.5-11z" fill="currentColor"/></svg>',
+  han: '<svg viewBox="0 0 48 48"><circle cx="24" cy="15" r="7.5" fill="#241f38" stroke="currentColor" stroke-width="1.6"/><path d="M9 43c1-10 7-15 15-15s14 5 15 15z" fill="#241f38" stroke="currentColor" stroke-width="1.6"/><path d="M24 28l-3.2 4 3.2 10 3.2-10z" fill="currentColor"/><path d="M18 13h12" stroke="currentColor" stroke-width="1.4"/></svg>',
+  rust: '<svg viewBox="0 0 48 48"><path d="M5 24c7-10 31-10 38 0-7 10-31 10-38 0z" fill="#2a0b07" stroke="currentColor" stroke-width="1.6"/><circle cx="24" cy="24" r="6.4" fill="currentColor"/><path d="M24 18.5v11" stroke="#160403" stroke-width="2.4" stroke-linecap="round"/><path d="M10 31l-4 9M18 33l-2 9M30 33l2 9M38 31l4 9M13 16l-5-8M35 16l5-8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+};
+
+/* ---------- 军衔：按累计获得的功勋星 ---------- */
+const RANKS = [[0, '见习守卫'], [6, '三级守卫'], [15, '二级守卫'], [30, '一级守卫'], [50, '资深守卫'], [75, '守卫长'], [100, '传奇守卫']];
+
+/* ---------- 序章（首次启动播放，图鉴「背景」里可以重看） ---------- */
+const PROLOGUE = [
+  ['nar', '边境星域。人类的每一个殖民地，都靠一种古老的晶体活着——晶核。'],
+  ['nar', '每一颗晶核，都是「跃迁晶格」上的一扇门，门后连着几百万人的家。'],
+  ['nar', '两百年前，一种吞食晶核的虫群从门外涌来。人们叫它「锈潮」——它碰过的一切，都会生锈、腐烂，然后变成它的一部分。'],
+  ['nar', '一群工程师发现：锈潮能侵蚀枪械和士兵，却侵蚀不了没有芯片的机械。于是他们修起杀戮通道，布满陷阱，成立了「晶核守卫队」。'],
+  ['nar', '守卫队的信条只有一句：让它们走进来。'],
+  ['nar', '和平持续了两百年。守卫队老了，散了。直到今天——锈潮回来了。'],
+  ['prism', '早上好，七号。我是你的战术 AI，棱镜。坏消息是：你是全边境唯一还在岗的守卫。'],
+  ['prism', '好消息是……我暂时还没想到好消息。先去完成入职训练吧。'],
+];
+
+/* ---------- 七章主线 ---------- */
+// brief：开打前的任务简报；waves：第 N 波开始时的插话；boss：BOSS 登场时锈母的台词；win / lose：结尾
+const CHAPTERS = {
+  station: {
+    n: 1, ch: '第一章', title: '中枢告急', place: '中枢站 · 边境晶格第 7 节点',
+    goal: '守住中枢站的晶核，撑过 10 波锈潮',
+    sum: '锈潮越过边境，第一个目标就是中枢站。全边境能上前线的守卫，只剩入职三天的七号。',
+    brief: [
+      ['hq', '中枢站，这里是守卫队总部。锈潮主力已越过边境，预计十分钟后抵达你的位置。'],
+      ['prism', '翻译一下：全边境能打的守卫，只剩你一个。'],
+      ['me', '……我才入职三天。'],
+      ['qian', '三天够了。小七，记住守卫队的老规矩——别跟它们硬拼，让它们走进来。'],
+      ['qian', '减速、毒刺、激光，我都给你备好了。它们只认红线那条路，陷阱就铺在路上。'],
+      ['prism', '中枢站的晶核连着三个殖民地，一千二百万人。别紧张，只是一千二百万人而已。'],
+    ],
+    waves: {
+      1: [['prism', '第一批锈化体进入通道。两条路在中段汇合——汇合口就是你的屠宰场。']],
+      5: [['rust', '……守卫队？你们，不是早就死光了吗。']],
+    },
+    boss: [['rust', '交出晶核，小守卫。我会把你温柔地溶解。'], ['me', '让它进来。']],
+    win: [
+      ['hq', '中枢站晶核读数稳定……七号，你守住了。'],
+      ['rust', '……守卫队。你们，还活着。'],
+      ['qian', '听见没？它慌了。我把压箱底的「轨道电磁炮」给你寄过去，下一站用得上。'],
+    ],
+    lose: [['prism', '晶核失守。好消息是回传系统还在，再来一次。这次少漏几只。']],
+  },
+  fortress: {
+    n: 2, ch: '第二章', title: '旧要塞', place: '三岔要塞 · 守卫队旧址',
+    goal: '重启守卫队的发源地，守住三道门',
+    sum: '两百年前，守卫队就是在三岔要塞用三条走廊挡住了第一次锈潮。如今要塞荒废，锈潮从三道门同时涌来。',
+    brief: [
+      ['qian', '三岔要塞。两百年前第一次锈潮，守卫队就是在这儿成立的。'],
+      ['qian', '那时候没人信陷阱能挡住锈潮。我师父的师父，用三条走廊证明了所有人都是错的。'],
+      ['prism', '要塞的三道门年久失修，锈潮会从三个方向同时进来。'],
+      ['me', '所以要我一个人守三道门？'],
+      ['prism', '严格来说，是一个人，加一个非常聪明的 AI。'],
+      ['qian', '老库房里还压着些好东西。守住了，都归你。'],
+    ],
+    waves: {
+      6: [['qian', '它们开始拆陷阱了？！锈潮什么时候学会这一手的……先宰了那些工兵！']],
+    },
+    boss: [['rust', '这座要塞……我记得它。两百年前，你们在这里烧死了我。这一次，它是我的。']],
+    win: [
+      ['qian', '好样的！库房里翻出一台「碎骨绞盘」，老是老了点，绞起来比新货还狠。'],
+      ['prism', '另外，我在锈化体的残骸里发现了一段代码。上面有签名——一家公司的签名。'],
+      ['me', '公司？'],
+      ['prism', '等我查清楚再告诉你。'],
+    ],
+    lose: [['qian', '要塞丢了……我师父要是看见，非得从坟里爬出来。再试一次，小七。']],
+  },
+  furnace: {
+    n: 3, ch: '第三章', title: '熔炉之心', place: '熔炉星 · 第一冶炼厂',
+    goal: '守住冶炼厂的晶核，四个方向都要防',
+    sum: '星穹矿业的冶炼厂请求支援。锈潮把炉渣和自己熔在一起，造出了熔炉巨像。',
+    brief: [
+      ['han', '守卫七号？我是星穹矿业边境事务主管，韩策。熔炉星的冶炼厂对公司非常重要。'],
+      ['han', '请务必守住晶核。联合会的赏金照付，公司另外再加一成。'],
+      ['prism', '他说「非常重要」的时候，心率上升了 18%。'],
+      ['qian', '四个角都有出怪口，南边两个会晚点开。别一上来就把家底花光。'],
+      ['me', '明白：四个方向，一个我。'],
+    ],
+    waves: {
+      4: [['prism', '西南出怪口开启。南边也得有人管了——比如你。']],
+    },
+    boss: [['rust', '火是我的血。你的陷阱，会熔化。']],
+    win: [
+      ['han', '干得漂亮。冶炼厂的损失在可接受范围内。'],
+      ['prism', '他没问你有没有受伤。'],
+      ['qian', '哼，公司的人。小七，下一站是深渊矿井。那地方……很深。'],
+    ],
+    lose: [['han', '冶炼厂失守……这会影响公司的季度报表。'], ['prism', '他关心的只有报表。我们再来一次。']],
+  },
+  abyss: {
+    n: 4, ch: '第四章', title: '深渊回响', place: '深渊矿井 · 小行星带第 3 采区',
+    goal: '五道门逐一开启，守住矿井深处的晶核',
+    sum: '深渊矿井是锈潮最早出现的地方：三个月前，这里的矿工全部失联。锈潮在矿井深处筑了巢。',
+    brief: [
+      ['prism', '深渊矿井是锈潮最早出现的地方。三个月前，这里的矿工全部失联。'],
+      ['han', '七号，矿井深层有公司的重要样本。请避免……不必要的破坏。'],
+      ['me', '我是来守晶核的，不是来守你们的样本的。'],
+      ['qian', '五道门一道接一道开，最后连西边的直道也会打通。防线要往深处铺。'],
+      ['rust', '欢迎来到我的巢。我的女儿们，饿了。'],
+    ],
+    waves: {
+      8: [['prism', '西侧直道开启！那条路直通晶核，没有拐弯——别让它变成高速公路。']],
+    },
+    boss: [['rust', '看，我的女儿。她会生出更多的我。']],
+    win: [
+      ['prism', '母巢死前发出了一段信号……频段属于星穹矿业。'],
+      ['me', '韩策。你们的「样本」，到底是什么？'],
+      ['han', '……这是公司机密。请专心执行你的任务。'],
+      ['qian', '他挂了？我就知道。'],
+    ],
+    lose: [['prism', '矿井失守。母巢会继续孵化……我们必须回去。']],
+  },
+  outpost: {
+    n: 5, ch: '第五章', title: '荒原前哨', place: '荒原星 · 联合军前哨',
+    goal: '联合军撤退了，守住他们丢下的晶核',
+    sum: '联合军放弃了荒原前哨，连攻城机甲都没带走。七号第一次在露天作战，还在前哨的数据库里挖出了真相的线索。',
+    brief: [
+      ['hq', '七号，荒原前哨的联合军已经撤退，只留下一颗晶核和一堆来不及带走的装备。'],
+      ['prism', '撤退时他们又丢下了一台攻城机甲「破城者」，现在归锈潮了。好消息是，上一台已经被你拆了。'],
+      ['me', '联合军跑得比锈潮还快。'],
+      ['qian', '露天作战没有天花板挂锤子，但有高地和二层桥。站高点，往下打——守卫队最喜欢的地形。'],
+    ],
+    waves: {
+      5: [['prism', '西侧小路开启，它们开始绕路了。锈潮在学习，这让我很不舒服。']],
+    },
+    boss: [['rust', '你们的军队逃了。只剩你，和你那些小玩具。']],
+    win: [
+      ['prism', '我解开了前哨的数据库。三年前，星穹矿业在这片星域申请过一个项目——「噬晶纳米虫」。'],
+      ['me', '噬晶……纳米虫？'],
+      ['prism', '一种能吃掉晶核的纳米机器，用来开采晶核。一年前，项目被标记为「封存」。地点：冰封实验室。'],
+      ['qian', '原来是他们放出来的东西。'],
+    ],
+    lose: [['prism', '前哨失守。联合军撤退得很专业，我们不需要学这个。']],
+  },
+  canyon: {
+    n: 6, ch: '第六章', title: '赤岩峡谷', place: '赤岩星 · 大峡谷',
+    goal: '挡住锈潮主力，守住通往冰封实验室的最后一扇门',
+    sum: '锈潮主力穿越赤岩峡谷，泰坦和熔炉巨像同时出动。锈母第一次亲自出现在战场上。',
+    brief: [
+      ['hq', '锈潮主力正在穿越赤岩峡谷。峡谷尽头的晶核，是通往冰封实验室的最后一扇门。'],
+      ['qian', '谷底只有一条路，两边全是崖。站在崖顶居高临下——要是掉下去了，顺着梯子爬上来。'],
+      ['prism', '侦测到两个 BOSS 级信号。锈母把她最好的东西都派来了。'],
+      ['rust', '小守卫，你挡了我五扇门。这一扇，我亲自来敲。'],
+      ['me', '那就来吧。一个都别想过去。'],
+    ],
+    waves: {
+      6: [['prism', '东侧裂谷开启！第三路锈化体直接冲进谷底了。']],
+    },
+    boss: [['rust', '我的孩子们，把这扇门——砸开！']],
+    win: [
+      ['rust', '……为什么？为什么你总要挡在我和晶核之间？我只是……饿。'],
+      ['prism', '锈母在撤退。信号源……指向冰封实验室。'],
+      ['qian', '该去把这事了结了，小七。'],
+    ],
+    lose: [['rust', '门开了。真甜。'], ['prism', '……我们必须夺回来。回传系统准备好了。']],
+  },
+  cryolab: {
+    n: 7, ch: '第七章', title: '冰封真相', place: '冰封星 · 星穹矿业第零实验室',
+    goal: '守住整个边境晶格的主晶核，终结锈母',
+    sum: '一切的源头。锈潮不是天灾，是星穹矿业亲手造出来的。实验室里培育的新品系，专门针对守卫队设计。',
+    brief: [
+      ['han', '七号！实验室里有公司全部的研究成果，你必须保住——'],
+      ['prism', '我切断了他的频道。他话太多。'],
+      ['prism', '真相是这样的：两百年前的锈潮是天灾——一种寄生在晶核里的古老虫群。守卫队把它们封在了这片冰原下面。'],
+      ['prism', '星穹矿业挖出了冬眠的虫群，把它改造成开采晶核的纳米虫。然后，它们学会了思考，学会了饿。'],
+      ['qian', '第一次是天灾，这一次是人祸。小七，这里的晶核连着整个边境晶格——它要是丢了，就全完了。'],
+      ['rust', '我出生的地方。我回来了，来吃掉我的摇篮。'],
+      ['me', '让它们走进来。'],
+    ],
+    waves: {
+      2: [['prism', '实验室培育的新品系，专门绕开守卫队的地面陷阱。设计它的人很了解你们。'], ['qian', '哼，偷看我的图纸。']],
+      6: [['qian', '反应装甲？连陷阱伤害都算进去了……小七，这回得靠你的枪了。']],
+    },
+    boss: [['rust', '我是你们造的。是你们，教会了我饥饿。']],
+    win: [
+      ['rust', '……好冷。原来，这就是……饱了的感觉吗……'],
+      ['prism', '锈母的信号消失了。边境晶格……全部稳定。'],
+      ['hq', '守卫队总部宣布：七号，你的见习期结束了。'],
+      ['qian', '哈！我就说三天够了。'],
+      ['prism', '不过，残余的锈潮还散落在各个节点。无尽防线，随时欢迎你。'],
+    ],
+    lose: [['rust', '整个晶格……都是我的了。'], ['prism', '不。还没结束。七号，再来一次。']],
+  },
+};
+const CHAPTER_ORDER = ['station', 'fortress', 'furnace', 'abyss', 'outpost', 'canyon', 'cryolab'];
+
+/* ---------- BOSS 登场：称号 ---------- */
+const BOSS = {
+  boss: { epithet: '锈母的攻城巨兽', line: '用十几艘被吞掉的矿船熔铸而成，胸口那团火，是一颗被吃掉一半的晶核' },
+  siege: { epithet: '被锈潮夺走的联合军攻城机甲', line: '炮管上还刻着联合军的编号' },
+  colossus: { epithet: '炉渣与锈铸成的巨人', line: '它走过的地方，地面会化成熔岩' },
+  brood: { epithet: '锈潮的孵化母体', line: '锈母叫她「女儿」' },
+};
+
+/* ---------- 插话池（随机挑一句） ---------- */
+const LINES = {
+  tutStart: [['prism', '入职训练开始。别紧张，这里的锈化体都是模拟出来的——大部分是。']],
+  tutDone: [['qian', '合格！小七，欢迎加入晶核守卫队。']],
+  endless: [['prism', '无尽防线：锈潮没有尽头，能守多久守多久。排行榜上的名字都是这么熬出来的。']],
+  daily: [['hq', '今日委托已下达：联合会指定了战场和条件。守住它，记一颗功勋星。']],
+  waveClear: [
+    ['prism', '这一波清理完毕。下一波正在路上，请珍惜这 30 秒。'],
+    ['prism', '残骸回收完毕，赏金已到账。'],
+    ['prism', '干得不错——我是说，以一个入职三天的人来说。'],
+    ['me', '下一波。'],
+    ['me', '就这？'],
+    ['qian', '趁现在升级陷阱，别攥着赏金过年。'],
+  ],
+  crystalHit: [['prism', '晶核受损！有东西漏过去了——在它们的路上再补一道陷阱。']],
+  crystalHalf: [['prism', '晶核完整度跌破一半。我不想吓你，但我们正在输。']],
+  crystalLow: [['prism', '晶核告急！再漏几只，这扇门就要开了！']],
+  death: [
+    ['prism', '生命体征消失。回传系统启动，5 秒后把你送回基地重建——别再这么干了。'],
+    ['prism', '你又死了。我开始考虑给回传系统办会员卡。'],
+    ['qian', '小七！别跟它们贴脸，那是陷阱的活儿！'],
+  ],
+  bossDown: [['me', '一个都别想过去。'], ['prism', 'BOSS 信号消失。……我承认，刚才那一下有点帅。'], ['qian', '大块头，倒得也响！']],
+  bossPhase2: [['rust', '你以为这就结束了？'], ['rust', '我的护盾……是从你们身上学来的。']],
+  bossPhase3: [['rust', '我好饿……我好饿！'], ['rust', '让开，小守卫！']],
+  multiKill: [['me', '老钳的手艺，没得说。'], ['qian', '看见没？这就叫艺术。'], ['me', '这就是守卫队的待客之道。'], ['prism', '一次清掉一整排。我记下来了，写进你的档案。']],
+  buy: [['qian', '这把可是我的心头肉，别弄丢了。'], ['qian', '好眼光。拿着，赏金我从账上扣。'], ['qian', '锈潮侵蚀不了它，因为我没给它装芯片——全是机械。']],
+  wmod: [['qian', '改装完成。这玩意儿，我只给信得过的人装。']],
+  laneOpen: [['prism', '新出怪口开启！它们换路了——分点陷阱过去。']],
+  emp: [['prism', 'EMP！附近的陷阱要瘫一会儿，用枪顶上！']],
+  hacked: [['qian', '它们在拆我的陷阱！宰了那个工兵！'], ['qian', '又是骇客！我的陷阱可没装芯片，它们到底怎么做到的……']],
+  coopJoin: [['hq', '支援守卫已抵达。总算不是一个人了。']],
+};
+
+/* ---------- 新敌人第一次出现时，棱镜的情报（一句话） ---------- */
+const MON_INTRO = {
+  grunt: '赛博格步兵：被锈潮同化的安保兵，又慢又笨，但数量多。陷阱的老主顾。',
+  runner: '疾行猎犬：速度极快，专钻防线的空当——减速器能让它们慢下来。',
+  brute: '重装赛博格：皮糙肉厚，击退只吃一半。让它在毒刺上多站一会儿。',
+  flyer: '浮游无人机：从头顶飞过去，地面陷阱碰不到。防空导弹、机枪和墙壁陷阱能打。',
+  bomber: '自爆蜘蛛：撞到阻挡就爆炸。别让它贴着你的磁暴塔。',
+  elite: '狂猩赛博格：精英单位，半血后狂暴。用狙击枪和电磁炮招呼它。',
+  healer: '修复无人机：会给周围的锈化体回血——优先打下来。',
+  stalker: '幽影刺客：会隐身，炮台锁不住。踩到减速器、挨打或者靠近你都会现形。',
+  burrower: '钻地虫：会钻进地下越过一段陷阱，期间无敌。把陷阱铺长一点。',
+  sapper: '骇客工兵：会骇入附近的陷阱让它瘫痪 10 秒。老钳说这事有辱门楣。',
+  gunner: '火线射手：会停下来朝你开枪。别站在它的视线里硬拼。',
+  mite: '噬晶蛛：锈潮最原始的形态，以晶核为食。又小又快，成群出现。',
+  shield: '棱盾守卫：会给周围的锈化体套能量护盾。磁暴塔和电磁炮破盾最快。',
+  tank: '铁蹄坦克：装甲极厚，会炮击炮台。轨道电磁炮专克它。',
+  blinker: '相位行者：每隔几秒向前瞬移，能越过一排阻挡。',
+  gunship: '天穹炮艇：重装飞行单位，边扫射边空投噬晶蛛。',
+  broodling: '母巢裂体：母巢的碎块，每一块都会自己继续孵化。',
+  crawler: '攀顶蛛：倒挂在天花板上爬，地面陷阱碰不到它——用粉碎锤砸，伤害翻倍。',
+  jammer: '电磁干扰兵：它走到哪，哪里的陷阱就失灵。用枪集火它！',
+  beetle: '反应甲虫：反应装甲让陷阱伤害减半，但它怕子弹。',
+};
+
+/* ---------- 图鉴档案：敌人 / 陷阱 / 武器 / 职业 ---------- */
+const MON_LORE = {
+  grunt: '被锈潮同化的殖民地安保兵。脑子早就锈没了，只剩一条指令：向晶核前进。',
+  runner: '边境牧场的机械牧犬，锈化后成了锈潮的斥候，嗅觉专找防线的缝。',
+  brute: '原本是矿场的重型装卸工，锈潮给它焊上了一层又一层装甲。',
+  flyer: '被劫持的物流无人机。锈潮用它们越过地面上的一切。',
+  bomber: '装满不稳定晶能的矿用爆破蜘蛛。锈潮从不心疼它们。',
+  elite: '实验农场的改造猩猩。锈化后力气翻了一倍，脾气翻了十倍。',
+  healer: '锈潮的维修工，会把同伴身上的锈重新「织」好。',
+  boss: '锈母亲手造的攻城巨兽，用十几艘被吞掉的矿船熔铸而成。胸口那团火，是一颗被吃掉一半的晶核。',
+  stalker: '锈潮学会了光学迷彩。炮台的瞄准芯片看不见它们，人眼可以。',
+  burrower: '矿洞里的岩虫，锈化后仍保留着钻地的本能。',
+  sapper: '锈潮最让人不安的进化：它学会了破解守卫队的陷阱。',
+  gunner: '锈化的殖民地民兵，还记得怎么开枪，只是忘了为谁开枪。',
+  mite: '纳米虫团成的小蜘蛛，以晶核为食。锈潮的一切，都从它们开始。',
+  siege: '被锈潮夺走的联合军攻城机甲，炮管上还刻着联合军的编号。',
+  colossus: '熔炉星的锈潮把炉渣和自己熔在一起，站起来就成了它。',
+  brood: '锈潮在深渊里孵化新兵的母体。锈母叫她「女儿」。',
+  shield: '偷学了守卫队护盾技术的锈化体——棱镜对此非常不满。',
+  tank: '边境民用重型牵引车改的，锈潮给它装上了炮。',
+  blinker: '借用跃迁晶格的残余能量做短距跃迁，一闪就是六米。',
+  gunship: '被锈化的联合军炮艇，一边扫射一边往下撒噬晶蛛。',
+  broodling: '母巢被打碎后，每一块碎片都会长成新的母巢。',
+  crawler: '冰封实验室培育的新品系，专门沿天花板绕过守卫队的地面陷阱。',
+  jammer: '背着实验室造的电磁干扰器——连老钳的纯机械陷阱都能卡住。',
+  beetle: '背壳是实验室研发的反应装甲，专门针对陷阱伤害设计。看来有人很了解守卫队。',
+};
+const TRAP_LORE = {
+  slow: '老钳最早的作品：一块会「粘脚」的磁力地板，起初是给矿车刹车用的。',
+  spike: '毒刺里灌的是腐蚀凝胶，专门溶解锈潮的纳米外壳。',
+  push: '货仓的弹射卸货板改的。老钳的原话：「能弹回去的，就别让它走过来。」',
+  tesla: '用晶核余能供电的电弧塔，外壳能自己修补——守卫队唯一敢放在路中间的东西。',
+  laser: '矿脉切割激光改的，一道光横贯整条通道。',
+  flame: '锈怕火：高温会让纳米虫之间断开连接。',
+  crusher: '从旧要塞锻造车间拆下来的气锤，一锤一个。',
+  sentry: '守卫队唯一带瞄准芯片的陷阱。老钳给它加了三层防火墙，可惜防不住隐身。',
+  aa: '联合军淘汰的防空单元，老钳把它改成了也能打地面的版本。',
+  gatling: '老钳说：「有些乐趣，得亲手来。」坐上去扫射吧。',
+  rail: '老钳的新原型：用晶核脉冲把钢钉加速到音速的十倍。守住中枢站后寄来。',
+  mortar: '会把等离子团抛过墙头的原型炮。累计击杀足够多锈化体后，老钳才放心交给你。',
+  grinder: '旧要塞库房里翻出来的老古董，绞起来比新货还狠。',
+};
+const WPN_LORE = {
+  rifle: '守卫队制式脉冲步枪。老钳说它「皮实得能当锤子用」——请不要真的这么用。',
+  shotgun: '近距离把锈化体轰成零件。适合守在汇合口。',
+  sniper: '晶核电磁加速的狙击枪，一枪能穿三个。专门对付精英和 BOSS。',
+  rocket: '蜂巢火箭筒，老钳最得意的「响声」。地上天上都能炸。',
+};
+const CLS_LORE = {
+  assault: '守卫队突击科：守在汇合口，用枪补上陷阱漏掉的。',
+  engineer: '守卫队工程科：老钳的嫡传，造陷阱更便宜，拆起来也不心疼。',
+  support: '守卫队支援科：负责呼叫轨道打击，顺便照看队友。',
+  scout: '守卫队侦察科：跑得快、看得清，专门揪出隐身的刺客。',
+};
+
+/* ---------- 图鉴「背景」：世界观条目 ---------- */
+const WORLD = [
+  { id: 'core', grp: '世界观', name: '晶核与晶格', text: '<p>边境星域的殖民地都靠晶核供能。晶核是一种古老的晶体，每一颗都是「跃迁晶格」上的一扇门，连着别的殖民地。</p><p>晶核一旦被锈潮吞掉，锈潮就能顺着晶格跳到下一个殖民地——所以守卫守的不是一块水晶，而是一扇门。</p>' },
+  { id: 'order', grp: '世界观', name: '晶核守卫队', text: '<p>两百年前第一次锈潮时，一群工程师发现：锈潮能侵蚀枪械和士兵，却侵蚀不了没有芯片的纯机械。</p><p>他们在晶核周围修起杀戮通道、布满陷阱，成立了晶核守卫队。信条只有一句：<b>让它们走进来。</b></p><p>守卫队分为突击、工程、支援、侦察四科。和平太久，守卫队老的老、散的散，锈潮回来时，前线只剩见习守卫七号。</p>' },
+  { id: 'rust', grp: '世界观', name: '锈潮', text: '<p>一种吞食晶核的纳米机械瘟疫。被它碰过的士兵变成赛博格，野兽变成猎犬和狂猩，无人机和机甲被它劫持。</p><p>锈潮追着晶核的能量前进，只认通往晶核的那条路——这就是为什么守卫队的陷阱永远铺在红线上。</p>' },
+  { id: 'rustmother', grp: '世界观', name: '锈母', text: '<p>锈潮的蜂群意识。她的声音会通过被劫持的通讯频道传过来：礼貌、冰冷，而且永远很饿。</p><p>泰坦、破城者、熔炉巨像和深渊母巢，都是她的造物。</p>' },
+  { id: 'corp', grp: '世界观', name: '星穹矿业', text: '<p>边境最大的晶核开采公司。三年前，他们在冰封星挖出了第一次锈潮留下的冬眠虫群，把它改造成开采晶核的「噬晶纳米虫」。</p><p>项目在一年前被「封存」。没人知道，封存的到底是项目，还是真相。</p>' },
+  { id: 'economy', grp: '世界观', name: '赏金与军械库', text: '<p>联合政府按击杀向守卫发放赏金——这就是你的金币。晶核的回收系统会把锈化体的残骸折算成赏金，自动到账。</p><p>赏金可以在老钳的军械库换枪、改装，也可以拿去造陷阱。全队共用一个账户。</p>' },
+  { id: 'merit', grp: '世界观', name: '功勋星与训练', text: '<p>守卫队总部按每一次防守的表现颁发功勋星：守住晶核一颗，晶核剩七成以上两颗，晶核毫发无损三颗。</p><p>功勋星用来参加守卫队训练（天赋），累计越多，军衔越高。</p>' },
+  { id: 'recall', grp: '世界观', name: '回传系统', text: '<p>守卫装甲内置紧急回传系统：守卫阵亡后，装甲会在几秒内把人传回基地重建。</p><p>棱镜说这套系统「很贵」，并且希望你少用。</p>' },
+  { id: 'lab', grp: '世界观', name: '科研舱与机关', text: '<p>每座晶核设施都配有守卫队的科研舱：用赏金研究的科技本局有效，补给柜可以补满生命、手雷和弹药。</p><p>冷冻喷淋、落闸门、喷火口、重力井，都是守卫队当年修在通道里的老机关。</p>' },
+  { id: 'cast-me', grp: '人物', name: '七号', who: 'me', text: '<p>晶核守卫队见习守卫，入职第三天就被推上了前线。</p><p>话不多，口头禅是「让它们走进来」和「一个都别想过去」。</p>' },
+  { id: 'cast-prism', grp: '人物', name: '棱镜', who: 'prism', text: '<p>装在七号护臂里的战术 AI，负责情报、战术提示，以及吐槽。</p><p>精确到小数点后两位，毒舌程度没有上限。</p>' },
+  { id: 'cast-qian', grp: '人物', name: '老钳', who: 'qian', text: '<p>守卫队的老军械官，第一次锈潮老兵的徒孙。一只手在年轻时换成了机械钳，外号由此而来。</p><p>所有陷阱都出自他的工坊，枪和改装件也是他造的。他坚持不给陷阱装芯片：「锈潮能侵蚀芯片，侵蚀不了螺丝。」</p>' },
+  { id: 'cast-han', grp: '人物', name: '韩策', who: 'han', text: '<p>星穹矿业边境事务主管。说话客气，关心冶炼厂、样本和季度报表——不太关心别的。</p>' },
+  { id: 'cast-rust', grp: '人物', name: '锈母', who: 'rust', text: '<p>锈潮的意识。她说自己只是「饿」。</p>' },
+];
+
+root.TD_STORY = { CAST, PORTRAIT, RANKS, PROLOGUE, CHAPTERS, CHAPTER_ORDER, BOSS, LINES, MON_INTRO, MON_LORE, TRAP_LORE, WPN_LORE, CLS_LORE, WORLD };
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script>
+/* ============================================================
  * 晶核守卫 · 客户端（第一人称输入、渲染、特效、音效、HUD）
  * 单机：命令直接交给 Sim；联机：见「网络层」，房主权威 + 快照广播，
  * 队友端维护镜像 Sim，渲染代码两端通用。
@@ -5296,7 +5800,7 @@ const MP = {
 };
 const AWAY_GRACE = 90000, HOST_GRACE = 60000;
 try { MP.name = (localStorage.getItem('jhsw-nick') || '').slice(0, 12); } catch (e) { /* 无存储 */ }
-if (!MP.name) MP.name = '特工' + Math.floor(100 + Math.random() * 900);
+if (!MP.name) MP.name = '守卫' + Math.floor(100 + Math.random() * 900);
 const NET_CMDS = new Set(['build', 'upgrade', 'sell', 'ready', 'dmg', 'buy', 'wmod', 'rocket', 'nade', 'ult', 'use', 'research', 'resupply']);
 const cleanName = v => String(v || '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u2028-\u202e\u2060-\u206f\ufeff]/g, '').trim().slice(0, 12);
 const r2n = v => Math.round(v * 100) / 100, r3n = v => Math.round(v * 1000) / 1000;
@@ -5721,8 +6225,8 @@ function gameCfg() {
 }
 /* ---------- 局外成长：星星与天赋 ---------- */
 const DIFF_IDS = ['normal', 'hard', 'hell'];
-// 三星评价：通关 1 颗；水晶剩 70% 以上 2 颗；水晶无损 3 颗
-const STAR_RULES = ['通关', '水晶剩余 ≥ 70%', '水晶无损（满血通关）'];
+// 三星评价：通关 1 颗；晶核剩 70% 以上 2 颗；晶核无损 3 颗
+const STAR_RULES = ['通关', '晶核剩余 ≥ 70%', '晶核无损（满血通关）'];
 const starsOf = r => !r || !r.win ? 0 : r.grade === 'S' ? 3 : r.grade === 'A' ? 2 : 1;
 const starStr = n => '★'.repeat(n) + '☆'.repeat(3 - n);
 const PROG = {
@@ -5778,7 +6282,8 @@ const winsOn = d => MAP_LIST.filter(m => { const r = loadBest()[bestKey(m.id, d,
 const ACHS = [
   { id: 'tut', name: '初来乍到', desc: '完成新手引导', star: 1, ok: () => tutDone() },
   { id: 'win1', name: '首战告捷', desc: '通关任意关卡', star: 1, ok: () => DIFF_IDS.some(d => winsOn(d) > 0) },
-  { id: 'perfect', name: '完美防线', desc: '任意关卡拿到三星（水晶无损通关）', star: 1, ok: () => MAP_LIST.some(m => DIFF_IDS.some(d => starsOf(loadBest()[bestKey(m.id, d, 'std')]) >= 3)) },
+  { id: 'perfect', name: '完美防线', desc: '任意关卡拿到三星（晶核无损通关）', star: 1, ok: () => MAP_LIST.some(m => DIFF_IDS.some(d => starsOf(loadBest()[bestKey(m.id, d, 'std')]) >= 3)) },
+  { id: 'story', name: '真相大白', desc: '通关主线第七章「冰封真相」', star: 2, ok: () => mapWon('cryolab') },
   { id: 'normalAll', name: '全线告捷', desc: '所有关卡都在普通难度通关', star: 2, prog: () => [winsOn('normal'), MAP_LIST.length], ok: () => winsOn('normal') >= MAP_LIST.length },
   { id: 'hardAll', name: '钢铁防线', desc: '所有关卡都在困难难度通关', star: 3, prog: () => [winsOn('hard'), MAP_LIST.length], ok: () => winsOn('hard') >= MAP_LIST.length },
   { id: 'hell1', name: '炼狱行者', desc: '任意关卡在炼狱难度通关', star: 2, ok: () => winsOn('hell') > 0 },
@@ -6156,7 +6661,7 @@ function buildCommonStatic(S, TH) {
       E.pushBeam('box', tx, gy, tz, tx - tmp.dx * 0.45 - rx * 0.4, gy2, tz - tmp.dz * 0.45 - rz * 0.4, 0.13, 0.01, ch);
     }
   }
-  // 水晶基座
+  // 晶核基座
   const cp = S.crystalPos, CG = cp.y || 0;
   E.push('cyl', cp.x, CG + 0.25, cp.z, 0, 4.6, 0.5, 4.6, col(0.16, 0.2, 0.24, 1, 0, 0, 4));
   E.push('cyl', cp.x, CG + 0.55, cp.z, 0, 3.2, 0.12, 3.2, col(0.22, 0.3, 0.36));
@@ -7594,7 +8099,7 @@ function evoFx(S, tr, since) {
 }
 
 /* ============================================================
- * 水晶 / 传送门 / 弹体 / 其他玩家
+ * 晶核 / 传送门 / 弹体 / 其他玩家
  * ============================================================ */
 let crystalHitT = 0;
 function drawCrystal(S) {
@@ -8215,6 +8720,7 @@ function handleEvents(S) {
         burst(e.x, e.y + 1, e.z, hasCorpse ? 10 : 6, { c: hasCorpse ? [1, 0.75, 0.3] : [1, 0.35, 0.2], sp0: 1, sp1: 4, l0: 0.2, l1: 0.4, s0: hasCorpse ? 0.08 : 0.3, s1: 0.02 });
         if (e.bounty) floatNum(e.x, e.y + (def.fly ? 0.6 : 2.0), e.z, '+' + e.bounty, 'gold');
         if (e.pid === PID) { Snd.play('kill', e.x, e.z); if (MP.role === 'client') hitMarker('kill'); }
+        if (S === sim && mode === 'play' && !Tut.on) storyKill(e);
         if (def.elite) feed(`精英「${def.name}」已被击杀`, 'good');
         if (def.boss) { feed(`BOSS「${def.name}」被击败！`, 'good'); shake(0.6); Snd.play('boom'); }
         break;
@@ -8223,7 +8729,8 @@ function handleEvents(S) {
         crystalHitT = 0.6; alarm();
         const cp = S.crystalPos;
         burst(cp.x, 2.6, cp.z, 18, { c: [1, 0.3, 0.3], sp0: 2, sp1: 8, s0: 0.2 });
-        feed(`${MON[e.mtype].name} 冲击水晶 -${e.dmg}`, 'bad');
+        feed(`${MON[e.mtype].name} 冲击晶核 -${e.dmg}`, 'bad');
+        if (S === sim && !Tut.on) storyCore(S);
         Snd.play('core');
         if (e.mtype === 'boss') shake(1);
         break;
@@ -8316,13 +8823,14 @@ function handleEvents(S) {
       case 'waveStart': {
         portalFlare.A = portalFlare.B = 2;
         const total = e.total;
-        banner(e.boss ? `第 ${e.wave} / ${total} 波 · 终局` : `第 ${e.wave} / ${total} 波`, e.name + (e.tip ? ' — ' + e.tip : ''), e.boss);
+        banner(e.boss ? `第 ${e.wave} / ${total} 波 · 终局` : `第 ${e.wave} / ${total} 波`, e.name + (e.tip && !chatterOn() ? ' — ' + e.tip : ''), e.boss);
+        if (S === sim) storyWave(e);
         feed(`第 ${e.wave} 波「${e.name}」来袭，共 ${e.count} 只` + (e.bonus ? `，提前开战 +${e.bonus} 金币` : ''), '');
         Snd.play('wave');
         break;
       }
-      case 'waveClear': banner(`第 ${e.wave} 波 清除`, `波次奖励 +${e.bonus} 金币 · 布防阶段 30 秒`, false, 'clear'); Snd.play('clear'); break;
-      case 'boss': { const bd = MON[e.mtype] || MON.boss; feed(`BOSS「${bd.name}」出现在${e.laneName || ''}出怪口！`, 'bad'); if (TD.BOSS_TIP && TD.BOSS_TIP[e.mtype]) feed(TD.BOSS_TIP[e.mtype], 'bad'); Snd.play('boss'); shake(0.4); break; }
+      case 'waveClear': banner(`第 ${e.wave} 波 清除`, `波次奖励 +${e.bonus} 金币 · 布防阶段 30 秒`, false, 'clear'); Snd.play('clear'); if (S === sim && !Tut.on) sayPool('waveClear', { cd: 60, chance: 0.45 }); break;
+      case 'boss': { const bd = MON[e.mtype] || MON.boss; if (S === sim) { bossCard(e.mtype); const ch = curChapter(); if (ch && ch.boss && !RUN.bossSaid) { RUN.bossSaid = true; sayLines(ch.boss, 3); } } feed(`BOSS「${bd.name}」出现在${e.laneName || ''}出怪口！`, 'bad'); if (TD.BOSS_TIP && TD.BOSS_TIP[e.mtype]) feed(TD.BOSS_TIP[e.mtype], 'bad'); Snd.play('boss'); shake(0.4); break; }
       case 'burrow': case 'surface': {
         const m = S._mById.get(e.id), x = m ? m.x : e.x, z = m ? m.z : e.z;
         for (let i = 0; i < 14; i++) particle({ x: x + rnd(-0.7, 0.7), y: 0.2, z: z + rnd(-0.7, 0.7), vx: rnd(-3, 3), vy: rnd(2, 6), vz: rnd(-3, 3), life: rnd(0.5, 0.9), s0: rnd(0.08, 0.2), s1: 0.05, c: [0.35, 0.27, 0.2], g: 'box', grav: 14, bounce: true, add: false });
@@ -8333,6 +8841,7 @@ function handleEvents(S) {
       case 'hacked': {
         burst(e.x, e.y + 0.6, e.z, 16, { c: [0.3, 1, 0.5], sp0: 1, sp1: 4, s0: 0.08, l0: 0.3, l1: 0.6 });
         feed(`${TRAP[e.trap] ? TRAP[e.trap].name : '陷阱'} 被骇客工兵骇入，瘫痪 10 秒`, 'bad');
+        if (S === sim) sayPool('hacked', { cd: 45 });
         Snd.play('hack', e.x, e.z, { range: 60 });
         break;
       }
@@ -8367,6 +8876,7 @@ function handleEvents(S) {
       case 'laneOpen': {
         for (const l of e.lanes) portalFlare[l] = 3;
         feed(`新出怪口开启：${e.names.join('、')}`, 'bad'); Snd.play('emp'); shake(0.3);
+        if (S === sim && performance.now() - RUN.lastStory > 4000) sayPool('laneOpen', { cd: 10, pri: 2 });
         setTimeout(() => banner('新出怪口开启', e.names.join('、') + ' · 注意分兵布防', true), 3300);
         break;
       }
@@ -8381,7 +8891,7 @@ function handleEvents(S) {
         rings.push({ x: e.x, z: e.z, y: 1.5, r0: 1, r1: e.r, t: 0, life: 0.6, c: [0.45, 0.85, 1] });
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: e.r, t: 0, life: 0.7, c: [0.45, 0.85, 1] });
         flashLight(e.x, 4, e.z, 18, [0.4, 0.8, 1], 2, 0.3);
-        if (e.n) feed(`BOSS 释放 EMP，${e.n} 个陷阱短暂瘫痪`, 'bad');
+        if (e.n) { feed(`BOSS 释放 EMP，${e.n} 个陷阱短暂瘫痪`, 'bad'); if (S === sim) sayPool('emp', { cd: 40 }); }
         Snd.play('emp', e.x, e.z, { range: 80 });
         break;
       }
@@ -8397,6 +8907,7 @@ function handleEvents(S) {
         if (e.phase === 2) { banner(`${nm} · 第二阶段`, '套上能量护盾并召唤护卫——电系陷阱、电磁炮破盾最快', true); feed(`${nm} 进入第二阶段：能量护盾 + 护卫`, 'bad'); }
         else { banner(`${nm} · 狂暴`, '移动加快、技能冷却大幅缩短，再召唤一批护卫——全力输出！', true); feed(`${nm} 进入狂暴阶段！`, 'bad'); }
         Snd.play('roar', e.x, e.z, { range: 120 }); Snd.play('boss'); shakeAt(e.x, e.z, 0.7, 60);
+        if (S === sim) sayPool(e.phase === 2 ? 'bossPhase2' : 'bossPhase3', { pri: 2 });
         rings.push({ x: e.x, z: e.z, y: 0.1, r0: 1, r1: 12, t: 0, life: 0.7, c: e.phase === 2 ? [0.45, 0.88, 1] : [1, 0.3, 0.2] });
         break;
       }
@@ -8408,7 +8919,7 @@ function handleEvents(S) {
         break;
       }
       case 'wmod': { const q = S.s.players[e.pid], M = (TD.WMODS[e.w] || []).find(x => x.id === e.m); if (q && M && e.pid !== PID) feed(`${q.name} 把 ${WPN[e.w].name} 改装成「${M.name}」`, 'good'); break; }
-      case 'buy': { const q = S.s.players[e.pid]; if (q && WPN[e.w]) feed(`${e.pid === PID ? '你' : q.name} 购买了 ${WPN[e.w].name}（${WPN[e.w].cost} 金币）`, 'good'); Snd.play('buy'); break; }
+      case 'buy': { const q = S.s.players[e.pid]; if (q && WPN[e.w]) feed(`${e.pid === PID ? '你' : q.name} 购买了 ${WPN[e.w].name}（${WPN[e.w].cost} 金币）`, 'good'); Snd.play('buy'); if (S === sim && e.pid === PID && !Tut.on) sayPool('buy', { cd: 30, pri: 2 }); break; }
       case 'wswitch': if (e.pid === PID) Snd.play('switch'); break;
       case 'throw': { const q = S.s.players[e.pid]; Snd.play('throw', q && e.pid !== PID ? q.x : undefined, q ? q.z : undefined); break; }
       case 'rocket': { const q = S.s.players[e.pid]; if (q && e.pid !== PID) Snd.play('rocketFire', q.x, q.z); break; }
@@ -8432,15 +8943,15 @@ function handleEvents(S) {
         Snd.play('strike', e.x, e.z, { range: 150 });
         break;
       }
-      case 'pdead': if (e.pid === PID) { feed('你倒下了，5 秒后在基地复活', 'bad'); } else if (S.s.players[e.pid]) feed(`${S.s.players[e.pid].name} 倒下了`, 'bad'); break;
-      case 'pjoin': if (MP.role !== 'solo' && e.pid !== PID) feed(`${e.name} 加入了战斗`, 'good'); break;
+      case 'pdead': if (e.pid === PID) { feed('你倒下了，回传系统 5 秒后把你送回基地', 'bad'); if (S === sim && !Tut.on) sayPool('death', { cd: 25, pri: 2 }); } else if (S.s.players[e.pid]) feed(`${S.s.players[e.pid].name} 倒下了`, 'bad'); break;
+      case 'pjoin': if (MP.role !== 'solo' && e.pid !== PID) { feed(`${e.name} 加入了战斗`, 'good'); if (S === sim) sayPool('coopJoin', { cd: 300 }); } break;
       case 'pleave': if (MP.role !== 'solo') feed(`${e.name} 离开了战斗`, 'bad'); break;
       case 'pready': if (e.pid !== PID && e.on && S.s.players[e.pid]) feed(`${S.s.players[e.pid].name} 已准备开战`, ''); break;
       case 'respawn': if (e.pid === PID) { const p = S.s.players[PID]; cam.yaw = 0; cam.pitch = 0; void p; } break;
       case 'reload': if (e.pid === PID) Snd.play('reload'); break;
       case 'jump': if (e.pid === PID) Snd.play('jump'); break;
-      case 'victory': endTimer = 2.2; Snd.play('win'); banner('胜利', '核心水晶守住了', false, 'clear'); break;
-      case 'defeat': endTimer = 2.2; Snd.play('lose'); banner('核心水晶被摧毁', '防线失守', true); break;
+      case 'victory': endTimer = 2.2; Snd.play('win'); banner('胜利', '晶核守住了 · 一个都没放过去', false, 'clear'); break;
+      case 'defeat': endTimer = 2.2; Snd.play('lose'); banner('晶核被摧毁', '防线失守', true); break;
     }
   }
 }
@@ -8533,6 +9044,245 @@ function banner(t, s, danger, cls) {
 }
 let toastT = 0;
 function toast(t, bad) { const el = $('toast'); el.textContent = t; el.className = 'on' + (bad ? ' bad' : ''); toastT = 1.6; }
+
+/* ============================================================
+ * 剧情：无线电对话、任务简报、序章、BOSS 登场（文字都在 story.js）
+ * ============================================================ */
+const ST = window.TD_STORY || { CAST: {}, PORTRAIT: {}, LINES: {}, CHAPTERS: {}, CHAPTER_ORDER: [], BOSS: {}, MON_INTRO: {}, MON_LORE: {}, TRAP_LORE: {}, WPN_LORE: {}, CLS_LORE: {}, WORLD: [], PROLOGUE: [], RANKS: [[0, '守卫']] };
+const CAST = ST.CAST;
+// 自动化测试里默认不弹剧情（序章 / 简报），测试脚本设置 window.__story 才打开
+const storyAuto = () => !!window.__story || !navigator.webdriver;
+const STORY = {
+  d: (() => { try { return JSON.parse(localStorage.getItem('jhsw-story') || '{}') || {}; } catch (e) { return {}; } })(),
+  save() { try { localStorage.setItem('jhsw-story', JSON.stringify(this.d)); } catch (e) { /* 无存储 */ } },
+  briefSeen(id) { return !!(this.d.b && this.d.b[id]); },
+  markBrief(id) { (this.d.b || (this.d.b = {}))[id] = 1; this.save(); },
+  monSeen(t) { return !!(this.d.m && this.d.m[t]); },
+  markMon(t) { if (this.monSeen(t)) return; (this.d.m || (this.d.m = {}))[t] = 1; this.save(); },
+  introSeen() { return !!this.d.i; },
+  markIntro() { this.d.i = 1; this.save(); },
+};
+const portraitOf = who => (ST.PORTRAIT && ST.PORTRAIT[who]) || '';
+function tkLine(who, text) {
+  const c = CAST[who] || { name: '', col: '#cfd8e3' }, nar = who === 'nar';
+  return `<li class="tkLine${nar ? ' nar' : ''}${who === 'rust' ? ' rust' : ''}" style="--tc:${c.col}">${nar ? '' : `<span class="tkP">${portraitOf(who)}</span>`}<div>${c.name ? `<b>${c.name}</b>` : ''}<p>${text}</p></div></li>`;
+}
+// 说话的“嘀嘀”声：每个角色音高不同
+function talkBlip(who, soft) {
+  const c = CAST[who];
+  if (!Snd.ctx || !c || !c.pitch || !(settings.vol > 0)) return;
+  const f = 330 * c.pitch * (0.9 + Math.random() * 0.22);
+  try { Snd.tone(who === 'rust' ? 'sawtooth' : 'square', f, f * 0.95, 0.045, (who === 'rust' ? 0.032 : 0.022) * (soft ? 0.6 : 1), 0); } catch (e) { /* 忽略 */ }
+}
+// 当前这局对应的主线章节（无尽 / 每日 / 新手引导没有）
+function curChapter() { return sim && !sim.s.endless && !sim.s.daily && !Tut.on ? ST.CHAPTERS[sim.def.id] || null : null; }
+const chatterOn = () => settings.chatter !== false;
+/* ---------- 无线电对话框 ---------- */
+const Talk = { q: [], cur: null, typed: 0, hold: 0, gap: 0, cd: {} };
+function say(who, text, opt) {
+  opt = opt || {};
+  if (!CAST[who] || !text || (!chatterOn() && !opt.force)) return;
+  const pri = opt.pri || 1;
+  // 闲聊（优先级 1）不排队：前面有话就丢掉
+  if (pri <= 1 && (Talk.q.length || (Talk.cur && Talk.cur.pri > 1))) return;
+  if (Talk.q.length >= 6) Talk.q.splice(Talk.q.findIndex(x => x.pri <= pri) >>> 0, 1);
+  Talk.q.push({ who, text, pri });
+}
+function sayLines(lines, pri) { for (const l of lines || []) say(l[0], l[1], { pri: pri || 3 }); }
+function sayPool(key, opt) {
+  const pool = ST.LINES[key]; if (!pool || !pool.length) return false;
+  opt = opt || {};
+  const now = performance.now();
+  if (opt.cd && Talk.cd[key] && now - Talk.cd[key] < opt.cd * 1000) return false;
+  if (opt.chance !== undefined && Math.random() > opt.chance) return false;
+  Talk.cd[key] = now;
+  const l = pool[Math.floor(Math.random() * pool.length)];
+  say(l[0], l[1], opt);
+  return true;
+}
+function talkReset() { Talk.q.length = 0; Talk.cur = null; Talk.gap = 0; $('talk').hidden = true; }
+function updateTalk(dt) {
+  const box = $('talk');
+  if (!Talk.cur) {
+    if (Talk.gap > 0) { Talk.gap -= dt; if (Talk.gap <= 0 && !Talk.q.length) box.hidden = true; return; }
+    const nx = Talk.q.shift();
+    if (!nx) return;
+    Talk.cur = nx; Talk.typed = 0; Talk.hold = 0;
+    const c = CAST[nx.who] || {};
+    box.style.setProperty('--tc', c.col || 'var(--crys)');
+    box.className = nx.who === 'rust' ? 'rust' : '';
+    $('talkP').innerHTML = portraitOf(nx.who);
+    $('talkName').textContent = c.name || ''; $('talkRole').textContent = c.role || '';
+    $('talkText').textContent = '';
+    box.hidden = false; void box.offsetWidth;
+  }
+  const cu = Talk.cur, L = cu.text.length;
+  if (Talk.typed < L) {
+    const b = Math.floor(Talk.typed);
+    Talk.typed = Math.min(L, Talk.typed + dt * 32);
+    const n = Math.floor(Talk.typed);
+    if (n !== b) { $('talkText').textContent = cu.text.slice(0, n); if (n % 3 === 1) talkBlip(cu.who); }
+  } else {
+    Talk.hold += dt;
+    if (Talk.hold > Math.max(2.4, L * 0.075) * (Talk.q.length ? 0.7 : 1)) { Talk.cur = null; Talk.gap = 0.3; box.classList.add('out'); }
+  }
+}
+/* ---------- 本局剧情状态 ---------- */
+const RUN = { seen: new Set(), scanT: 0, hit: false, half: false, low: false, kills: [], bossSaid: false, lastStory: 0, tip: '' };
+function runReset() { RUN.seen = new Set(); RUN.scanT = 0; RUN.hit = RUN.half = RUN.low = RUN.bossSaid = false; RUN.kills = []; RUN.lastStory = 0; RUN.tip = ''; }
+// 开局：章节标题横幅；没看过简报（联机）就在无线电里补上
+function storyBegin() {
+  if (!sim || Tut.on) return;
+  const ch = curChapter();
+  if (sim.s.endless) { sayPool('endless', { pri: 3 }); banner('无尽防线', '锈潮没有尽头 · 能守多久守多久'); return; }
+  if (sim.s.daily) { sayPool('daily', { pri: 3 }); return; }
+  if (!ch) return;
+  banner(`${ch.ch} · ${ch.title}`, ch.goal);
+  if (!STORY.briefSeen(sim.def.id)) { sayLines(ch.brief, 3); STORY.markBrief(sim.def.id); RUN.lastStory = performance.now(); }
+}
+function storyWave(e) {
+  if (Tut.on) return;
+  const ch = curChapter();
+  RUN.tip = e.tip || '';
+  // 情报里点名的敌人：算作已经介绍过
+  if (e.tip) for (const t in MON) if (e.tip.includes(MON[t].name)) STORY.markMon(t);
+  if (ch && ch.waves && ch.waves[e.wave]) { sayLines(ch.waves[e.wave], 3); RUN.lastStory = performance.now(); }
+  if (e.tip) say('prism', e.tip, { pri: 2 });
+}
+// 新敌人第一次出现：棱镜介绍一句
+function storyScan(dt) {
+  if (!sim || mode !== 'play' || Tut.on) return;
+  RUN.scanT -= dt; if (RUN.scanT > 0) return; RUN.scanT = 0.6;
+  for (const m of sim.s.monsters) {
+    const t = m.type;
+    if (RUN.seen.has(t)) continue;
+    RUN.seen.add(t);
+    if (STORY.monSeen(t)) continue;
+    STORY.markMon(t);
+    if (MON[t].boss || (RUN.tip && RUN.tip.includes(MON[t].name))) continue;
+    if (ST.MON_INTRO[t]) say('prism', '新目标 · ' + ST.MON_INTRO[t], { pri: 2 });
+  }
+}
+function storyCore(S) {
+  const f = S.s.crystal.hp / S.s.crystal.max;
+  if (!RUN.hit) { RUN.hit = true; sayPool('crystalHit', { pri: 2 }); }
+  else if (f < 0.25 && !RUN.low) { RUN.low = RUN.half = true; sayPool('crystalLow', { pri: 3 }); }
+  else if (f < 0.5 && !RUN.half) { RUN.half = true; sayPool('crystalHalf', { pri: 2 }); }
+}
+function storyKill(e) {
+  if (MON[e.mtype] && MON[e.mtype].boss) { sayPool('bossDown', { pri: 2 }); return; }
+  if (e.pid) return;
+  // 陷阱连杀：2 秒内 7 只以上
+  const now = performance.now();
+  RUN.kills.push(now);
+  while (RUN.kills.length && now - RUN.kills[0] > 2000) RUN.kills.shift();
+  if (RUN.kills.length >= 7) { RUN.kills.length = 0; sayPool('multiKill', { cd: 45 }); }
+}
+/* ---------- BOSS 登场标题卡 ---------- */
+let bossCardT = 0;
+function bossCard(mtype) {
+  const d = MON[mtype], b = ST.BOSS[mtype] || {};
+  if (!d) return;
+  $('bossCardN').textContent = d.name; $('bossCardE').textContent = b.epithet || ''; $('bossCardL').textContent = b.line || '';
+  const el = $('bossCard'); el.hidden = true; void el.offsetWidth; el.hidden = false;
+  $('banner').className = ''; bannerT = 0;   // 别和波次横幅叠在一起
+  clearTimeout(bossCardT); bossCardT = setTimeout(() => { el.hidden = true; }, 3900);
+}
+/* ---------- 军衔 ---------- */
+function rankOf(stars) {
+  let i = 0; for (let k = 0; k < ST.RANKS.length; k++) if (stars >= ST.RANKS[k][0]) i = k;
+  const nx = ST.RANKS[i + 1];
+  return { i, name: ST.RANKS[i][1], next: nx ? nx[1] : '', need: nx ? nx[0] - stars : 0 };
+}
+/* ---------- 任务简报（主线每章开打前） ---------- */
+const Brief = { map: null, i: 0, t: 0, lines: [] };
+function chapterIndex(id) { return ST.CHAPTER_ORDER.indexOf(id); }
+function newFoesOf(id) {
+  const idx = chapterIndex(id), before = new Set();
+  ST.CHAPTER_ORDER.slice(0, Math.max(0, idx)).forEach(k => MAPS[k] && MAPS[k].waves.forEach(w => w.groups.forEach(gr => before.add(gr.t))));
+  const out = [];
+  MAPS[id].waves.forEach(w => w.groups.forEach(gr => { if (!before.has(gr.t) && !out.includes(gr.t) && MON[gr.t]) out.push(gr.t); }));
+  return out;
+}
+const wantBrief = id => MP.role === 'solo' && selMode === 'std' && !!ST.CHAPTERS[id] && storyAuto() && (settings.briefAlways || !STORY.briefSeen(id));
+function openBrief(id) {
+  const ch = ST.CHAPTERS[id], def = MAPS[id]; if (!ch || !def) return false;
+  Brief.map = id; Brief.lines = ch.brief || []; Brief.i = 0; Brief.t = 0.4;
+  setText('brCh', `${ch.ch} · 主线`); setText('brTitle', ch.title); setText('brPlace', ch.place); setText('brGoal', '任务目标：' + ch.goal);
+  try { drawThumb($('brMap'), def); } catch (e) { /* 忽略 */ }
+  const lanes = Object.keys(def.lanes).length, late = def.laneFrom ? Object.keys(def.laneFrom).length : 0, last = def.waves[def.waves.length - 1];
+  const bosses = [...new Set(last.groups.filter(gr => MON[gr.t] && MON[gr.t].boss).map(gr => MON[gr.t].name))];
+  $('brIntel').innerHTML = [['地图', def.name], ['出怪口', `${lanes} 个${late ? `（${late} 个中途开启）` : ''}`], ['波次', `${def.waves.length} 波`], ['终局 BOSS', bosses.join(' + ') || '—'], ['难度', DIFFS[diff] ? DIFFS[diff].name : '普通']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  const foes = newFoesOf(id).filter(t => !MON[t].boss);
+  $('brNew').innerHTML = foes.length ? `<span style="border:0;background:none;color:var(--faint);padding-left:0">本章新敌人</span>` + foes.map(t => `<span>${MON[t].name}</span>`).join('') : '';
+  $('brLog').innerHTML = '';
+  show('brief', true);
+  return true;
+}
+function briefNext(all) {
+  const log = $('brLog');
+  do {
+    const l = Brief.lines[Brief.i]; if (!l) break;
+    log.insertAdjacentHTML('beforeend', tkLine(l[0], l[1]));
+    if (!all) for (let k = 0; k < 4; k++) setTimeout(() => talkBlip(l[0], true), k * 55);
+    Brief.i++;
+  } while (all);
+  log.scrollTop = log.scrollHeight;
+  const l = Brief.lines[Brief.i - 1];
+  Brief.t = l ? 1.3 + l[1].length * 0.055 : 0;
+}
+function updateBrief(dt) {
+  if ($('brief').hidden || Brief.i >= Brief.lines.length) return;
+  Brief.t -= dt; if (Brief.t <= 0) briefNext(false);
+}
+function closeBrief() { show('brief', false); Brief.map = null; }
+function briefGo() {
+  const id = Brief.map; closeBrief();
+  if (id) STORY.markBrief(id);
+  beginPlay(null, true);
+}
+/* ---------- 序章 ---------- */
+const Cine = { on: false, i: 0, typed: 0, hold: 0, lines: [] };
+function playPrologue() {
+  if (!ST.PROLOGUE.length) return;
+  Cine.on = true; Cine.i = -1; Cine.lines = ST.PROLOGUE;
+  show('menu', false); $('cine').hidden = false;
+  cineNext();
+}
+function cineNext() {
+  Cine.i++;
+  const l = Cine.lines[Cine.i];
+  if (!l) { cineEnd(); return; }
+  const c = CAST[l[0]] || {};
+  $('cine').style.setProperty('--tc', c.col || '#cfd8e3');
+  $('cineP').innerHTML = l[0] === 'nar' ? '' : portraitOf(l[0]);
+  $('cineWho').textContent = c.name || '';
+  $('cineLine').textContent = '';
+  Cine.typed = 0; Cine.hold = 0;
+}
+function cineTap() {
+  if (!Cine.on) return;
+  Snd.init();
+  const l = Cine.lines[Cine.i];
+  if (l && Cine.typed < l[1].length) { Cine.typed = l[1].length; $('cineLine').textContent = l[1]; return; }
+  cineNext();
+}
+function cineEnd() {
+  Cine.on = false; $('cine').hidden = true; STORY.markIntro();
+  if (mode === 'menu') { show('menu', true); goScreen('home'); }
+  if (!tutDone()) $('tutBtn').classList.add('pulse');
+}
+function updateCine(dt) {
+  if (!Cine.on) return;
+  const l = Cine.lines[Cine.i]; if (!l) return;
+  const L = l[1].length;
+  if (Cine.typed < L) {
+    const b = Math.floor(Cine.typed);
+    Cine.typed = Math.min(L, Cine.typed + dt * (l[0] === 'nar' ? 20 : 26));
+    const n = Math.floor(Cine.typed);
+    if (n !== b) { $('cineLine').textContent = l[1].slice(0, n); if (l[0] !== 'nar' && n % 3 === 1) talkBlip(l[0]); }
+  } else if ((Cine.hold += dt) > 1.6 + L * 0.05) cineNext();
+}
 
 const ICONS = {
   gun: '<path d="M2 10h14l2-2h4v4h-3l-1 2h-5l-1 4H8l1-4H2z"/>',
@@ -8767,6 +9517,7 @@ function buildHelp() {
     cdxItem('trap', { id, grp: `${gi + 1} · ${g.name}`, name: t.name, icon: svgIcon(id), cat: t.cat, locked: () => !isUnlocked(id), detail: () => {
       const ev = EVO[id], desc = t.desc.split(' · ').slice(1).join(' · ') || t.desc;
       return `<header><span class="ic">${svgIcon(id)}</span><h3>${t.name}</h3><span class="cdxMeta">${CAT_NAME[t.cat]} · ${t.cost} 金币 · 按 <span class="kb">${keyCombo(id)}</span></span></header>
+        ${ST.TRAP_LORE[id] ? `<p class="cdxLore">${ST.TRAP_LORE[id]}</p>` : ''}
         <div class="cdxCols"><div>
         ${isUnlocked(id) ? '' : `<p class="cdxLock">${lockText(id)}</p>`}
         <p>${desc}</p>
@@ -8782,25 +9533,27 @@ function buildHelp() {
     cdxItem('mon', { id: k, grp, name: m.name, icon: svgIcon(m.boss ? 'ult' : m.fly ? 'aa' : 'spike'), cat: m.boss ? 'heavy' : m.elite || m.heavy ? 'wall' : m.fly ? 'ceil' : 'floor', detail: () => {
       const tags = monTags(k);
       return `<header><h3>${m.name}</h3><span class="cdxMeta">${grp}</span></header>
+        ${ST.MON_LORE[k] ? `<p class="cdxLore">${ST.MON_LORE[k]}</p>` : ''}
         <div class="cdxCols"><div>
-        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['击杀奖励', m.bounty + ' 金币'], ['漏到水晶', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 水晶生命']])}
+        ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['击杀奖励', m.bounty + ' 金币'], ['漏到晶核', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 晶核生命']])}
         ${tags.length ? `<ul class="cdxTags">${tags.map(x => `<li>${x}</li>`).join('')}</ul>` : '<p>基础单位，没有特殊能力。</p>'}</div><div>
         ${TD.BOSS_TIP && TD.BOSS_TIP[k] ? `<p class="cdxNote">${TD.BOSS_TIP[k]}</p>` : ''}
         ${MON_COUNTER[k] ? `<div class="cdxEvo"><h4>怎么对付</h4><p>${MON_COUNTER[k]}</p></div>` : ''}</div></div>`;
     } });
   }
   // —— 武器与职业 ——
-  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header><p>${w.desc}</p>
+  WEAPONS.forEach((w, i) => cdxItem('wpn', { id: w.id, grp: '武器（B 军械库购买，Q 切换）', name: w.name, icon: svgIcon(w.id), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon(w.id)}</span><h3>${w.name}</h3><span class="cdxMeta">${w.cost ? w.cost + ' 金币' : '初始武器'} · 军械库第 ${i + 1} 格</span></header>${ST.WPN_LORE[w.id] ? `<p class="cdxLore">${ST.WPN_LORE[w.id]}</p>` : ''}<p>${w.desc}</p>
       ${dl([['伤害', `${w.dmg}${w.pellets ? ' × ' + w.pellets + ' 颗' : ''}${w.splash ? '（范围 ' + w.splash + ' 米）' : ''}`], ['射速', w.rps + ' 发/秒'], ['弹匣', w.mag], ['换弹', w.reload + ' 秒'], ['爆头倍率', w.head ? '×' + w.head : '—']].concat(w.pierce ? [['贯穿', w.pierce + ' 个目标']] : []))}${(TD.WMODS[w.id] || []).length ? `<div class="cdxEvo"><h4>改装（买下后在军械库二选一，本局有效）</h4>${TD.WMODS[w.id].map(M => `<p><b>${M.name}</b>${M.desc} · ${M.cost} 金币</p>`).join('')}</div>` : ''}` }));
   cdxItem('wpn', { id: 'nade', grp: '技能', name: SKILL.nade.name, icon: svgIcon('nade'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('nade')}</span><h3>${SKILL.nade.name}</h3><span class="cdxMeta">按 C 投掷</span></header><p>抛物线投掷，${SKILL.nade.fuse} 秒后爆炸。</p>${dl([['伤害', SKILL.nade.dmg], ['范围', SKILL.nade.r + ' 米'], ['数量', `最多 ${SKILL.nade.max} 枚（突击兵 +1）`], ['充能', `每 ${SKILL.nade.recharge} 秒 1 枚`]])}` });
   cdxItem('wpn', { id: 'ult', grp: '技能', name: SKILL.ult.name, icon: svgIcon('ult'), cat: 'gun', detail: () => `<header><span class="ic">${svgIcon('ult')}</span><h3>${SKILL.ult.name}</h3><span class="cdxMeta">能量满 100% 后按 Z</span></header><p>用枪造成伤害和击杀会积攒能量；满了以后对准地面呼叫，${SKILL.ult.delay} 秒后落下，大范围重创并眩晕敌人。</p>${dl([['伤害', SKILL.ult.dmg], ['范围', SKILL.ult.r + ' 米'], ['眩晕', SKILL.ult.stun + ' 秒']])}` });
-  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header><p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
+  for (const c of CLASSES) cdxItem('wpn', { id: 'cls-' + c.id, grp: '职业（开局选择）', name: c.name, icon: `<b class="clsMark">${c.short}</b>`, cat: 'pad', detail: () => `<header><h3>${c.name}</h3><span class="cdxMeta">职业</span></header>${ST.CLS_LORE[c.id] ? `<p class="cdxLore">${ST.CLS_LORE[c.id]}</p>` : ''}<p>${c.desc}</p><p class="cdxFoot">联机时每人可以选不同职业，搭配起来更强。</p>` });
   // —— 关卡 ——
   for (const d of MAP_LIST) {
     cdxItem('map', { id: d.id, grp: '关卡', name: d.name, icon: `<canvas class="cdxThumb" data-map="${d.id}"></canvas>`, cat: d.outdoor ? 'hfloor' : 'floor', detail: () => {
       const n = Object.keys(d.lanes).length, late = d.laneFrom ? Object.keys(d.laneFrom) : [], boss = d.waves[d.waves.length - 1];
       const bossT = (boss.groups || []).filter(g => MON[g.t] && MON[g.t].boss).map(g => MON[g.t].name);
-      return `<header><h3>${d.name}</h3><span class="cdxMeta">${d.sub}${d.outdoor ? ' · 室外' : ' · 室内'}</span></header><p>${d.desc}</p>
+      const chp = ST.CHAPTERS[d.id];
+      return `<header><h3>${d.name}</h3><span class="cdxMeta">${chp ? chp.ch + '「' + chp.title + '」 · ' : ''}${d.sub}${d.outdoor ? ' · 室外' : ' · 室内'}</span></header>${chp ? `<p class="cdxLore">${chp.sum}</p>` : ''}<p>${d.desc}</p>
         ${dl([['出怪口', n + ' 个' + (late.length ? `（${late.map(l => `${d.laneNames[l] || l} 第 ${d.laneFrom[l]} 波开启`).join('，')}）` : '')], ['波次', d.waves.length + ' 波'], ['初始金币', d.gold], ['终局 BOSS', bossT.join(' + ') || '—'], ['地图机关', (d.devices || []).map(dv => devName(dv)).join('、') || '无'], ['科研舱', (d.labs || []).length ? '有' : '无']].concat(d.ladders ? [['梯子', d.ladders.length + ' 处（谷底爬回崖顶）']] : []))}
         <canvas class="cdxBig" data-map="${d.id}"></canvas>`;
     } });
@@ -8808,16 +9561,25 @@ function buildHelp() {
   // —— 机制 ——
   const R = (id, grp, name, body) => cdxItem('rule', { id, grp, name, icon: '', cat: 'gun', detail: () => `<header><h3>${name}</h3><span class="cdxMeta">${grp}</span></header>${body}` });
   R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
-  R('respawn', '基础规则', '复活保护', '<p>阵亡 5 秒后在基地复活，复活后 10 秒内无敌。</p>');
+  R('respawn', '基础规则', '复活保护', '<p>阵亡后，守卫装甲的回传系统会在 5 秒后把你送回基地重建，回来后 10 秒内无敌。</p>');
   R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
   R('unlock', '基础规则', '重型陷阱解锁', `<ul class="cdxTags">${Object.keys(UNLOCKS).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上。</p>`);
-  R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
+  R('lb', '基础规则', '无尽排行榜', '<p>无尽模式结束（晶核被摧毁，或在暂停菜单里「结算并退出」）时自动结算分数并上传在线榜；主菜单「无尽排行榜」查看每张地图的前 20 名。</p>');
   R('height', '地形', '高地与崖壁', '<p>室外关卡有不同高度的台地。站在高处可以俯射，近战怪打不到你；台阶低于 0.75 米能直接走上去，更高的崖壁要走楼梯、斜坡或梯子，往下可以直接跳。通道旁高出 2.5 米以上的崖壁可以挂墙壁陷阱。</p>');
   R('deck', '地形', '二层桥', '<p>桥面能站人、两侧有护栏；只有桥底下有天花板，露天的地方不能放粉碎锤。小地图上琥珀色方块是桥，亮色区域是高处，白色箭头指向上坡，绿色短横是梯子。</p>');
   R('lab', '科研舱', '科研舱', '<p>每张地图都有一间科研舱（小地图上的紫色「科」）。走到科研终端旁按 F，用全队共享的金币研究科技，全队生效、本局有效；旁边的补给柜可以补满生命、手雷和弹药。</p>');
   TD.TECH.forEach((t, i) => R('tech-' + t.id, '科研科技', t.name, `<p>${t.desc(1)}，每级叠加，最高 ${TD.TECH_MAX} 级。</p>${dl([['每级花费', t.cost.join(' / ') + ' 金币']])}`));
   COMBOS.forEach(c => R('combo-' + c.name, '陷阱联动', c.name, `<p>${c.desc}</p>`));
-  for (const kind of ['trap', 'mon', 'wpn', 'map', 'rule']) renderCodexList(kind);
+  // —— 背景：序章 / 世界观 / 人物 / 主线章节 ——
+  const pIc = who => `<span style="color:${(CAST[who] || {}).col || 'inherit'};display:grid">${portraitOf(who)}</span>`;
+  const tx = lines => `<ol class="brLog cdxTalk">${(lines || []).map(l => tkLine(l[0], l[1])).join('')}</ol>`;
+  cdxItem('lore', { id: 'prologue', grp: '世界观', name: '序章', icon: pIc('prism'), cat: 'gun', detail: () => `<header><h3>序章 · 锈潮再临</h3><span class="cdxMeta">首次启动时播放</span><button type="button" class="cta small cdxUse" data-cine="1">重看序章</button></header>${tx(ST.PROLOGUE)}` });
+  for (const w of ST.WORLD) cdxItem('lore', { id: w.id, grp: w.grp, name: w.name, icon: w.who ? pIc(w.who) : '', cat: w.who ? 'pad' : 'floor', detail: () => `<header>${w.who ? `<span class="ic" style="width:40px;height:40px">${pIc(w.who)}</span>` : ''}<h3>${w.name}</h3>${w.who && CAST[w.who] ? `<span class="cdxMeta">${CAST[w.who].role}</span>` : ''}</header>${w.text}` });
+  for (const id of ST.CHAPTER_ORDER) {
+    const ch = ST.CHAPTERS[id], def = MAPS[id]; if (!ch || !def) continue;
+    cdxItem('lore', { id: 'ch-' + id, grp: '主线章节', name: `${ch.ch} ${ch.title}`, icon: '', cat: def.outdoor ? 'hfloor' : 'floor', detail: () => `<header><h3>${ch.ch} · ${ch.title}</h3><span class="cdxMeta">${ch.place} · 地图「${def.name}」</span></header><p>${ch.sum}</p><p class="cdxNote">任务目标：${ch.goal}</p><h4 class="cdxH4">任务简报</h4>${tx(ch.brief)}${mapWon(id) ? `<h4 class="cdxH4">结尾</h4>${tx(ch.win)}` : '<p class="cdxFoot">通关这一章后解锁结尾的通讯记录。</p>'}` });
+  }
+  for (const kind of ['trap', 'mon', 'wpn', 'map', 'rule', 'lore']) renderCodexList(kind);
 }
 const cdxSel = {};
 function renderCodexList(kind) {
@@ -8958,6 +9720,7 @@ function netBanner() {
 }
 function updateHUD(dt) {
   netBanner();
+  updateTalk(dt); storyScan(dt);
   if (sim && mode === 'play') bossTremor(sim, dt);
   if (!sim) return;
   const s = sim.s, p = s.players[PID];
@@ -9255,6 +10018,8 @@ addEventListener('keydown', e => {
 function onKey(code, e) {
   if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && mode === 'play') e.preventDefault();
   // 整页浮层（设置 / 图鉴 / 天赋）优先响应 Esc
+  if (Cine.on && (code === 'Escape' || code === 'Space' || code === 'Enter')) { if (code === 'Escape') cineEnd(); else cineTap(); return; }
+  if (!$('brief').hidden) { if (code === 'Escape') closeBrief(); else if (code === 'Enter') briefGo(); else if (code === 'Space') briefNext(false); return; }
   if (code === 'Escape' || (code === 'KeyH' && !$('help').hidden)) {
     if (!$('settings').hidden) { closeSettings(); return; }
     if (!$('help').hidden) { closeHelp(); return; }
@@ -9679,7 +10444,7 @@ function drawLabs(S, dt) {
     drawHolo(S, h, lvs);
   }
 }
-// 全息战术沙盘：整张地图缩小到台面上方，实时显示路线、水晶、敌人与队友
+// 全息战术沙盘：整张地图缩小到台面上方，实时显示路线、晶核、敌人与队友
 function drawHolo(S, h, lvs) {
   const t = timeNow, Y = 1.18 + S.floorH(h.x, h.z), R = 1.05, k = 2 * R / (Math.max(S.W, S.H) * T);
   const ox = h.x - S.W * T * k / 2, oz = h.z - S.H * T * k / 2;
@@ -9854,7 +10619,7 @@ function buyMod(w, mid) {
     const q = me();
     if (MP.role === 'client' && q) { q.mods = Object.assign({}, q.mods, { [w]: mid }); if (q.wpn === w) { q.mag = TD.pwOf(q, w).mag; q.ammo = q.mag; q.reloadT = 0; } }
     ACH.add('mods'); ACH.save();
-    toast(`${WPN[w].name} 已改装：${M.name}`); Snd.play('upgrade'); cache.shop = '';
+    toast(`${WPN[w].name} 已改装：${M.name}`); Snd.play('upgrade'); cache.shop = ''; sayPool('wmod', { pri: 2 });
   });
 }
 function buyWeapon(i) {
@@ -10004,13 +10769,14 @@ function startTutorial() {
   S.s.gold += 600;
   beginPlay(S, true);
   Tut.on = true; Tut.i = 0; Tut.moved = 0; Tut.turned = 0; Tut.stepT = 0;
+  talkReset(); sayPool('tutStart', { pri: 3 });
   const p = sim.s.players[PID]; Tut.lx = p.x; Tut.lz = p.z; Tut.lyaw = cam.yaw;
   renderTut();
 }
 function stopTutorial(done) {
   if (!Tut.on) return;
   Tut.on = false; $('tut').hidden = true; $('tut').style.visibility = ''; $('tutHi').hidden = true; tutSetDone();
-  if (done) { banner('新手引导完成', '接下来就靠你守住水晶了！在主菜单可以随时重新打开引导'); Snd.play('clear'); }
+  if (done) { banner('新手引导完成', '接下来就靠你守住晶核了！在主菜单可以随时重新打开引导'); Snd.play('clear'); sayPool('tutDone', { pri: 3 }); $('tutBtn').classList.remove('pulse'); }
 }
 function renderTut() {
   const st = TUT_STEPS[Tut.i]; if (!st) return;
@@ -10039,6 +10805,7 @@ function updateTut(dt) {
 function startGame() {
   if (MP.role === 'host') { hostStartGame(); return; }
   if (MP.role === 'client') return;
+  if (wantBrief(selMap) && openBrief(selMap)) return;
   beginPlay(null, true);
 }
 // 进入一局：S 为预先构建好的 Sim（联机），gesture 表示由点击触发（可以请求锁定鼠标）
@@ -10052,16 +10819,18 @@ function beginPlay(S, gesture) {
   feed('布防阶段：沿红色路线在通道地面、墙壁、天花板布置陷阱', '');
   feed(TOUCH ? '点顶部陷阱栏选择陷阱，对准位置按「放置」；对准陷阱可升级 / 拆除' : '按 1-5 打开陷阱分组、再按数字选择（Tab 查看全部），左键放置；对准陷阱按 E 升级、X 拆除', '');
   if (MP.role !== 'solo') feed(`联机房间 ${MP.code.toUpperCase()} · ${n} 名玩家 · 金币全队共享`, 'good');
-  banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向核心水晶 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
+  banner('布防阶段', `${lanes} 个出怪口的怪物会沿红色路线冲向晶核 · ` + (n > 1 ? '全员按 G 准备后提前开战' : '按 G 提前开战'));
   if (gesture) requestLock();
   if (gesture && TOUCH) goFullscreen();
   if (TOUCH) { applyTouchLayout(); requestAnimationFrame(applyTouchLayout); }
   if (MP.role !== 'client') ensureBgTicker();
+  talkReset(); runReset();
+  setTimeout(storyBegin, 0);
 }
 function pauseGame() {
   if (mode !== 'play') return;
   mode = 'pause';
-  $('pauseTitle').textContent = MP.role === 'solo' ? '已暂停' : '菜单';
+  { const ch = curChapter(); $('pauseTitle').textContent = (MP.role === 'solo' ? '已暂停' : '菜单') + (ch ? ` · ${ch.ch} ${ch.title}` : ''); }
   $('pauseNote').hidden = MP.role === 'solo';
   $('quitBtn').textContent = sim && sim.s.endless && MP.role !== 'client' && sim.s.wave >= 1 ? '结算并退出（计入排行榜）' : MP.role === 'host' ? '结束本局，回到房间' : MP.role === 'client' ? '离开房间' : '返回主菜单';
   show('pause', true);
@@ -10250,7 +11019,7 @@ function initTouchEditor() {
   applyTouchLayout();
 }
 /* ---------- 存档：导出 / 导入 / 云存档 ---------- */
-const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings'];
+const SAVE_KEYS = ['jhsw-tal', 'jhsw-best2', 'jhsw-daily', 'jhsw-kills', 'jhsw-ach', 'jhsw-tut', 'jhsw-cls', 'jhsw-nick', 'jhsw-lb', 'jhsw-sel', 'jhsw-settings', 'jhsw-story'];
 const b64e = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
 const b64d = str => { const s = atob(str); const u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return u; };
 async function pipeBytes(u8, stream) { return new Uint8Array(await new Response(new Blob([u8]).stream().pipeThrough(stream)).arrayBuffer()); }
@@ -10436,7 +11205,7 @@ function showEnd() {
   show('pause', false); show('help', false);
   if (document.pointerLockElement) document.exitPointerLock();
   const s = sim.s, win = s.phase === 'victory';
-  $('endTitle').textContent = win ? `胜利 · ${sim.def.name}守住了` : (s.endless ? (s.quit ? `无尽模式 · 主动结算 · 坚持到第 ${s.wave} 波` : `无尽模式结束 · 坚持到第 ${s.wave} 波`) : '失败 · 核心水晶被摧毁');
+  $('endTitle').textContent = win ? `胜利 · ${sim.def.name}守住了` : (s.endless ? (s.quit ? `无尽模式 · 主动结算 · 坚持到第 ${s.wave} 波` : `无尽模式结束 · 坚持到第 ${s.wave} 波`) : '失败 · 晶核被摧毁');
   const lbr = submitEndless();
   setText('endLb', lbr ? `本局得分 ${lbr.score.toLocaleString()} · 本机第 ${lbr.localRank} 名${MP.role === 'client' ? '' : ' · 正在上传在线榜…'}` : '');
   $('endLb').hidden = !lbr;
@@ -10444,7 +11213,7 @@ function showEnd() {
   const total = s.stats.dmgGun + s.stats.dmgTrap || 1;
   const dur = Math.max(0, s.time - s.stats.startTime);
   const rows = [
-    ['地图', sim.def.name + (s.endless ? ' · 无尽' : '') + (s.daily ? ' · 每日挑战' : '')], ['难度', DIFFS[s.diff].name + (s.mut && s.mut.length ? ` · ${s.mut.map(id => MUT[id].name).join('·')}` : '')], ['到达波次', s.endless ? `第 ${s.wave} 波` : `${s.wave} / ${sim.waves.length}`], ['水晶剩余', `${Math.ceil(s.crystal.hp)} / ${s.crystal.max}`],
+    ['地图', sim.def.name + (s.endless ? ' · 无尽' : '') + (s.daily ? ' · 每日挑战' : '')], ['难度', DIFFS[s.diff].name + (s.mut && s.mut.length ? ` · ${s.mut.map(id => MUT[id].name).join('·')}` : '')], ['到达波次', s.endless ? `第 ${s.wave} 波` : `${s.wave} / ${sim.waves.length}`], ['晶核剩余', `${Math.ceil(s.crystal.hp)} / ${s.crystal.max}`],
     ['击杀', s.stats.kills], ['漏怪', s.stats.leaks], ['用时', `${Math.floor(dur / 60)} 分 ${Math.floor(dur % 60)} 秒`],
     ['陷阱输出', `${Math.round(s.stats.dmgTrap).toLocaleString()}（${Math.round(s.stats.dmgTrap / total * 100)}%）`],
     ['枪械输出', `${Math.round(s.stats.dmgGun).toLocaleString()}（${Math.round(s.stats.dmgGun / total * 100)}%）`],
@@ -10478,7 +11247,7 @@ function showEnd() {
   $('againBtn').textContent = MP.role === 'host' ? '全队再来一局' : '再来一局';
   $('menuBtn').textContent = MP.role === 'solo' ? '返回主菜单' : '回到房间';
   $('endWait').hidden = MP.role !== 'client';
-  // 评级：胜利按水晶剩余与漏怪评 S/A/B/C，失败按到达波次
+  // 评级：胜利按晶核剩余与漏怪评 S/A/B/C，失败按到达波次
   const hpF = s.crystal.hp / s.crystal.max;
   const NW = sim.waves.length, extra = s.wave - NW;
   const grade = s.endless ? (extra >= 15 ? 'S' : extra >= 10 ? 'A' : extra >= 5 ? 'B' : extra >= 1 ? 'C' : 'D')
@@ -10513,10 +11282,20 @@ function showEnd() {
   if (newAch.length) msg.push(`达成成就：${newAch.map(a => `「${a.name}」`).join('')}`);
   const newly = locked0.filter(id => UNLOCKS[id].ok());
   if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => TRAP[id].name).join('、')}！下一局起可以在「重型」分组里使用`); buildHotbar(); }
+  const rk0 = rankOf(stars0), rk1 = rankOf(PROG.stars());
+  if (rk1.i > rk0.i) msg.push(`军衔晋升：${rk1.name}！`);
   $('endStar').hidden = !msg.length; $('endStar').textContent = msg.join(' · ');
+  // 主线：结尾对话 + 下一章
+  const ch = !s.endless && !s.daily ? ST.CHAPTERS[s.map] : null, lines = ch ? (win ? ch.win : ch.lose) : null;
+  $('endStory').hidden = !(lines && lines.length && chatterOn());
+  $('endStoryList').innerHTML = lines ? lines.map(l => tkLine(l[0], l[1])).join('') : '';
+  const ci = chapterIndex(s.map), nx = ci >= 0 ? ST.CHAPTER_ORDER[ci + 1] : null;
+  $('nextBtn').hidden = !(win && ch && nx && MAPS[nx] && MP.role === 'solo');
+  if (nx && ST.CHAPTERS[nx]) $('nextBtn').textContent = `下一章：${ST.CHAPTERS[nx].title} ›`;
+  $('nextBtn').dataset.map = nx || '';
   $('endGrade').textContent = grade;
   $('endGrade').className = 'grade g' + grade;
-  $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 水晶 ${best.hp} · 评级 ${best.grade}`;
+  $('endBest').textContent = isNew ? `新纪录 · ${label}` : `${label} 最佳：${best.win ? '通关' : '第 ' + best.wave + ' 波'} · 晶核 ${best.hp} · 评级 ${best.grade}`;
   show('end', true);
 }
 
@@ -10580,6 +11359,7 @@ function frame(now) {
   requestAnimationFrame(frame);
   let dt = Math.min(0.1, (now - lastT) / 1000); lastT = now;
   timeNow += dt;
+  updateCine(dt); updateBrief(dt);
   adaptQuality(dt); fpsMeter(dt);
   if (slowmoT > 0) { slowmoT -= dt; timeScale = slowmoT > 0.5 ? 0.3 : lerp(1, 0.3, slowmoT / 0.5); } else timeScale = 1;
   const sdt = dt * timeScale;
@@ -10800,6 +11580,7 @@ function showBest() {
   $('dailyBest').textContent = PROG.dailyWins().includes(d.date) ? '今日已通关 ★' : dr ? `今日最佳 第 ${dr.wave} 波` : '';
   ACH.check(null);
   $('starTag').textContent = `★ ${PROG.stars() - PROG.spent()}`;
+  { const tot = PROG.stars(), rk = rankOf(tot); $('rankTag').innerHTML = `守卫 七号 · <b>${rk.name}</b> · 功勋星 <em>★${tot}</em>${rk.next ? ` · 再得 ★${rk.need} 晋升${rk.next}` : ''}`; }
   setText('achTag', `${Object.keys(ACH.d.done).filter(id => ACHS.some(a => a.id === id)).length} / ${ACHS.length}`);
 }
 function drawThumb(cv, def) {
@@ -10819,7 +11600,8 @@ function buildMapCards() {
     const btn = document.createElement('button');
     btn.type = 'button'; btn.className = 'mapCard'; btn.dataset.map = def.id;
     const lanes = Object.keys(def.lanes).length, late = def.laneFrom ? Object.keys(def.laneFrom).length : 0;
-    btn.innerHTML = `<canvas aria-hidden="true"></canvas><span class="mc-n"><i>${String(def.order).padStart(2, '0')}</i>${def.name}</span><span class="mc-s">出怪口 ×${lanes}${late ? `（${late} 个中途开启）` : ''} · ${def.waves.length} 波</span><span class="mc-b"></span>`;
+    const chp = ST.CHAPTERS[def.id];
+    btn.innerHTML = `<canvas aria-hidden="true"></canvas><span class="mc-n"><i>${String(def.order).padStart(2, '0')}</i>${def.name}</span>${chp ? `<span class="mc-c">${chp.ch} · ${chp.title}</span>` : ''}<span class="mc-s">出怪口 ×${lanes}${late ? `（${late} 个中途开启）` : ''} · ${def.waves.length} 波</span><span class="mc-b"></span>`;
     try { drawThumb(btn.querySelector('canvas'), def); } catch (e) { console.warn(e); }
     btn.addEventListener('click', () => { if (selMap === def.id || selMode === 'daily') return; selMap = def.id; refreshSel(); makeDemo(); });
     box.appendChild(btn);
@@ -10870,10 +11652,10 @@ function setupMenuNav() {
   });
   goScreen('home');
 }
-function anyFullPage() { return ['settings', 'help', 'talents', 'lb', 'achv'].some(id => $(id) && !$(id).hidden); }
+function anyFullPage() { return ['settings', 'help', 'talents', 'lb', 'achv', 'brief'].some(id => $(id) && !$(id).hidden); }
 function updateMenuSum() {
   const room = MP.role !== 'solo' ? ` · 房间 ${MP.code.toUpperCase()}` : '';
-  const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 标准'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
+  const txt = `${MAPS[selMap].name} · ${DIFFS[diff].name}${selMode === 'endless' ? ' · 无尽' : selMode === 'daily' ? ' · 每日挑战' : ' · 主线'} · ${CLS[selCls].name}${selMut.length ? ` · 突变×${selMut.length}` : ''}${room}`;
   const d = $('dSum'); if (d) d.textContent = txt;
   const el = $('mSum'); if (!el) return;
   el.textContent = txt;
@@ -11045,7 +11827,7 @@ function renderMP() {
   // 导航相关文字
   const rn = $('roomNext'); if (rn) rn.textContent = MP.role === 'client' ? '下一步：选择职业' : '下一步：选择关卡';
   const ms = $('mpSub'); if (ms) ms.textContent = inRoom ? `在房间 ${MP.code.toUpperCase()} 中 · ${MP.role === 'host' ? 1 + MP.roster.length : (MP.hostPres && Array.isArray(MP.hostPres.roster) ? MP.hostPres.roster.length : 1)} 人` : on && MP.connected ? `创建或加入房间 · 在线 ${Math.max(1, MP.lobbyPeers.length)} 人` : '创建或加入房间，最多 4 人合作';
-  const ss = $('soloSub'); if (ss) ss.textContent = inRoom ? '先离开联机房间' : '选择关卡、模式、难度和职业';
+  const ss = $('soloSub'); if (ss) ss.textContent = inRoom ? '先离开联机房间' : `主线 ${ST.CHAPTER_ORDER.length || MAP_LIST.length} 章 · 无尽 · 每日挑战`;
   const tl = $('setupTitle'); if (tl) tl.textContent = inRoom ? `联机房间 ${MP.code.toUpperCase()}${MP.role === 'client' ? ' · 房主设置' : ''}` : '单人游戏';
   if (!inRoom && menuScr === 'setup' && renderMP.wasRoom) goScreen('mp');
   renderMP.wasRoom = inRoom;
@@ -11120,6 +11902,25 @@ function bindUI() {
   $('lbClose').addEventListener('click', () => show('lb', false));
   for (const b of document.querySelectorAll('[data-lbsrc]')) b.addEventListener('click', () => { lbSrc = b.dataset.lbsrc; renderLb(); });
   $('againBtn').addEventListener('click', () => { if (MP.role === 'client') return; show('end', false); startGame(); });
+  $('nextBtn').addEventListener('click', () => {
+    const nx = $('nextBtn').dataset.map; if (!nx || !MAPS[nx] || MP.role !== 'solo') return;
+    show('end', false); selMap = nx; selMode = 'std'; refreshSel(); toMenu(); goScreen('setup'); startGame();
+  });
+  $('brGo').addEventListener('click', briefGo);
+  $('brBack').addEventListener('click', closeBrief);
+  $('brAll').addEventListener('click', () => briefNext(true));
+  $('brLog').addEventListener('click', () => briefNext(false));
+  $('cine').addEventListener('click', e => { if (e.target.closest('#cineSkip')) return; cineTap(); });
+  $('cineSkip').addEventListener('click', e => { e.stopPropagation(); cineEnd(); });
+  $('cdxD-lore').addEventListener('click', e => { if (e.target.closest('[data-cine]')) { closeHelp(); if (mode === 'menu') playPrologue(); } });
+  const chatterBtn = $('chatterBtn'), briefBtn = $('briefBtn');
+  const syncStory = () => {
+    const on = settings.chatter !== false; chatterBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); chatterBtn.textContent = on ? '开' : '关';
+    briefBtn.setAttribute('aria-pressed', settings.briefAlways ? 'true' : 'false'); briefBtn.textContent = settings.briefAlways ? '每次' : '首次';
+  };
+  syncStory();
+  chatterBtn.addEventListener('click', () => { settings.chatter = settings.chatter === false; if (!settings.chatter) talkReset(); syncStory(); saveSettings(); });
+  briefBtn.addEventListener('click', () => { settings.briefAlways = !settings.briefAlways; syncStory(); saveSettings(); });
   $('menuBtn').addEventListener('click', toMenu);
   $('nick').value = MP.name;
   $('nick').addEventListener('change', () => { setNick($('nick').value); $('nick').value = MP.name; });
@@ -11281,6 +12082,8 @@ window.__back = () => {
     if (bookOpen) toggleBook(false); else if (chatOpen) closeChat(); else if (labOpen) toggleLab(false); else if (shopOpen) toggleShop(false); else if (evoTrap !== null) closeEvo(); else if (quickOpen) toggleQuick(false); else pauseGame();
     return true;
   }
+  if (Cine.on) { cineEnd(); return true; }
+  if (!$('brief').hidden) { closeBrief(); return true; }
   if (!$('help').hidden) { show('help', false); return true; }
   if (!$('lb').hidden) { show('lb', false); return true; }
   if (!$('achv').hidden) { show('achv', false); return true; }
@@ -11327,11 +12130,13 @@ function start(data) {
     } catch (e) { console.warn('恢复失败', e); }
   }
   requestAnimationFrame(t => { lastT = t; frame(t); });
+  if (mode === 'menu' && !STORY.introSeen() && storyAuto()) playPrologue();
+  else if (!tutDone() && mode === 'menu') $('tutBtn').classList.add('pulse');
 }
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom() };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom(), Talk, STORY, playPrologue, openBrief };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();

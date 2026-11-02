@@ -421,6 +421,20 @@ button:disabled { opacity: .4; cursor: not-allowed; }
 #endStats div { border-bottom: 1px solid var(--line); padding-bottom: 6px; }
 #endStats dt { font-size: 12px; color: var(--dim); letter-spacing: .12em; }
 #endStats dd { margin: 2px 0 0; font-family: var(--f-num); font-size: 19px; font-weight: 600; }
+@media (max-height: 560px) {
+  #end .modal { padding: 12px 18px 14px; gap: 8px; width: min(860px, calc(100% - 20px)); }
+  #end .modal h2 { font-size: 22px; letter-spacing: .08em; }
+  #end .grade { font-size: 40px; }
+  .endStars li { padding: 3px 8px; font-size: 11.5px; } .endStars li i { font-size: 16px; }
+  #endStats { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px 10px; }
+  #endStats div { padding-bottom: 2px; }
+  #endStats dt { font-size: 10.5px; letter-spacing: 0; } #endStats dd { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .endStar { font-size: 12px; }
+  #endStory ol { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 10px; }
+  #endStory h3 { display: none; }
+  #endStory .tkLine p { font-size: 11.5px; line-height: 1.4; }
+  #endTraps h3 { margin-bottom: 4px; font-size: 12px; } #endTrapList li { font-size: 11.5px; }
+}
 .tblWrap { overflow-x: auto; }
 #trapTable, #wpnTable, #evoTable { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 560px; }
 #trapTable th, #wpnTable th, #evoTable th { text-align: left; font-weight: 500; font-size: 12px; color: var(--dim); letter-spacing: .1em; padding: 6px 8px; border-bottom: 1px solid var(--line); }
@@ -507,6 +521,102 @@ h3 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: .2em; color: 
 .wmod em { grid-column: 2; grid-row: 1; font-style: normal; font-family: var(--f-num); font-size: 12px; color: var(--gold); }
 .wmod.poor { opacity: .55; }
 .wmodTag { margin-left: 8px; padding: 1px 6px; font-size: 11px; font-weight: 500; color: #1b1204; background: var(--gold); vertical-align: middle; }
+/* ---------- 剧情：无线电对话 / BOSS 登场 / 任务简报 / 序章 ---------- */
+#talk { position: absolute; left: calc(16px + env(safe-area-inset-left, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: min(430px, 42vw); display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 10px; align-items: start; padding: 9px 12px 10px 9px; background: linear-gradient(100deg, rgba(6, 14, 22, .92), rgba(6, 12, 20, .78)); border: 1px solid rgba(95, 227, 255, .28); border-left: 3px solid var(--tc, var(--crys)); clip-path: var(--cut); pointer-events: none; z-index: 6; animation: talkIn .22s ease-out; transition: opacity .35s; }
+#talk[hidden] { display: none; }
+#talk.out { opacity: 0; }
+@keyframes talkIn { from { transform: translateX(-14px); opacity: 0; } }
+#talk .tkP { width: 46px; height: 46px; color: var(--tc, var(--crys)); background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); display: grid; place-items: center; }
+#talk .tkP svg { width: 40px; height: 40px; }
+#talk .tkN { display: flex; align-items: baseline; gap: 8px; }
+#talk .tkN b { font-size: 14px; color: var(--tc, var(--crys)); letter-spacing: .06em; }
+#talk .tkN small { font-size: 11px; color: var(--faint); }
+#talk p { margin: 3px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-height: 1.5em; }
+#talk.rust { border-color: rgba(255, 106, 77, .45); background: linear-gradient(100deg, rgba(28, 8, 6, .92), rgba(16, 6, 6, .78)); }
+#talk.rust p { color: #ffd6cc; font-style: italic; }
+body.touch #talk { top: calc(4px + env(safe-area-inset-top, 0px)); bottom: auto; left: calc(6px + env(safe-area-inset-left, 0px)); width: min(300px, 30vw); grid-template-columns: 30px minmax(0, 1fr); gap: 7px; padding: 5px 8px 6px 6px; z-index: 8; }
+body.touch #talk .tkP { width: 30px; height: 30px; } body.touch #talk .tkP svg { width: 26px; height: 26px; }
+body.touch #talk .tkN b { font-size: 12px; } body.touch #talk .tkN small { display: none; }
+body.touch #talk p { font-size: 11.5px; line-height: 1.4; margin-top: 1px; }
+#bossCard { position: absolute; left: 50%; top: 31%; transform: translateX(-50%); display: grid; justify-items: center; gap: 4px; padding: 14px 34px 16px; text-align: center; pointer-events: none; background: radial-gradient(ellipse at center, rgba(60, 8, 10, .78), rgba(20, 4, 6, 0) 72%); animation: bossIn 3.8s ease-out forwards; z-index: 5; }
+#bossCard[hidden] { display: none; }
+#bossCard small { font-size: 12px; letter-spacing: .5em; color: var(--danger); }
+#bossCard b { font-family: var(--f-disp); font-weight: 400; font-size: clamp(30px, 5.2vw, 60px); letter-spacing: .14em; color: #fff; text-shadow: 0 0 26px rgba(255, 82, 102, .8); }
+#bossCard span { font-size: 15px; color: #ffcabf; letter-spacing: .12em; }
+#bossCard em { font-style: normal; font-size: 12.5px; color: var(--dim); max-width: 34em; }
+@keyframes bossIn { 0% { opacity: 0; transform: translateX(-50%) scale(1.3); } 8% { opacity: 1; transform: translateX(-50%) scale(1); } 82% { opacity: 1; } 100% { opacity: 0; } }
+.rankTag { margin: 6px 0 0; font-size: 13px; color: var(--dim); letter-spacing: .08em; }
+.rankTag b { color: var(--crys); font-weight: 600; } .rankTag em { font-style: normal; color: var(--gold); }
+.h2s { margin-left: 8px; font-family: var(--f-body, inherit); font-size: 13px; letter-spacing: .1em; color: var(--faint); font-weight: 400; }
+#endStory { display: grid; gap: 6px; }
+#endStory h3 { margin: 0; font-size: 13px; font-weight: 600; letter-spacing: .1em; color: var(--faint); }
+#endStory ol, .brLog { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tkLine { display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 9px; align-items: start; }
+.tkLine .tkP { width: 34px; height: 34px; color: var(--tc); background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .1); display: grid; place-items: center; }
+.tkLine .tkP svg { width: 30px; height: 30px; }
+.tkLine b { font-size: 12.5px; color: var(--tc); letter-spacing: .05em; }
+.tkLine p { margin: 1px 0 0; font-size: 13.5px; line-height: 1.55; color: var(--ink); }
+.tkLine.rust p { color: #ffd6cc; font-style: italic; }
+.tkLine.nar { grid-template-columns: minmax(0, 1fr); }
+.tkLine.nar p { color: var(--dim); }
+#brief { background: radial-gradient(ellipse at 30% 20%, rgba(20, 40, 56, .6), rgba(3, 6, 10, .95) 70%); backdrop-filter: blur(4px); z-index: 40; }
+.brIn { margin: auto; box-sizing: border-box; width: min(1100px, calc(100vw - 32px)); max-height: calc(100vh - 32px); display: grid; grid-template-columns: minmax(260px, 34%) minmax(0, 1fr); gap: 18px; padding: 20px 22px; background: linear-gradient(165deg, rgba(10, 18, 28, .96), rgba(5, 9, 15, .95)); border: 1px solid var(--line); border-top: 2px solid var(--crys); clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); min-height: 0; }
+.brSide { display: grid; gap: 8px; align-content: start; min-width: 0; }
+.brCh { font-size: 13px; letter-spacing: .4em; color: var(--crys); }
+.brSide h2 { margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 40px; letter-spacing: .14em; color: #fff; text-shadow: 0 0 22px rgba(95, 227, 255, .35); }
+.brPlace { font-size: 13px; color: var(--dim); }
+#brMap { width: 100%; max-height: 170px; object-fit: contain; image-rendering: pixelated; background: #05080c; border: 1px solid var(--line); }
+.brGoal { margin: 0; padding: 6px 10px; font-size: 13.5px; color: var(--ink); background: rgba(95, 227, 255, .07); border-left: 2px solid var(--crys); }
+.brIntel { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 12px; font-size: 12.5px; }
+.brIntel dt { color: var(--faint); } .brIntel dd { margin: 0; color: var(--ink); }
+.brNew { display: flex; flex-wrap: wrap; gap: 4px; }
+.brNew span { padding: 2px 8px; font-size: 12px; color: var(--gold); background: rgba(255, 181, 71, .08); border: 1px solid rgba(255, 181, 71, .3); }
+.brTalk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; }
+.brTalk h3 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .1em; }
+.brTalk h3 small { margin-left: 8px; font-weight: 400; font-size: 12px; color: var(--faint); }
+.brLog { overflow-y: auto; align-content: start; padding-right: 4px; cursor: pointer; min-height: 120px; scrollbar-width: thin; }
+.brLog .tkLine { animation: talkIn .25s ease-out; }
+.brBtns { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.brBtns .cta { min-width: 160px; }
+@media (max-height: 560px) {
+  .brIn { padding: 10px 14px; gap: 12px; max-height: calc(100vh - 12px); grid-template-columns: minmax(200px, 30%) minmax(0, 1fr); }
+  .brSide { gap: 4px; } .brSide h2 { font-size: 26px; } #brMap { display: none; }
+  .brGoal { font-size: 12px; padding: 4px 8px; } .brIntel { font-size: 11.5px; }
+  .brNew span { font-size: 11px; padding: 1px 6px; }
+  .tkLine { grid-template-columns: 28px minmax(0, 1fr); gap: 7px; } .tkLine .tkP { width: 28px; height: 28px; } .tkLine .tkP svg { width: 24px; height: 24px; }
+  .tkLine p { font-size: 12px; line-height: 1.45; } .tkLine b { font-size: 11.5px; }
+  .brLog { gap: 4px; min-height: 0; }
+  .brBtns .cta { min-width: 120px; padding: 8px 14px; }
+}
+#cine { position: fixed; inset: 0; z-index: 60; display: grid; align-items: end; justify-items: center; padding-bottom: 13vh; cursor: pointer; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, .55)); }
+#cine[hidden] { display: none; }
+#cine .cBar { position: absolute; left: 0; right: 0; height: 11vh; background: #000; }
+#cine .cBar.top { top: 0; } #cine .cBar.bot { bottom: 0; }
+#cine .cBox { position: relative; display: flex; gap: 14px; align-items: flex-start; width: min(820px, calc(100vw - 48px)); padding: 14px 18px; background: rgba(2, 6, 10, .62); border-left: 3px solid var(--tc, rgba(255, 255, 255, .35)); }
+#cine .cP { flex: none; width: 48px; height: 48px; color: var(--tc); display: grid; place-items: center; }
+#cine .cP:empty { display: none; }
+#cine .cP svg { width: 44px; height: 44px; }
+#cine b { display: block; font-size: 14px; color: var(--tc); letter-spacing: .08em; margin-bottom: 4px; }
+#cine b:empty { display: none; }
+#cine p { margin: 0; font-size: clamp(15px, 2.1vw, 20px); line-height: 1.7; color: #e9f3fa; letter-spacing: .04em; min-height: 3.4em; }
+#cine .cHint { position: absolute; bottom: 3.5vh; font-size: 12px; color: rgba(255, 255, 255, .45); letter-spacing: .3em; }
+#cineSkip { position: absolute; top: calc(11vh + 12px); right: 18px; padding: 6px 14px; font: inherit; font-size: 13px; color: rgba(255, 255, 255, .7); background: rgba(0, 0, 0, .4); border: 1px solid rgba(255, 255, 255, .25); cursor: pointer; }
+.cdxH4 { margin: 4px 0 0; font-size: 12.5px; font-weight: 600; letter-spacing: .1em; color: var(--faint); }
+.cdxDetail .cdxTalk { cursor: default; min-height: auto; overflow: visible; padding: 0; }
+#cdxL-lore .cdxTile .ic { width: 18px; height: 18px; }
+@media (max-height: 560px) {
+  #cdxL-lore .cdxTiles { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 3px; }
+  #cdxL-lore .cdxTile { padding: 3px 5px; font-size: 11px; gap: 4px; }
+  #cdxL-lore .cdxTile .ic { width: 13px; height: 13px; }
+  #cdxL-lore .cdxGrp h4 { margin-bottom: 2px; font-size: 10.5px; }
+  .cdxDetail .cdxTalk .tkLine p { font-size: 11.5px; }
+}
+.cdxDetail .cdxTalk .tkLine { animation: none; }
+.cdxUse { margin-left: auto; padding: 6px 14px; font-size: 13px; }
+.cdxLore { padding: 6px 10px; color: var(--dim) !important; font-style: italic; border-left: 2px solid rgba(255, 255, 255, .15); }
+.hBtn.pulse { animation: hPulse 1.4s ease-in-out infinite; }
+@keyframes hPulse { 50% { box-shadow: 0 0 0 2px rgba(108, 240, 164, .55), 0 0 26px rgba(108, 240, 164, .4); } }
+.mapCard .mc-c { font-size: 11.5px; color: var(--crys); letter-spacing: .06em; }
 .endStar { margin: 0; color: var(--gold); font-size: 14px; }
 .endStars { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .endStars li { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12.5px; color: var(--faint); background: rgba(255, 255, 255, .03); border: 1px solid var(--line); }
@@ -900,7 +1010,7 @@ body.tEditOnly #hud { background: #05080c; }
   <div id="nums"></div>
   <div id="topbar">
     <div class="crys">
-      <div class="lbl"><span>核心水晶</span><b id="crysNum">100 / 100</b></div>
+      <div class="lbl"><span>晶核</span><b id="crysNum">100 / 100</b></div>
       <div class="bar"><i id="crysFill"></i></div>
     </div>
     <div id="phase"><span id="waveTxt"></span><span id="phaseTxt"></span><span id="timerTxt"></span></div>
@@ -921,6 +1031,8 @@ body.tEditOnly #hud { background: #05080c; }
   <div id="tut" hidden><div class="tutTop"><span id="tutStep"></span><button type="button" id="tutSkip">跳过引导</button></div><b id="tutT"></b><p id="tutD"></p><div class="tutProg"><i id="tutBar"></i></div></div>
   <div id="lockHint" hidden>点击画面锁定鼠标继续</div>
   <div id="banner"><div class="b1" id="bannerT"></div><div class="b2" id="bannerS"></div></div>
+  <div id="talk" hidden aria-live="polite"><span class="tkP" id="talkP"></span><div class="tkB"><div class="tkN"><b id="talkName"></b><small id="talkRole"></small></div><p id="talkText"></p></div></div>
+  <div id="bossCard" hidden><small>BOSS 登场</small><b id="bossCardN"></b><span id="bossCardE"></span><em id="bossCardL"></em></div>
   <div id="toast"></div>
   <div id="bottom">
     <div id="vitals">
@@ -967,14 +1079,14 @@ body.tEditOnly #hud { background: #05080c; }
     <div id="bookList"></div>
   </div>
   <div id="shop" hidden>
-    <div class="shopHead"><h3>军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
+    <div class="shopHead"><h3>老钳的军械库</h3><span>按 1-4 购买 / 装备 · B / Esc 关闭 · 金币全队共享</span><button type="button" class="pClose" data-close="shop" aria-label="关闭">✕</button></div>
     <div id="shopList"></div>
   </div>
   <div id="lab" hidden>
     <div class="shopHead"><h3>科研终端</h3><span>按 1-5 研究 · F / Esc 关闭 · 花全队共享金币，效果全队生效</span><button type="button" class="pClose" data-close="lab" aria-label="关闭">✕</button></div>
     <div id="labList"></div>
   </div>
-  <div id="deadMsg" hidden>你已阵亡 · <b id="respawnT">5</b> 秒后在基地复活</div>
+  <div id="deadMsg" hidden>守卫装甲失效 · 回传系统 <b id="respawnT">5</b> 秒后把你送回基地</div>
   <div id="touchUI" hidden>
     <div id="tzMove"></div>
     <div id="tzLook"></div>
@@ -1011,12 +1123,13 @@ body.tEditOnly #hud { background: #05080c; }
     <header class="brand">
       <div class="core" aria-hidden="true"><i></i><i></i><i></i></div>
       <h1>晶核<em>守卫</em></h1>
-      <p class="tagline">第一人称塔防射击 · 守住核心水晶</p>
+      <p class="tagline">锈潮来袭 · 一个都别想过去</p>
+      <p class="rankTag" id="rankTag"></p>
     </header>
     <div id="menuErr" hidden></div>
     <div id="touchNote" hidden>本游戏需要键盘和鼠标，请在电脑上游玩。</div>
     <nav class="homeNav" aria-label="主菜单">
-      <button type="button" class="hBtn" id="tutBtn"><b>新手引导</b><small>9 步学会布防、升级和射击</small></button>
+      <button type="button" class="hBtn" id="tutBtn"><b>新手引导</b><small>守卫队入职训练 · 9 步学会布防、升级和射击</small></button>
       <button type="button" class="hBtn primary" id="soloBtn"><b>单人游戏</b><small id="soloSub">选择关卡、模式、难度和职业</small></button>
       <button type="button" class="hBtn primary" id="mpBtn"><b>多人游戏</b><small id="mpSub">创建或加入房间，最多 4 人合作</small></button>
       <div class="hGrid">
@@ -1081,7 +1194,7 @@ body.tEditOnly #hud { background: #05080c; }
       </div>
       <div class="step" data-step="1" hidden>
         <div class="seg segBig" role="group" aria-label="模式">
-          <button type="button" data-mode="std" aria-pressed="true"><b>标准</b><small>打完全部波次，击败终局 BOSS</small></button>
+          <button type="button" data-mode="std" aria-pressed="true"><b>主线</b><small>按章节推进剧情，打完全部波次、击败终局 BOSS</small></button>
           <button type="button" data-mode="endless" aria-pressed="false"><b>无尽</b><small>坚持越久越好，成绩上排行榜</small></button>
           <button type="button" data-mode="daily" aria-pressed="false"><b>每日挑战</b><small id="dailySub">每天一套固定组合</small><em id="dailyBest"></em></button>
         </div>
@@ -1132,6 +1245,8 @@ body.tEditOnly #hud { background: #05080c; }
         <div class="slider"><label for="fovR">视野</label><input id="fovR" type="range" min="65" max="100" step="1"><b id="fovV"></b></div>
         <div class="setRow"><div><b>泛光特效</b><span class="fine">画面发光与柔和高光，低配设备可关闭</span></div><button type="button" class="ghostBtn small" id="bloomBtn" aria-pressed="true">开</button></div>
         <div class="setRow gfxRow"><div><b>画质</b><span class="fine">分辨率、材质细节、远处物件和光源数量；手机发热或掉帧时调低（卡顿时也会自动降分辨率）</span></div><div class="seg gfxSeg" id="gfxSeg"></div></div>
+        <div class="setRow"><div><b>剧情对话</b><span class="fine">战斗中棱镜、老钳和锈母的无线电插话（屏幕左下角，不会暂停游戏）</span></div><button type="button" class="ghostBtn small" id="chatterBtn" aria-pressed="true">开</button></div>
+        <div class="setRow"><div><b>任务简报</b><span class="fine">主线每章开打前的简报与对话：只在第一次显示，或每次都显示</span></div><button type="button" class="ghostBtn small" id="briefBtn" aria-pressed="false">首次</button></div>
         <div class="setRow"><div><b>屏幕震动</b><span class="fine">爆炸、BOSS 脚步和践踏时画面晃动（离得越近越明显），晕 3D 可以关闭</span></div><button type="button" class="ghostBtn small" id="shakeBtn" aria-pressed="true">开</button></div>
         <div class="setRow"><div><b>显示帧率</b><span class="fine">左上角显示每秒帧数和当前渲染分辨率，方便判断手机能否跑得动</span></div><button type="button" class="ghostBtn small" id="fpsBtn" aria-pressed="false">关</button></div>
         <div class="setRow"><div><b>自动准备</b><span class="fine">每波清除后自动准备开战，不用等倒计时（联机时等队友也准备好）；按 G 可取消</span></div><button type="button" class="ghostBtn small" id="autoReadyBtn" aria-pressed="false">关</button></div>
@@ -1179,18 +1294,46 @@ body.tEditOnly #hud { background: #05080c; }
     <ul id="endTeam" hidden></ul>
     <p id="endLb" class="endStar" hidden></p>
     <p id="endStar" class="endStar" hidden></p>
+    <section id="endStory" hidden><h3>通讯记录</h3><ol id="endStoryList"></ol></section>
     <p id="endWait" class="fine" style="margin:0" hidden>等待房主开始下一局；你也可以先回到房间。</p>
     <div class="row2">
+      <button type="button" class="cta" id="nextBtn" hidden>下一章 ›</button>
       <button type="button" class="cta" id="againBtn">再来一局</button>
       <button type="button" class="ghostBtn" id="menuBtn">返回主菜单</button>
     </div>
   </div>
 </div>
 
+<div id="brief" class="overlay" hidden>
+  <div class="brIn">
+    <aside class="brSide">
+      <div class="brCh" id="brCh"></div>
+      <h2 id="brTitle"></h2>
+      <div class="brPlace" id="brPlace"></div>
+      <canvas id="brMap" aria-hidden="true"></canvas>
+      <p class="brGoal" id="brGoal"></p>
+      <dl class="brIntel" id="brIntel"></dl>
+      <div class="brNew" id="brNew"></div>
+    </aside>
+    <section class="brTalk">
+      <h3>任务简报 <small>点对话区继续</small></h3>
+      <ol class="brLog" id="brLog"></ol>
+      <div class="brBtns"><button type="button" class="ghostBtn" id="brBack">返回</button><button type="button" class="ghostBtn" id="brAll">显示全部</button><button type="button" class="cta" id="brGo">开始布防</button></div>
+    </section>
+  </div>
+</div>
+
+<div id="cine" hidden>
+  <div class="cBar top"></div><div class="cBar bot"></div>
+  <div class="cBox"><span class="cP" id="cineP"></span><div><b id="cineWho"></b><p id="cineLine"></p></div></div>
+  <div class="cHint">点击继续</div>
+  <button type="button" id="cineSkip">跳过 ›</button>
+</div>
+
 <div id="talents" class="overlay" hidden>
   <div class="modal">
-    <div class="talHead"><h2>天赋</h2><div id="talStars" class="talStars"></div></div>
-    <p class="fine" style="margin:0">星星来源：每张地图的普通 / 困难 / 炼狱各有三星评价（通关 ★ · 水晶剩 70% 以上 ★★ · 水晶无损 ★★★），无尽模式超过剧本 10 波 ★，每赢一次每日挑战 ★，完成成就也有星星。天赋第 1 / 2 / 3 级分别花 1 / 2 / 3 颗星，可以随时重置。全队效果的天赋（标 ◆）在联机时以房主的为准。</p>
+    <div class="talHead"><h2>天赋 <small class="h2s">守卫队训练营</small></h2><div id="talStars" class="talStars"></div></div>
+    <p class="fine" style="margin:0">星星来源：每张地图的普通 / 困难 / 炼狱各有三星评价（通关 ★ · 晶核剩 70% 以上 ★★ · 晶核无损 ★★★），无尽模式超过剧本 10 波 ★，每赢一次每日挑战 ★，完成成就也有星星。天赋第 1 / 2 / 3 级分别花 1 / 2 / 3 颗星，可以随时重置。全队效果的天赋（标 ◆）在联机时以房主的为准。</p>
     <div id="talList" class="talList"></div>
     <div class="row2"><button type="button" class="cta" id="talClose">完成</button><button type="button" class="ghostBtn" id="talReset">全部重置</button></div>
   </div>
@@ -1198,9 +1341,9 @@ body.tEditOnly #hud { background: #05080c; }
 
 <div id="achv" class="overlay fullPage" hidden>
   <div class="fpIn">
-    <div class="fpHead"><h2>成就</h2><div id="achSum" class="achSum"></div><button type="button" class="fpClose" id="achClose" aria-label="关闭成就">✕ 关闭</button></div>
+    <div class="fpHead"><h2>成就 <small class="h2s">守卫档案</small></h2><div id="achSum" class="achSum"></div><button type="button" class="fpClose" id="achClose" aria-label="关闭成就">✕ 关闭</button></div>
     <div class="fpBody achBody">
-      <section class="achMaps"><h3>关卡评价 <small>通关 ★ · 水晶剩 70% 以上 ★★ · 水晶无损 ★★★</small></h3><div id="achMapList" class="achMapList"></div></section>
+      <section class="achMaps"><h3>关卡评价 <small>通关 ★ · 晶核剩 70% 以上 ★★ · 晶核无损 ★★★</small></h3><div id="achMapList" class="achMapList"></div></section>
       <section><h3>成就</h3><div id="achList" class="achList"></div></section>
     </div>
   </div>
@@ -1211,7 +1354,7 @@ body.tEditOnly #hud { background: #05080c; }
     <div class="fpHead"><h2>排行榜</h2><nav class="fpTabs" id="lbTabs"></nav><button type="button" class="fpClose" id="lbClose" aria-label="关闭排行榜">✕ 关闭</button></div>
     <div class="fpBody">
       <div class="lbSrc"><button type="button" data-lbsrc="online" aria-pressed="true">在线榜</button><button type="button" data-lbsrc="local" aria-pressed="false">本机记录</button><span id="lbNote" class="fine"></span></div>
-      <p class="fine" style="margin:0">无尽模式结束（水晶被摧毁，或在暂停菜单里「结算并退出」）时自动上传。分数 =（到达波次 × 1000 + 击杀 × 2 + 剩余水晶 × 5）× 难度系数（困难 ×1.4，炼狱 ×1.9）× 突变系数。</p>
+      <p class="fine" style="margin:0">无尽模式结束（晶核被摧毁，或在暂停菜单里「结算并退出」）时自动上传。分数 =（到达波次 × 1000 + 击杀 × 2 + 剩余晶核 × 5）× 难度系数（困难 ×1.4，炼狱 ×1.9）× 突变系数。</p>
       <ol id="lbList" class="lbList"></ol>
     </div>
   </div>
@@ -1220,10 +1363,11 @@ body.tEditOnly #hud { background: #05080c; }
 <div id="help" class="overlay fullPage" hidden>
   <div class="fpIn cdxIn">
     <div class="fpHead"><h2>图鉴</h2><nav class="fpTabs" id="helpTabs">
-      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="wpn">武器与职业</button><button type="button" data-htab="map">关卡</button><button type="button" data-htab="rule">机制</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
+      <button type="button" data-htab="trap" aria-selected="true">陷阱</button><button type="button" data-htab="mon">敌人</button><button type="button" data-htab="wpn">武器与职业</button><button type="button" data-htab="map">关卡</button><button type="button" data-htab="lore">背景</button><button type="button" data-htab="rule">机制</button><button type="button" data-htab="ctrl">操作</button><button type="button" data-htab="credit">素材</button>
     </nav><button type="button" class="fpClose" id="helpClose" aria-label="关闭图鉴">✕ 关闭</button></div>
     <div class="fpBody cdxBody">
       <section data-htab="trap" class="cdx"><div class="cdxList" id="cdxL-trap"></div><article class="cdxDetail" id="cdxD-trap"></article></section>
+      <section data-htab="lore" class="cdx" hidden><div class="cdxList" id="cdxL-lore"></div><article class="cdxDetail" id="cdxD-lore"></article></section>
       <section data-htab="mon" class="cdx" hidden><div class="cdxList" id="cdxL-mon"></div><article class="cdxDetail" id="cdxD-mon"></article></section>
       <section data-htab="wpn" class="cdx" hidden><div class="cdxList" id="cdxL-wpn"></div><article class="cdxDetail" id="cdxD-wpn"></article></section>
       <section data-htab="map" class="cdx" hidden><div class="cdxList" id="cdxL-map"></div><article class="cdxDetail" id="cdxD-map"></article></section>
@@ -1240,4 +1384,5 @@ body.tEditOnly #hud { background: #05080c; }
 <script>/*__PROTO__*/</script>
 <script>/*__RELAY__*/</script>
 <script>/*__ASSETS__*/</script>
+<script>/*__STORY__*/</script>
 <script>/*__GAME__*/</script>
