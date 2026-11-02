@@ -33,8 +33,26 @@ const DIFFS = {
   hell: { name: '炼狱', hp: 2.4, gold: 0.87, grow: 0.17 },
 };
 
+/* ---------- 伤害类型与克制 ----------
+ * 每个陷阱 / 武器有一种伤害类型（elem），每种怪物有一种体质（cls）。
+ * 克制 ×1.5（熔岩怕寒冰 ×2），抵抗 ×0.6 左右，免疫 ×0；没有体质的怪物吃所有伤害 ×1。
+ */
+const ELEM = {
+  kinetic: { name: '动能', col: '#dfe5ea' }, energy: { name: '能量', col: '#5fe3ff' }, fire: { name: '火焰', col: '#ff8a3c' },
+  shock: { name: '电击', col: '#b48cff' }, cryo: { name: '寒冰', col: '#9fe8ff' }, blast: { name: '爆炸', col: '#ffcf5a' }, acid: { name: '腐蚀', col: '#a6f25a' },
+};
+const ARMOR = {
+  flesh: { name: '血肉', desc: '活物，怕火；没有电路，电击效果差', mul: { fire: 1.5, shock: 0.7 } },
+  mech: { name: '机械', desc: '电路暴露，怕电击；金属外壳不怕火', mul: { shock: 1.5, fire: 0.7 } },
+  heavy: { name: '重甲', desc: '厚重装甲，子弹和尖刺打不动；能量束和腐蚀能熔穿', mul: { energy: 1.5, acid: 1.5, kinetic: 0.6 } },
+  molten: { name: '熔岩', desc: '火焰对它无效；寒冰让它急速冷却开裂', mul: { cryo: 2, fire: 0 } },
+  frost: { name: '冰甲', desc: '寒冰无效、不会被减速和冻住；火焰能融化冰甲', mul: { fire: 1.75, cryo: 0 } },
+  mirror: { name: '镜甲', desc: '镜面装甲反射能量束；动能冲击能把它砸碎', mul: { energy: 0.35, kinetic: 1.5 } },
+};
+const elemMul = (cls, el) => (cls && el && ARMOR[cls] && ARMOR[cls].mul[el] !== undefined) ? ARMOR[cls].mul[el] : 1;
+
 /* ---------- 怪物 ----------
- * body/head: [相对脚底的高度, 命中球半径]
+ * body/head: [相对脚底的高度, 命中球半径]；cls：体质（见上面的克制表）
  */
 const MON = {
   grunt: { name: '赛博格步兵', hp: 140, spd: 3.4, core: 5, bounty: 16, dps: 30, melee: 10, r: 0.45, body: [0.82, 0.4], head: [1.55, 0.48] },
@@ -1265,7 +1283,7 @@ class Sim {
           if (dd > SHOCK.r + md.r || (dd > 1.3 && (vx * dx + vz * dz) / dd < ca)) continue;
           if (Math.abs(m.y + md.body[0] - (p.y + 1.2)) > 4.2) continue;
           n++;
-          this.damage(m, SHOCK.dmg * (asl ? 3 : 1) * this.gunMul(p), 'gun', p.id);
+          this._el = 'kinetic'; this.damage(m, SHOCK.dmg * (asl ? 3 : 1) * this.gunMul(p), 'gun', p.id); this._el = null;
           if (m.dead || md.boss) continue;
           m.stunT = Math.max(m.stunT, SHOCK.stun * (md.stunRes ? 1 - md.stunRes : 1));
           if (p.cls === 'scout' && m.cloak !== undefined) { m.revealT = Math.max(m.revealT || 0, 4); m.cloak = false; }
@@ -1485,8 +1503,18 @@ class Sim {
     const def = MON[m.type];
     if (def.stealth) m.revealT = Math.max(m.revealT, 1.2);
     const gp = src === 'gun' && pid ? this.s.players[pid] : null, GW = gp && !gp.mount ? this.wpnOf(gp) : null;
-    const armor = Math.min(0.6, (def.armor || 0) + (this.hasMut('armored') ? 0.2 : 0)) * (GW && GW.ap ? 1 - GW.ap : 1);
+    const armor = Math.min(0.6, (def.armor || 0) + (this.hasMut('armored') ? 0.2 : 0)) * (GW && GW.ap ? 1 - GW.ap : 1) * (m.acidT > 0 ? 0.5 : 1);
     let a = amt * (pierce ? 1 : 1 - armor);
+    // 伤害类型 × 体质（克制 / 抵抗 / 免疫）；酸蚀：受到的所有伤害提高
+    const el = this._el || (src === 'gun' ? (GW ? GW.elem : gp && gp.mount ? 'kinetic' : null) : src === 'trap' && TRAP[this._src] ? TRAP[this._src].elem : null);
+    a *= elemMul(def.cls, el);
+    if (m.acidT > 0) a *= 1 + (m.acidAmt || 0.25);
+    if (a <= 0) return 0;
+    // 重盾推土者：正面的盾牌挡住大部分枪械伤害（从侧面 / 背后打，或者交给陷阱）
+    if (def.frontShield && gp && !pierce) {
+      const dx = gp.x - m.x, dz = gp.z - m.z, L = Math.hypot(dx, dz) || 1;
+      if ((dx * m.fx + dz * m.fz) / L > 0.35) { a *= def.frontShield; if (!(m.defFx > this.s.time)) { m.defFx = this.s.time + 0.4; this.ev('deflect', { id: m.id, x: m.x + m.fx * def.r, y: m.y + def.body[0], z: m.z + m.fz * def.r }); } }
+    }
     // 反应甲虫：陷阱伤害减半、枪械伤害加成
     if (def.trapRes && src === 'trap') a *= 1 - def.trapRes;
     if (def.gunVuln && src === 'gun') a *= def.gunVuln;
@@ -1887,6 +1915,7 @@ class Sim {
   }
   // 范围爆炸：地面与空中目标都会受伤，边缘伤害减半
   _blast(x, y, z, r, dmg, pid, stun) {
+    const el0 = this._el; this._el = 'blast';
     for (const m of this.s.monsters) {
       if (m.dead) continue;
       const d = Math.hypot(m.x - x, (m.y + MON[m.type].body[0]) - y, m.z - z) - MON[m.type].r;
@@ -1894,6 +1923,7 @@ class Sim {
       this.damage(m, dmg * (1 - 0.5 * Math.max(0, d) / r), pid ? 'gun' : 'trap', pid || null);
       if (stun) m.stunT = Math.max(m.stunT, stun);
     }
+    this._el = el0;
   }
   _updatePlayerProj(p, dt) {
     const s = this.s;
@@ -1943,7 +1973,9 @@ class Sim {
       k.t -= dt;
       if (k.t <= 0) {
         this._blast(k.x, this.floorH(k.x, k.z) + 1.5, k.z, U.r, U.dmg, k.owner, U.stun);
+        this._el = 'blast';
         for (const m of s.monsters) if (!m.dead && MON[m.type].fly && Math.hypot(m.x - k.x, m.z - k.z) < U.r) this.damage(m, U.dmg * 0.5, 'gun', k.owner);
+        this._el = null;
         this.ev('strike', { pid: k.owner, x: k.x, z: k.z, r: U.r });
       }
     }
@@ -2054,7 +2086,7 @@ class Sim {
     } else {
       for (const o of s.monsters) {
         if (o === m || o.dead) continue;
-        if (Math.hypot(o.x - m.x, o.z - m.z) < 3.2) this.damage(o, 140, 'trap');
+        if (Math.hypot(o.x - m.x, o.z - m.z) < 3.2) { this._el = 'blast'; this.damage(o, 140, 'trap'); this._el = null; }
       }
     }
     for (const id in s.players) {
@@ -2076,8 +2108,11 @@ class Sim {
       m.ox = m.x; m.oy = m.y; m.oz = m.z;
       m.hitT = Math.max(0, m.hitT - dt);
       if (m.frozenT > 0) m.frozenT -= dt;
-      if (m.poisonT > 0) { m.poisonT -= dt; this._src = 'spike'; this.damage(m, m.poisonDps * dt, 'trap', null, true); }
+      if (m.poisonT > 0) { m.poisonT -= dt; this._src = 'spike'; this._el = 'acid'; this.damage(m, m.poisonDps * dt, 'trap', null, true); this._el = null; }
+      if (m.acidT > 0) m.acidT -= dt;
+      this._el = 'fire';
       if (m.burnT > 0) { m.burnT -= dt; if (m.burnBy === 'gun') this.damage(m, m.burnDps * dt, 'gun', m.burnPid, true); else { this._src = m.burnBy || 'flame'; this.damage(m, m.burnDps * dt, 'trap', null, true); } }
+      this._el = null;
       this._src = null;
       if (m.dead) continue;
       // 掉进坑里：飞向坑中央、坠落，然后直接死亡（算作场景杀）

@@ -3420,6 +3420,9 @@ function handleEvents(S) {
       }
       case 'waveStart': {
         portalFlare.A = portalFlare.B = 2;
+        // 第一波开始：出战陷阱锁定
+        if (!$('loadModal').hidden && loadModalCtx && loadModalCtx.onChange === applyRunLoad) closeLoadModal();
+        if ($('bookLoad')) $('bookLoad').hidden = true;
         const total = e.total;
         banner(e.boss ? `第 ${e.wave} / ${total} 波 · 终局` : `第 ${e.wave} / ${total} 波`, e.name + (e.tip && !chatterOn() ? ' — ' + e.tip : ''), e.boss);
         if (S === sim) storyWave(e);
@@ -3742,7 +3745,7 @@ function storyBegin() {
   banner(`${ch.ch} · ${ch.title}`, ch.goal);
   if (!STORY.briefSeen(sim.def.id)) { sayLines(ch.brief, 3); STORY.markBrief(sim.def.id); RUN.lastStory = performance.now(); }
   if (sim.pitTiles && sim.pitTiles.length && !STORY.hintSeen('pit')) { STORY.markHint('pit'); sayPool('pitHint', { pri: 1 }); }
-  { const nw = NEWT.list(); if (nw.length) { const out = nw.filter(id => !inLoad(id)), inn = nw.filter(inLoad); say('qian', `新装备到货：${nw.map(id => TRAP[id].name).join('、')}。` + (inn.length ? `陷阱栏里带「新」字的就是，${TOUCH ? '点「陷阱」' : '按 Tab '}看说明，拿去试试！` : '') + (out.length ? `${out.map(id => TRAP[id].name).join('、')}这局没带上——一次最多带 ${LOAD_MAX} 种，下次开局在「陷阱」一步里换上。` : ''), { pri: 2 }); } }
+  { const nw = NEWT.list(); if (nw.length) { const out = nw.filter(id => !inLoad(id)), inn = nw.filter(inLoad); say('qian', `新装备到货：${nw.map(id => TRAP[id].name).join('、')}。` + (inn.length ? `陷阱栏里带「新」字的就是，${TOUCH ? '点「陷阱」' : '按 Tab '}看说明，拿去试试！` : '') + (out.length ? `${out.map(id => TRAP[id].name).join('、')}这局没带上——一次最多带 ${LOAD_MAX} 种，第一波开始前${TOUCH ? '点「陷阱」' : '按 Tab '}打开陷阱一览，点「调整出战陷阱」就能换。` : ''), { pri: 2 }); } }
 }
 function storyWave(e) {
   if (Tut.on) return;
@@ -3823,6 +3826,7 @@ function openBrief(id) {
   const ci = MAP_LIST.findIndex(m => m.id === id) + 1, rew = Object.keys(UNLOCKS).filter(t => UNLOCKS[t].ch === ci && !isUnlocked(t));
   $('brNew').innerHTML = (foes.length ? `<span class="lbl">本章新敌人</span>` + foes.map(t => `<span>${MON[t].name}</span>`).join('') : '') + (rew.length ? `<span class="lbl">通关奖励</span>` + rew.map(t => `<span class="rew">${TRAP[t].name}</span>`).join('') : '');
   $('brLog').innerHTML = '';
+  renderBriefLoad();
   show('brief', true);
   return true;
 }
@@ -3999,6 +4003,7 @@ function trapStats(t) {
 function renderBook() {
   // 左边按分组排的陷阱格子，右边详情（和图鉴同一套）；点格子看详情，点「选用」或双击直接拿在手上
   buildHelp();
+  const rl = canReload(); $('bookLoad').hidden = !rl; $('bookLoad').classList.toggle('hot', rl && loadHint(sim.def.id));
   const box = $('bookList'); box.className = 'cdx bookCdx';
   box.innerHTML = '<div class="cdxList" id="bkL"></div><article class="cdxDetail" id="bkD"></article>';
   const L = $('bkL'), gold = sim ? sim.s.gold : 0;
@@ -4011,6 +4016,10 @@ function renderBook() {
     if (inLoad(id)) {
       const u = document.createElement('button'); u.type = 'button'; u.className = 'cta bkUse'; u.dataset.use = id; u.textContent = '选用';
       u.addEventListener('click', () => { selectTool(id); toggleBook(false); });
+      (D.querySelector('header') || D).appendChild(u);
+    } else if (isUnlocked(id) && canReload()) {
+      const u = document.createElement('button'); u.type = 'button'; u.className = 'ghostBtn bkUse'; u.textContent = '调整出战陷阱';
+      u.addEventListener('click', () => openLoadModal(sim.def.id, applyRunLoad));
       (D.querySelector('header') || D).appendChild(u);
     }
     bookSel = id;
@@ -4640,6 +4649,7 @@ function onKey(code, e) {
   if (['Space', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code) && mode === 'play') e.preventDefault();
   // 整页浮层（设置 / 图鉴 / 天赋）优先响应 Esc
   if (Cine.on && (code === 'Escape' || code === 'Space' || code === 'Enter')) { if (code === 'Escape') cineEnd(); else cineTap(); return; }
+  if (!$('loadModal').hidden) { if (code === 'Escape' || code === 'Enter') closeLoadModal(); return; }
   if (!$('brief').hidden) { if (code === 'Escape') closeBrief(); else if (code === 'Enter') briefGo(); else if (code === 'Space') briefNext(false); return; }
   if (code === 'Escape' || (code === 'KeyH' && !$('help').hidden)) {
     if (!$('settings').hidden) { closeSettings(); return; }
@@ -5911,7 +5921,7 @@ function showEnd() {
   if (gained > 0) msg.push(`获得 ★ ×${gained} · 可用星星 ${PROG.stars() - PROG.spent()}，到主菜单「天赋」里加点`);
   if (newAch.length) msg.push(`达成成就：${newAch.map(a => `「${a.name}」`).join('')}`);
   const newly = locked0.filter(id => UNLOCKS[id].ok());
-  if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => `${TRAP[id].name}（${grpOf(id) ? grpOf(id).name : ''}）`).join('、')}！下一局起就能用`); buildHotbar(); }
+  if (newly.length) { msg.push(`解锁新陷阱：${newly.map(id => `${TRAP[id].name}（${grpOf(id) ? grpOf(id).name : ''}）`).join('、')}！${LOAD.unlocked().length > LOAD_MAX ? '下一章的任务简报里点「调整」把它带上' : '下一局起就能用'}`); buildHotbar(); }
   const rk0 = rankOf(stars0), rk1 = rankOf(PROG.stars());
   if (rk1.i > rk0.i) msg.push(`军衔晋升：${rk1.name}！`);
   $('endStar').hidden = !msg.length; $('endStar').textContent = msg.join(' · ');
@@ -6342,27 +6352,58 @@ function goScreen(scr) {
   const f = m.querySelector(`:scope > [data-scr="${scr}"] ${scr === 'home' ? '.hBtn.primary' : '.backBtn'}`);
   if (f && !TOUCH) f.focus({ preventScroll: true });
 }
-// 开局设置第 5 步：出战陷阱（最多 8 种）
-function renderLoadout() {
-  const un = LOAD.unlocked(), cur = LOAD.list(), free = un.length <= LOAD_MAX, box = $('loadGrid');
-  setText('loadN', `${cur.length} / ${LOAD_MAX}`);
-  setText('loadTip', free ? `已解锁的陷阱还不到 ${LOAD_MAX} 种，全部带上。打通主线章节会解锁更多陷阱，到时候就得挑着带了。` : `一局最多带 ${LOAD_MAX} 种陷阱，点一下带上 / 取下。带「新」字的是刚解锁的。${MP.role !== 'solo' ? '联机时每人各带各的。' : ''}`);
-  $('loadAuto').hidden = free;
+// 出战陷阱选择：开局设置第 5 步、任务简报、第一波开始前（陷阱一览里）都能打开
+// ids = 用哪组元素渲染；mapId = 按哪张地图给推荐（室外图粉碎锤靠后）；onChange = 改完之后
+function renderLoadout(ids, mapId, onChange) {
+  ids = ids || LOAD_UI.setup;
+  const un = LOAD.unlocked(), cur = LOAD.list(mapId), free = un.length <= LOAD_MAX, box = $(ids.grid);
+  setText(ids.n, `${cur.length} / ${LOAD_MAX}`);
+  setText(ids.tip, free ? `已解锁的陷阱还不到 ${LOAD_MAX} 种，全部带上。打通主线章节会解锁更多陷阱，到时候就得挑着带了。` : `一局最多带 ${LOAD_MAX} 种陷阱，点一下带上 / 取下。带「新」字的是刚解锁的。${MP.role !== 'solo' ? '联机时每人各带各的。' : ''}`);
+  $(ids.auto).hidden = free;
   box.innerHTML = '';
   for (const g of TRAP_GROUPS) for (const id of g.traps) {
     const t = TRAP[id], lock = !isUnlocked(id), on = cur.includes(id);
-    const b = document.createElement('button'); b.type = 'button'; b.className = 'ldT' + (on ? ' on' : '') + (lock ? ' locked' : ''); b.style.setProperty('--cc', `var(--c-${t.cat})`);
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'ldT' + (on ? ' on' : '') + (lock ? ' locked' : ''); b.style.setProperty('--cc', `var(--c-${t.cat})`); b.dataset.id = id;
     b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.disabled = lock || free;
     b.innerHTML = `<span class="ic">${svgIcon(id)}</span><b>${t.name}</b><small>${lock ? (UNLOCKS[id] ? UNLOCKS[id].how : '未解锁') : `${g.name} · ${t.cost} 金币${PROG.mastLv(id) ? ' · 精通 ' + PROG.mastLv(id) : ''}`}</small>${NEWT.isNew(id) ? '<span class="newB">新</span>' : ''}`;
     if (!lock && !free) b.addEventListener('click', () => {
-      const sel = LOAD.list();
+      const sel = LOAD.list(mapId);
       if (sel.includes(id)) sel.splice(sel.indexOf(id), 1);
       else if (sel.length >= LOAD_MAX) { toast(`最多带 ${LOAD_MAX} 种陷阱，先取下一种`, true); Snd.play('deny'); return; }
       else sel.push(id);
-      LOAD.set(sel); renderLoadout(); updateMenuSum();
+      LOAD.set(sel); renderLoadout(ids, mapId, onChange); updateMenuSum(); if (onChange) onChange();
     });
     box.appendChild(b);
   }
+}
+const LOAD_UI = { setup: { grid: 'loadGrid', n: 'loadN', tip: 'loadTip', auto: 'loadAuto' }, modal: { grid: 'lmGrid', n: 'lmN', tip: 'lmTip', auto: 'lmAuto' } };
+// 有没有「解锁了但没带上的新陷阱」（用来提醒玩家去换）
+const loadHint = mapId => { const cur = LOAD.list(mapId); return LOAD.unlocked().length > LOAD_MAX && NEWT.list().some(id => !cur.includes(id)); };
+let loadModalCtx = null;
+function openLoadModal(mapId, onChange) {
+  loadModalCtx = { mapId, onChange };
+  renderLoadout(LOAD_UI.modal, mapId, onChange);
+  show('loadModal', true);
+}
+function closeLoadModal() { show('loadModal', false); const c = loadModalCtx; loadModalCtx = null; if (c && c.onChange) c.onChange(); }
+// 任务简报里的「出战陷阱」一行
+function renderBriefLoad() {
+  const id = Brief.map, cur = LOAD.list(id), hot = loadHint(id);
+  setText('brLoadN', `${cur.length} / ${Math.min(LOAD_MAX, LOAD.unlocked().length)}`);
+  $('brLoadIc').innerHTML = cur.map(t => `<i style="--cc: var(--c-${TRAP[t].cat})" title="${TRAP[t].name}">${svgIcon(t)}</i>`).join('');
+  $('brLoadTip').hidden = !hot; $('brLoad').classList.toggle('hot', hot);
+  $('brLoadBtn').hidden = LOAD.unlocked().length <= LOAD_MAX;
+  $('brLoadBtn2').hidden = LOAD.unlocked().length <= LOAD_MAX; $('brLoadDot').hidden = !hot;
+}
+// 第一波开始前：在陷阱一览里改出战陷阱，马上生效
+const canReload = () => !!sim && mode === 'play' && sim.s.phase === 'build' && sim.s.wave === 0 && !Tut.on && LOAD.unlocked().length > LOAD_MAX;
+function applyRunLoad() {
+  if (!sim) return;
+  runLoad = new Set(LOAD.list(sim.def.id));
+  buildHotbar();
+  if (tool !== 'gun' && !inLoad(tool)) selectTool('gun');
+  for (const el of document.querySelectorAll('#hotbar [data-id]')) el.classList.toggle('sel', el.dataset.id === tool);
+  if (bookOpen) renderBook();
 }
 function setStep(i) {
   setupStep = Math.max(0, Math.min(SETUP_STEPS - 1, i));
@@ -6374,10 +6415,9 @@ function setStep(i) {
   }
   const last = setupStep === SETUP_STEPS - 1;
   if (setupStep === 4) renderLoadout();
-  // 职业这一步就可以直接开始（出战配置是可选的最后一步）
-  $('stepNext').hidden = last; $('startBtn').hidden = setupStep < SETUP_STEPS - 2;
-  $('stepNext').textContent = setupStep === SETUP_STEPS - 2 ? '出战陷阱' : '下一步';
-  $('stepNext').classList.toggle('ghostBtn', setupStep === SETUP_STEPS - 2); $('stepNext').classList.toggle('cta', setupStep !== SETUP_STEPS - 2);
+  // 出战陷阱是正式的一步：职业之后一定会经过它，最后一步才能开始游戏
+  $('stepNext').hidden = last; $('startBtn').hidden = !last;
+  $('stepNext').textContent = setupStep === SETUP_STEPS - 2 ? '下一步：出战陷阱' : '下一步';
   $('stepPrev').hidden = setupStep === 0;
   const st = document.querySelector('#menu .steps'); if (st) st.scrollTop = 0;
 }
@@ -6393,6 +6433,12 @@ function setupMenuNav() {
   $('stepPrev').addEventListener('click', () => setStep(setupStep - 1));
   $('stepNext').addEventListener('click', () => setStep(setupStep + 1));
   $('loadAuto').addEventListener('click', () => { LOAD.d = null; LOAD.save(); renderLoadout(); updateMenuSum(); });
+  $('lmAuto').addEventListener('click', () => { LOAD.d = null; LOAD.save(); const c = loadModalCtx || {}; renderLoadout(LOAD_UI.modal, c.mapId, c.onChange); updateMenuSum(); if (c.onChange) c.onChange(); });
+  $('lmDone').addEventListener('click', closeLoadModal);
+  $('loadModal').addEventListener('click', ev => { if (ev.target === $('loadModal')) closeLoadModal(); });
+  $('brLoadBtn').addEventListener('click', () => openLoadModal(Brief.map, renderBriefLoad));
+  $('brLoadBtn2').addEventListener('click', () => openLoadModal(Brief.map, renderBriefLoad));
+  $('bookLoad').addEventListener('click', () => { if (canReload()) openLoadModal(sim.def.id, applyRunLoad); else { toast('第一波开始后就不能换出战陷阱了', true); renderBook(); } });
   for (const li of document.querySelectorAll('#stepper li')) li.querySelector('button').addEventListener('click', () => setStep(+li.dataset.stepi));
   // 房间里的“下一步”：房主去选关卡，队友直接去选职业
   $('roomNext').addEventListener('click', () => { setupStep = MP.role === 'client' ? SETUP_STEPS - 2 : 0; goScreen('setup'); });
@@ -6851,6 +6897,7 @@ window.__back = () => {
     return true;
   }
   if (Cine.on) { cineEnd(); return true; }
+  if (!$('loadModal').hidden) { closeLoadModal(); return true; }
   if (!$('brief').hidden) { closeBrief(); return true; }
   if (!$('share').hidden) { show('share', false); return true; }
   if (!$('help').hidden) { show('help', false); return true; }

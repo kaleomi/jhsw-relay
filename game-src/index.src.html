@@ -308,7 +308,6 @@ body.touch #comboBig { top: 12%; font-size: 26px; }
 .ldT.locked { opacity: .45; cursor: default; }
 .ldT:disabled { cursor: default; }
 .ldT .newB { left: auto; right: 26px; top: 6px; transform: none; }
-@media (max-height: 560px) { .loadGrid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; } .ldT { padding: 6px 8px; } .ldT b { font-size: 13px; } }
 #evo { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -54%); width: min(560px, calc(100vw - 32px)); padding: 14px 16px 16px; background: var(--panel2); clip-path: var(--cut); pointer-events: auto; display: grid; gap: 10px; }
 .pickList { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .pickList .wcard b { color: var(--gold); }
@@ -662,6 +661,39 @@ body.touch #bossCard .bcArt { width: min(190px, 26vw); margin-bottom: 0; }
 .brNew span.lbl { border: 0; background: none; color: var(--faint); padding-left: 0; }
 .brNew span.lbl:not(:first-child) { margin-left: 8px; }
 .brNew span.rew { color: var(--ok); background: rgba(98, 230, 150, .08); border-color: rgba(98, 230, 150, .35); }
+.brLoad { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; padding: 7px 8px; background: rgba(255, 255, 255, .035); border: 1px solid var(--line); }
+.brLoad .lbl { font-size: 12px; color: var(--faint); }
+.brLoad .lbl b { color: var(--gold); font-family: var(--f-num); font-weight: 600; }
+.brLoadIc { display: flex; flex-wrap: wrap; gap: 3px; flex: 1; min-width: 0; }
+.brLoadIc i { width: 20px; height: 20px; display: grid; place-items: center; color: var(--cc); background: rgba(0, 0, 0, .3); border: 1px solid color-mix(in srgb, var(--cc) 45%, transparent); }
+.brLoadIc i svg { width: 15px; height: 15px; }
+.brLoad em { font-style: normal; font-size: 11px; color: #10141a; background: #ffd166; padding: 1px 6px; border-radius: 3px; animation: newPulse 1.6s ease-in-out infinite; }
+.brLoad em[hidden] { display: none; }
+.brLoad.hot #brLoadBtn { border-color: #ffd166; color: #ffd166; }
+#loadModal { z-index: 66; background: rgba(3, 6, 10, .86); }
+.lmBox { width: min(980px, calc(100% - 24px)); gap: 10px; padding: 18px clamp(14px, 3vw, 26px); }
+#bookLoad { margin-left: auto; white-space: nowrap; }
+#bookLoad[hidden] { display: none; }
+#bookLoad.hot { border-color: #ffd166; color: #ffd166; }
+#brLoadBtn2 { display: none; position: relative; }
+#brLoadBtn2 em { position: absolute; top: -7px; right: -6px; font-style: normal; font-size: 10px; line-height: 1; color: #10141a; background: #ffd166; padding: 2px 5px; border-radius: 3px; }
+#brLoadBtn2 em[hidden] { display: none; }
+#brLoadBtn2[hidden], #brLoadBtn[hidden] { display: none !important; }
+@media (max-height: 560px) {
+  .lmBox { padding: 10px 14px; gap: 6px; }
+  .lmBox .loadTip { display: none; }
+  .loadGrid { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 5px; }
+  .ldT { padding: 5px 7px; column-gap: 6px; grid-template-columns: 20px minmax(0, 1fr); }
+  .ldT .ic svg { width: 19px; height: 19px; }
+  .ldT b { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; }
+  .ldT small { font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ldT .newB { top: -6px; right: 20px; }
+  .ldT.on::after { right: 5px; top: 3px; font-size: 12px; }
+  .lmBox .row2 .cta { padding: 7px 18px; }
+  /* 手机上任务简报左栏放不下：出战陷阱改成底部按钮 */
+  .brLoad { display: none; }
+  #brLoadBtn2 { display: inline-flex; }
+}
 .brTalk { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 10px; min-height: 0; }
 .brTalk h3 { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: .1em; }
 .brTalk h3 small { margin-left: 8px; font-weight: 400; font-size: 12px; color: var(--faint); }
@@ -1174,7 +1206,7 @@ body.tEditOnly #hud { background: #05080c; }
     <div id="evoList" class="pickList"></div>
   </div>
   <div id="trapBook" hidden>
-    <div class="shopHead"><h3>陷阱一览</h3><span>按 1-5 打开分组，再按数字选组内第几个 · 点格子看详情，双击或点「选用」直接拿在手上 · Tab / Esc 关闭</span><button type="button" class="pClose" data-close="book" aria-label="关闭">✕</button></div>
+    <div class="shopHead"><h3>陷阱一览</h3><span>按 1-5 打开分组，再按数字选组内第几个 · 点格子看详情，双击或点「选用」直接拿在手上 · Tab / Esc 关闭</span><button type="button" class="ghostBtn small" id="bookLoad" hidden>调整出战陷阱</button><button type="button" class="pClose" data-close="book" aria-label="关闭">✕</button></div>
     <div id="bookList"></div>
   </div>
   <div id="shop" hidden>
@@ -1412,6 +1444,15 @@ body.tEditOnly #hud { background: #05080c; }
   </div>
 </div>
 
+<div id="loadModal" class="overlay" hidden>
+  <div class="modal lmBox">
+    <div class="loadHead"><h3>出战陷阱 <b id="lmN"></b></h3><button type="button" class="ghostBtn small" id="lmAuto">恢复推荐</button></div>
+    <p class="fine loadTip" id="lmTip"></p>
+    <div id="lmGrid" class="loadGrid" role="group" aria-label="出战陷阱"></div>
+    <div class="row2"><button type="button" class="cta" id="lmDone">完成</button></div>
+  </div>
+</div>
+
 <div id="share" class="overlay" hidden>
   <div class="shareIn">
     <img id="shareImg" alt="战报图">
@@ -1431,11 +1472,12 @@ body.tEditOnly #hud { background: #05080c; }
       <p class="brGoal" id="brGoal"></p>
       <dl class="brIntel" id="brIntel"></dl>
       <div class="brNew" id="brNew"></div>
+      <div class="brLoad" id="brLoad"><span class="lbl">出战陷阱 <b id="brLoadN"></b></span><span class="brLoadIc" id="brLoadIc"></span><em id="brLoadTip" hidden>有新陷阱没带上</em><button type="button" class="ghostBtn small" id="brLoadBtn">调整</button></div>
     </aside>
     <section class="brTalk">
       <h3>任务简报 <small>点对话区继续</small></h3>
       <ol class="brLog" id="brLog"></ol>
-      <div class="brBtns"><button type="button" class="ghostBtn" id="brBack">返回</button><button type="button" class="ghostBtn" id="brAll">显示全部</button><button type="button" class="cta" id="brGo">开始布防</button></div>
+      <div class="brBtns"><button type="button" class="ghostBtn" id="brBack">返回</button><button type="button" class="ghostBtn" id="brAll">显示全部</button><button type="button" class="ghostBtn" id="brLoadBtn2">出战陷阱<em id="brLoadDot" hidden>新</em></button><button type="button" class="cta" id="brGo">开始布防</button></div>
     </section>
   </div>
 </div>
