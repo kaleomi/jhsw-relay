@@ -4229,6 +4229,19 @@ class Sim {
     const tr = this.occ.get('f' + this.idxOf(px, pz));
     return tr && this.isBlocker(tr) && tr.hp > 0 ? tr : null;
   }
+  // 挡路的玩家：站在怪物前进方向正前方（同一高度、贴得够近）才算挡路；回传保护中的不算
+  _playerAhead(m, def) {
+    let best = null, bf = def.r + 0.9;
+    for (const id in this.s.players) {
+      const p = this.s.players[id];
+      if (p.dead || p.invT > 0 || Math.abs(p.y - m.y) > 1.6) continue;
+      const dx = p.x - m.x, dz = p.z - m.z, fwd = dx * m.fx + dz * m.fz;
+      if (fwd < -0.15 || fwd > bf) continue;
+      if (Math.abs(dx * m.fz - dz * m.fx) > def.r + 0.45) continue;
+      bf = fwd; best = p;
+    }
+    return best;
+  }
   _hurtTrap(tr, amt) {
     tr.hp -= amt; tr.hurtT = 0.5;
     if (tr.hp <= 0) {
@@ -4444,14 +4457,23 @@ class Sim {
         m.broodT -= dt;
         if (m.broodT <= 0) { m.broodT = 6; for (let i = 0; i < 2; i++) this._spawn('mite', m.lane, Math.max(0, m.d - 1 - i)); }
       }
+      m.blockP = null;
       if (!def.fly && !def.ceil && m.launchT <= 0) {
         const blk = this._blockerAhead(m, def, path);
+        // 玩家挡在路上：停下来打你（BOSS 不会停，但会顺手把挡路的你拍开）；只是擦身而过不会受伤
+        const bp = !blk && !m.burrow && (def.melee || def.bomb) ? this._playerAhead(m, def) : null;
         if (blk) {
           m.state = 'block';
           if (def.bomb) { m.leaked = true; m.dead = true; this._bomberBlast(m, true); continue; }
           // 同一座阻挡最多被 4 只怪同时攻击
           if (!blk.gate && m.stunT <= 0 && blk.atkN < 4) { blk.atkN++; this._hurtTrap(blk, def.dps * dt * (m.enraged ? 1.5 : 1)); }
           spd = 0;
+        } else if (bp) {
+          if (def.bomb) { m.leaked = true; m.dead = true; this._bomberBlast(m, true); continue; }
+          // 刚被挡住：抬手前摇 0.45 秒（短暂闪开又挡回来不重新算）
+          if (s.time - (m.blockAt === undefined ? -9 : m.blockAt) > 0.6) m.atkT = Math.max(m.atkT, 0.45);
+          m.blockAt = s.time; m.blockP = bp.id;
+          if (!def.boss) { m.state = 'block'; spd = 0; }
         } else if (!def.boss) {
           for (const o of stopped) {
             if (o === m || o.dead) continue;
@@ -4488,16 +4510,12 @@ class Sim {
       if (def.melee) {
         m.atkT -= dt;
         if (m.atkT <= 0) {
-          for (const id in s.players) {
-            const p = s.players[id];
-            if (p.dead) continue;
-            if (Math.hypot(p.x - m.x, p.z - m.z) < def.r + 0.9 && Math.abs(p.y - m.y) < 2.2) {
-              this.hurtPlayer(p, def.melee * (m.enraged ? 1.5 : 1), m.type, m.x, m.z);
-              m.atkT = 1.1; this.ev('mhit', { id: m.id });
-              break;
-            }
-          }
-          if (m.atkT <= 0) m.atkT = 0.2;
+          // 只打挡在自己路上的玩家（碰到 / 擦身而过不受伤）
+          const p = m.blockP && s.players[m.blockP];
+          if (p && !p.dead && m.stunT <= 0) {
+            this.hurtPlayer(p, def.melee * (m.enraged ? 1.5 : 1), m.type, m.x, m.z);
+            m.atkT = 1.1; this.ev('mhit', { id: m.id });
+          } else m.atkT = 0;
         }
       }
       if (def.boss) {
@@ -10084,6 +10102,7 @@ function buildHelp() {
   const R = (id, grp, name, body) => cdxItem('rule', { id, grp, name, icon: '', cat: 'gun', detail: () => `<header><h3>${name}</h3><span class="cdxMeta">${grp}</span></header>${body}` });
   R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
   R('respawn', '基础规则', '复活保护', '<p>阵亡后，守卫装甲的回传系统会在 5 秒后把你送回基地重建，回来后 10 秒内无敌。</p>');
+  R('body', '基础规则', '挡路与近战', '<p>碰到怪物不会受伤：近战怪只会攻击<b>挡在它路上</b>的守卫。站到它正前方，它就会停下来打你（每秒左右一下）；从旁边或身后贴近都没事。用身体挡路能把怪拖在陷阱里，但要盯着自己的血量。自爆蜘蛛被你挡住会直接爆炸；BOSS 不会停下，会把挡路的你拍开。</p>');
   R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
   R('unlock', '基础规则', '陷阱解锁', `<p>新守卫上岗时只有六种基础陷阱：减速器、毒刺陷阱、自修复磁暴塔、激光发射器、粉碎锤、岗哨机枪。每打通一章主线（任意难度），老钳就会送来新装备：</p><ul class="cdxTags">${Object.keys(UNLOCKS).sort((a, b) => UNLOCKS[a].ch - UNLOCKS[b].ch).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上，可以在设置里导出存档或开启云存档。</p>`);
   R('shock', '基础规则', '震荡冲击', `<p>按 V（手机右侧的「冲击」按钮）向准星方向扇形释放一道冲击波：造成伤害、击退并短暂眩晕前方的怪物，冷却 ${TD.SHOCK.cd} 秒。被推到坑边的怪物会直接掉下去。BOSS 只吃伤害。</p><ul class="cdxTags">${CLASSES.map(c => `<li><b>${c.name}</b>：${c.shock}</li>`).join('')}</ul>`);

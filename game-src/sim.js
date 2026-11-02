@@ -2018,6 +2018,19 @@ class Sim {
     const tr = this.occ.get('f' + this.idxOf(px, pz));
     return tr && this.isBlocker(tr) && tr.hp > 0 ? tr : null;
   }
+  // 挡路的玩家：站在怪物前进方向正前方（同一高度、贴得够近）才算挡路；回传保护中的不算
+  _playerAhead(m, def) {
+    let best = null, bf = def.r + 0.9;
+    for (const id in this.s.players) {
+      const p = this.s.players[id];
+      if (p.dead || p.invT > 0 || Math.abs(p.y - m.y) > 1.6) continue;
+      const dx = p.x - m.x, dz = p.z - m.z, fwd = dx * m.fx + dz * m.fz;
+      if (fwd < -0.15 || fwd > bf) continue;
+      if (Math.abs(dx * m.fz - dz * m.fx) > def.r + 0.45) continue;
+      bf = fwd; best = p;
+    }
+    return best;
+  }
   _hurtTrap(tr, amt) {
     tr.hp -= amt; tr.hurtT = 0.5;
     if (tr.hp <= 0) {
@@ -2233,14 +2246,23 @@ class Sim {
         m.broodT -= dt;
         if (m.broodT <= 0) { m.broodT = 6; for (let i = 0; i < 2; i++) this._spawn('mite', m.lane, Math.max(0, m.d - 1 - i)); }
       }
+      m.blockP = null;
       if (!def.fly && !def.ceil && m.launchT <= 0) {
         const blk = this._blockerAhead(m, def, path);
+        // 玩家挡在路上：停下来打你（BOSS 不会停，但会顺手把挡路的你拍开）；只是擦身而过不会受伤
+        const bp = !blk && !m.burrow && (def.melee || def.bomb) ? this._playerAhead(m, def) : null;
         if (blk) {
           m.state = 'block';
           if (def.bomb) { m.leaked = true; m.dead = true; this._bomberBlast(m, true); continue; }
           // 同一座阻挡最多被 4 只怪同时攻击
           if (!blk.gate && m.stunT <= 0 && blk.atkN < 4) { blk.atkN++; this._hurtTrap(blk, def.dps * dt * (m.enraged ? 1.5 : 1)); }
           spd = 0;
+        } else if (bp) {
+          if (def.bomb) { m.leaked = true; m.dead = true; this._bomberBlast(m, true); continue; }
+          // 刚被挡住：抬手前摇 0.45 秒（短暂闪开又挡回来不重新算）
+          if (s.time - (m.blockAt === undefined ? -9 : m.blockAt) > 0.6) m.atkT = Math.max(m.atkT, 0.45);
+          m.blockAt = s.time; m.blockP = bp.id;
+          if (!def.boss) { m.state = 'block'; spd = 0; }
         } else if (!def.boss) {
           for (const o of stopped) {
             if (o === m || o.dead) continue;
@@ -2277,16 +2299,12 @@ class Sim {
       if (def.melee) {
         m.atkT -= dt;
         if (m.atkT <= 0) {
-          for (const id in s.players) {
-            const p = s.players[id];
-            if (p.dead) continue;
-            if (Math.hypot(p.x - m.x, p.z - m.z) < def.r + 0.9 && Math.abs(p.y - m.y) < 2.2) {
-              this.hurtPlayer(p, def.melee * (m.enraged ? 1.5 : 1), m.type, m.x, m.z);
-              m.atkT = 1.1; this.ev('mhit', { id: m.id });
-              break;
-            }
-          }
-          if (m.atkT <= 0) m.atkT = 0.2;
+          // 只打挡在自己路上的玩家（碰到 / 擦身而过不受伤）
+          const p = m.blockP && s.players[m.blockP];
+          if (p && !p.dead && m.stunT <= 0) {
+            this.hurtPlayer(p, def.melee * (m.enraged ? 1.5 : 1), m.type, m.x, m.z);
+            m.atkT = 1.1; this.ev('mhit', { id: m.id });
+          } else m.atkT = 0;
         }
       }
       if (def.boss) {
