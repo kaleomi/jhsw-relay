@@ -11235,7 +11235,7 @@ const TUT_STEPS = [
   { t: '墙壁陷阱', d: () => TOUCH ? '在陷阱栏的「墙壁」分组选「激光发射器」，对准通道两侧的墙壁放置' : '按 2 再按 1 选激光发射器，对准通道两侧的墙壁放置：光束会横贯整个通道', ok: (T0, s) => s.traps.some(t => t.kind === 'wall') },
   { t: '升级陷阱', d: () => TOUCH ? '对准一个陷阱，点「升级」' : `对准一个陷阱按 ${K_('KeyE')} 升级（${K_('KeyX')} 拆除，布防阶段全额返还）`, ok: (T0, s) => s.traps.some(t => t.lv >= 2) },
   { t: '开战', d: () => TOUCH ? '准备好了就点「开战」，提前开战还有金币奖励' : `准备好了按 ${K_('KeyG')} 提前开战，剩余倒计时会换成金币奖励`, ok: (T0, s) => s.phase === 'wave' },
-  { t: '射击', d: () => TOUCH ? '按「开火」射击，按「瞄准」开镜；打死 3 只怪' : '左键射击、右键瞄准，打头伤害更高；打死 3 只怪', ok: (T0, s, p) => p.kills >= 3 },
+  { t: '射击', live: true, d: () => TOUCH ? (tool !== 'gun' ? '先点陷阱栏最左边的「脉冲步枪」切回主武器，再' : '') + '按「开火」射击，按「瞄准」开镜；打死 3 只怪' : (tool !== 'gun' ? `先按 ${K_('KeyQ')} 切回主武器，再` : '') + '左键射击、右键瞄准，打头伤害更高；打死 3 只怪', ok: (T0, s, p) => p.kills >= 3 },
   { t: '更多玩法', d: () => TOUCH ? '「冲击」按钮放震荡冲击，把怪推开（推进坑里直接秒杀）；「军械」买新武器，走到紫色「科」科研舱按「互动」研究科技。守住这一波吧！' : `${K_('KeyV')} 震荡冲击把怪推开（推进坑里直接秒杀）；${K_('KeyB')} 打开军械库买新武器；走到紫色「科」科研舱按 ${K_('KeyF')} 研究科技。守住这一波吧！`, ok: T0 => T0.stepT > 10 },
 ];
 // 每一步要高亮的东西：els = 界面上要点的按钮，zone = 手机上要拖动的半屏，keys = 电脑上要按的键（显示成按键图标）
@@ -11248,7 +11248,7 @@ const TUT_HI = [
   () => tool === 'laser' ? (TOUCH ? { els: ['#tbFire'], aim: 1 } : { keys: ['鼠标左键'] }) : ({ els: [popOpen('wall') ? '#trapPop [data-id="laser"]' : '#hotbar .grp[data-grp="wall"]'], keys: popOpen('wall') ? ['1'] : ['2', '1'] }),
   () => TOUCH ? { els: ['#tbUp'] } : { keys: [keyName(keyOf('KeyE'))] },
   () => TOUCH ? { els: ['#tbReady'] } : { keys: [keyName(keyOf('KeyG'))] },
-  () => TOUCH ? { els: ['#tbFire', '#tbAds'], aim: 1 } : { keys: ['鼠标左键', '鼠标右键'] },
+  () => tool !== 'gun' ? (TOUCH ? { els: ['#hotbar .slot[data-id="gun"]'] } : { keys: [keyName(keyOf('KeyQ'))] }) : TOUCH ? { els: ['#tbFire', '#tbAds'], aim: 1 } : { keys: ['鼠标左键', '鼠标右键'] },
   () => TOUCH ? { els: ['#tbShock', '#touchUI [data-k="KeyB"]'] } : { keys: [keyName(keyOf('KeyV')), keyName(keyOf('KeyB')), keyName(keyOf('KeyF'))] },
 ];
 const Tut = { on: false, i: 0, moved: 0, turned: 0, stepT: 0, lx: 0, lz: 0, lyaw: 0 };
@@ -11326,6 +11326,7 @@ function updateTut(dt) {
   let dy = cam.yaw - Tut.lyaw; while (dy > Math.PI) dy -= Math.PI * 2; while (dy < -Math.PI) dy += Math.PI * 2; Tut.turned += Math.abs(dy); Tut.lyaw = cam.yaw;
   if (mode === 'play') Tut.stepT += dt;
   tutHighlight();
+  { const cur = TUT_STEPS[Tut.i]; if (cur && cur.live) setText('tutD', cur.d()); }   // 随手上拿的东西变化的提示（比如先切回主武器）
   // 引导中布防倒计时不走（直到玩家自己开战）
   if (s.phase === 'build' && Tut.i < 6) s.timer = Math.max(s.timer, 40);
   const st = TUT_STEPS[Tut.i];
