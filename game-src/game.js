@@ -6885,7 +6885,7 @@ function start(data) {
   bindUI();
   makeDemo();
   // 主菜单海报 / 序章背景（有图才显示）
-  if (ART.menu_bg) { $('menuArt').style.backgroundImage = `radial-gradient(ellipse 60% 80% at 50% 50%, rgba(3, 6, 10, .72), rgba(3, 6, 10, .25)), url("${ART.menu_bg}")`; $('menu').classList.add('hasArt'); }
+  if (ART.menu_bg) { $('menuArt').style.backgroundImage = `radial-gradient(ellipse 55% 75% at 50% 52%, rgba(3, 6, 10, .8), rgba(3, 6, 10, .5) 60%, rgba(3, 6, 10, .22)), url("${ART.menu_bg}")`; $('menu').classList.add('hasArt'); }
   if (ART.prologue) { $('cine').style.setProperty('--art', `url("${ART.prologue}")`); $('cine').classList.add('hasArt'); }
   if (data && data.state) {
     try {
@@ -6902,7 +6902,7 @@ function start(data) {
 try {
   window.claude?.hot?.snapshot?.(() => ({ state: sim && (mode === 'play' || mode === 'pause') ? sim.serialize() : null, tool, yaw: cam.yaw, pitch: cam.pitch }));
 } catch (e) { /* 无热更新环境 */ }
-window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom(), Talk, STORY, playPrologue, openBrief, useShock, comboHit, Combo, shockFx, pitFx, say, coinFly, hitStop, openShare, renderLoadout, get shockFxs() { return shockFxs; } };
+window.__td = { get sim() { return sim; }, get mode() { return mode; }, get MP() { return MP; }, get PID() { return PID; }, pauseGame, startGame, selectTool, keys, mouse, cam, LocalNet, tryPlace, get aim() { return aim; }, stats: () => E.stats(), E, Tut, renderTut, leaveRoom: () => leaveRoom(), Talk, STORY, playPrologue, openBrief, bossCard, useShock, comboHit, Combo, shockFx, pitFx, say, coinFly, hitStop, openShare, renderLoadout, get shockFxs() { return shockFxs; } };
 const hot = window.claude && window.claude.hot;
 if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
 })();

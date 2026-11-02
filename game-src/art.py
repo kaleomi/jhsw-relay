@@ -51,7 +51,8 @@ def art_js(art_dir):
             if name not in SLOTS:
                 print('  [art] 未知槽位，忽略:', fn)
                 continue
-            uri = _encode(os.path.join(art_dir, fn), *SLOTS[name])
+            w, h, q = SLOTS[name]
+            uri = _encode(os.path.join(art_dir, fn), (w, h), q)
             if uri:
                 out[name] = uri
     total = sum(len(v) for v in out.values())
