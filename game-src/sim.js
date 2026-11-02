@@ -22,6 +22,8 @@ const COMBO_WIN = 2.5;   // 两次击杀间隔不超过这么多秒算连杀
 const comboGold = n => n >= 20 ? 3 : n >= 10 ? 2 : n >= 5 ? 1 : 0;
 // 震荡冲击：每个守卫都有的主动技能（职业有各自的强化）
 const SHOCK = { cd: 12, r: 7.5, ang: 1.75, dmg: 25, push: 6, stun: 0.5 };
+// 近战挥击：被挡住后停下来打完一整下（1 秒），挥到一半时判定命中；挥空也要打完
+const SWING = { dur: 1.0, hit: 0.5, gap: 0.1 };
 const DIRS = [[1, 0], [0, 1], [-1, 0], [0, -1]];
 
 /* ---------- 难度 ---------- */
@@ -1457,7 +1459,7 @@ class Sim {
     const m = {
       id: s.nextId++, type, lane, d, off, x, y, z, ox: x, oy: y, oz: z, fx: tmp.dx, fz: tmp.dz,
       hp: def.hp * hpMul, maxHp: def.hp * hpMul, slowAmt: 0, slowT: 0, poisonT: 0, poisonDps: 0, burnT: 0, burnDps: 0,
-      stunT: 0, launchT: 0, hitT: 0, atkT: 1, state: 'move', enraged: false, dead: false, leaked: false,
+      stunT: 0, launchT: 0, hitT: 0, atkT: 0.3, swingT: 0, state: 'move', enraged: false, dead: false, leaked: false,
       seed: this.rand() * 100, born: s.time, hpMul,
     };
     if (def.aura) { m.auraT = 1.5; m.shield = 0; }
@@ -2257,11 +2259,10 @@ class Sim {
           // 同一座阻挡最多被 4 只怪同时攻击
           if (!blk.gate && m.stunT <= 0 && blk.atkN < 4) { blk.atkN++; this._hurtTrap(blk, def.dps * dt * (m.enraged ? 1.5 : 1)); }
           spd = 0;
-        } else if (bp) {
-          if (def.bomb) { m.leaked = true; m.dead = true; this._bomberBlast(m, true); continue; }
-          // 刚被挡住：抬手前摇 0.45 秒（短暂闪开又挡回来不重新算）
-          if (s.time - (m.blockAt === undefined ? -9 : m.blockAt) > 0.6) m.atkT = Math.max(m.atkT, 0.45);
-          m.blockAt = s.time; m.blockP = bp.id;
+        } else if (bp || m.swingT > 0) {
+          if (bp && def.bomb) { m.leaked = true; m.dead = true; this._bomberBlast(m, true); continue; }
+          if (bp) m.blockP = bp.id;
+          // 挥击中：就算玩家已经闪开，也要停在原地把这一下打完
           if (!def.boss) { m.state = 'block'; spd = 0; }
         } else if (!def.boss) {
           for (const o of stopped) {
@@ -2297,14 +2298,25 @@ class Sim {
         continue;
       }
       if (def.melee) {
+        // 被眩晕 / 弹飞 / 掉坑会打断挥击
+        if (m.stunT > 0 || m.launchT > 0 || m.fallT > 0) m.swingT = 0;
         m.atkT -= dt;
-        if (m.atkT <= 0) {
-          // 只打挡在自己路上的玩家（碰到 / 擦身而过不受伤）
-          const p = m.blockP && s.players[m.blockP];
-          if (p && !p.dead && m.stunT <= 0) {
-            this.hurtPlayer(p, def.melee * (m.enraged ? 1.5 : 1), m.type, m.x, m.z);
-            m.atkT = 1.1; this.ev('mhit', { id: m.id });
-          } else m.atkT = 0;
+        if (m.swingT > 0) {
+          m.swingT -= dt;
+          if (!m.swingHit && SWING.dur - m.swingT >= SWING.hit) {
+            m.swingHit = true;
+            // 挥到一半判定：玩家还在面前、够得着才算打中（及时闪开就挥空）
+            const p = s.players[m.swingP];
+            if (p && !p.dead && Math.abs(p.y - m.y) < 1.8) {
+              const dx = p.x - m.x, dz = p.z - m.z;
+              if (Math.hypot(dx, dz) < def.r + 1.25 && dx * m.fx + dz * m.fz > -0.3) { this.hurtPlayer(p, def.melee * (m.enraged ? 1.5 : 1), m.type, m.x, m.z); this.ev('mhit', { id: m.id }); }
+            }
+          }
+          if (m.swingT <= 0) { m.swingT = 0; m.atkT = SWING.gap; }
+        } else if (m.atkT <= 0 && m.blockP && m.stunT <= 0) {
+          // 只打挡在自己路上的玩家（碰到 / 擦身而过不受伤）：开始一次完整的挥击
+          m.swingT = SWING.dur; m.swingHit = false; m.swingP = m.blockP;
+          this.ev('mswing', { id: m.id });
         }
       }
       if (def.boss) {

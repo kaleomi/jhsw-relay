@@ -15,7 +15,7 @@
 'use strict';
 const TD = root.TD || (typeof require === 'function' ? require('./sim.js') : null);
 const { MON, TRAP, TRAPS, DIRS, WEAPONS, WPN, TECH } = TD;
-const VERSION = 17;
+const VERSION = 18;
 const WIDS = WEAPONS.map(w => w.id), PJK = ['aa', 'rocket', 'nade', 'mb'];
 // 武器改装：每把枪 2 位（1 = a，2 = b）
 const modMask = mods => { let m = 0; if (mods) WIDS.forEach((w, i) => { if (mods[w] === 'a') m |= 1 << (i * 2); else if (mods[w] === 'b') m |= 2 << (i * 2); }); return m; };
@@ -88,6 +88,7 @@ function packTraps(list, time) {
 const SCHEMA = {
   kill: ['id', 'mtype', 'x', 'y', 'z', 'fx', 'fz', 'bounty', 'pid', 'launch', 'st', 'cb', 'ex'],
   pitFall: ['x', 'z', 'mtype', 'kind'],
+  mswing: ['id'],
   shock: ['pid', 'x', 'y', 'z', 'yaw', 'n', 'cls'],
   wmod: ['pid', 'w', 'm'],
   core: ['dmg', 'mtype', 'x', 'y', 'z'],
@@ -123,7 +124,7 @@ const SCHEMA = {
   research: ['pid', 'tech', 'lv'], resupply: ['pid'],
 };
 // 高频装饰事件只发一次，其余事件在后续快照里重复两次以抵抗丢包（客户端按序号去重）
-const ONCE = new Set(['trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'boltHit', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak']);
+const ONCE = new Set(['mswing', 'trap', 'tshot', 'spawn', 'heal', 'rocket', 'throw', 'mshot', 'boltHit', 'hackStart', 'combo', 'rail', 'aura', 'shieldBreak']);
 const encVal = v => typeof v === 'number' ? (v === Infinity ? -1 : r2(v)) : typeof v === 'boolean' ? (v ? 1 : 0) : v === undefined ? null : v;
 
 class EventOut {

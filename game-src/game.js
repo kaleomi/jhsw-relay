@@ -39,6 +39,7 @@ const ASSETS = {};
 })();
 const hasModel = n => !!ASSETS[n];
 // 选择动画帧：t 为片段内时间（秒）；循环片段取模，非循环片段停在最后一帧
+const PUNCH_DUR = () => (ASSETS.robot && ASSETS.robot.clips.punch && ASSETS.robot.clips.punch.dur * 0.999) || 0.83;   // 一次挥击正好播完一遍出拳
 function animClip(asset, clip, t) {
   const A = ASSETS[asset], C = A && (A.clips[clip] || A.clips.bind);
   if (!C) { E.anim(); return; }
@@ -1492,7 +1493,10 @@ function drawMonster(m, a) {
   const moving = m.state === 'move' && m.stunT <= 0;
   const ph = timeNow * def.spd * 2.1 * (1 - m.slowAmt * 0.55) + m.seed;
   const sw = moving ? Math.sin(ph) : 0;
-  const atk = m.state === 'block' && m.stunT <= 0 ? Math.sin(timeNow * 8 + m.seed) : 0;
+  // 近战挥击的进度（0~1，跟主机的 1 秒挥击同步）；没有在挥击就是 -1
+  const SW = m._sw0 !== undefined && m.state === 'block' && m.stunT <= 0 && simNow - m._sw0 < 1.05 ? clamp((simNow - m._sw0) / 1.0, 0, 1) : -1;
+  // 程序化模型的手臂：挥击时先往后蓄力，一半时砸下去，再收回；打陷阱时持续捶打
+  const atk = SW >= 0 ? (SW < 0.42 ? -Math.sin(SW / 0.42 * Math.PI / 2) : SW < 0.56 ? -1 + (SW - 0.42) / 0.14 * 2 : 1 - (SW - 0.56) / 0.44) : m.state === 'block' && m.stunT <= 0 ? Math.sin(timeNow * 8 + m.seed) : 0;
   const t = timeNow + m.seed;
   const born = clamp((simNow - (m.born || 0)) / 0.35, 0.05, 1);
   let top = 2.1, ghost = false;
@@ -1506,7 +1510,7 @@ function drawMonster(m, a) {
         else if (m.stunT > 0 || m.state === 'queue') { clip = 'idle'; rate = 1; }
         else if (m.launchT > 0) { clip = 'run'; rate = 1.6; }
         rate *= 1 - m.slowAmt * 0.55;
-        animClip('robot', clip, timeNow * rate + m.seed);
+        animClip('robot', clip, clip === 'punch' && SW >= 0 ? SW * PUNCH_DUR() : timeNow * rate + m.seed);
         const tn = big ? (m.enraged ? [0.9, 0.4, 0.4] : [0.55, 0.62, 0.8]) : [1, 1, 1];
         E.push('robot', x, y, z, yaw, sc * born, sc * born, sc * born, mc(tn[0], tn[1], tn[2], 0));
         E.anim();
@@ -1535,7 +1539,7 @@ function drawMonster(m, a) {
         if (m.state === 'block' && m.stunT <= 0) { clip = 'punch'; rate = 1.15; }
         else if (m.stunT > 0 || m.state === 'queue' || m.state === 'hack' || m.aiming) { clip = 'idle'; rate = 1; }
         rate *= 1 - m.slowAmt * 0.55;
-        animClip('robot', clip, timeNow * rate + m.seed);
+        animClip('robot', clip, clip === 'punch' && SW >= 0 ? SW * PUNCH_DUR() : timeNow * rate + m.seed);
         if (m.type === 'stalker' && m.cloak) {
           // 隐身：只剩一层流动的折光轮廓
           E.push('robot', x, y, z, MX.yaw, sc * born, sc * born, sc * born, c(0.35, 0.7, 1, 0.13 + 0.07 * Math.sin(t * 7), 0.7, 0, true));
@@ -1755,7 +1759,7 @@ function drawMonster(m, a) {
         if (m.state === 'block' && m.stunT <= 0) { clip = 'punch'; rate = 1.15; }
         else if (m.stunT > 0 || m.state === 'queue') { clip = 'idle'; rate = 1; }
         rate *= 1 - m.slowAmt * 0.55;
-        animClip('robot', clip, timeNow * rate + m.seed);
+        animClip('robot', clip, clip === 'punch' && SW >= 0 ? SW * PUNCH_DUR() : timeNow * rate + m.seed);
         const tn = sh ? [0.38, 0.62, 0.75] : [0.5, 0.36, 0.85];
         E.push('robot', x, y, z, yaw, sc * born, sc * born, sc * born, mc(tn[0], tn[1], tn[2], 0));
         if (!sh) {   // 相位残影
@@ -3360,6 +3364,7 @@ function handleEvents(S) {
         if (q) burst(q.x, 1.2, q.z, 16, { c: [0.4, 1, 0.6], sp0: 0.5, sp1: 2.5, l0: 0.4, l1: 0.8, s0: 0.1, grav: -3 });
         break;
       }
+      case 'mswing': { const m = S._mById && S._mById.get(e.id); if (m) m._sw0 = simNow; break; }
       case 'pitFall': {
         if (S === sim) pitFx(e.x, e.z, e.kind);
         if (mode === 'play' && !Tut.on) sayPool('pitKill', { cd: 50, chance: 0.6 });
@@ -4168,7 +4173,7 @@ function buildHelp() {
   const R = (id, grp, name, body) => cdxItem('rule', { id, grp, name, icon: '', cat: 'gun', detail: () => `<header><h3>${name}</h3><span class="cdxMeta">${grp}</span></header>${body}` });
   R('phase', '基础规则', 'BOSS 分阶段', '<p>BOSS 血量降到 60% 时进入第二阶段：怒吼、套上能量护盾（电系陷阱和电磁炮破盾最快）并召唤一队护卫。降到 25% 时进入狂暴：移动更快、技能冷却大幅缩短，再召唤一批护卫。血条上的两道白线就是阶段分界。</p>');
   R('respawn', '基础规则', '复活保护', '<p>阵亡后，守卫装甲的回传系统会在 5 秒后把你送回基地重建，回来后 10 秒内无敌。</p>');
-  R('body', '基础规则', '挡路与近战', '<p>碰到怪物不会受伤：近战怪只会攻击<b>挡在它路上</b>的守卫。站到它正前方，它就会停下来打你（每秒左右一下）；从旁边或身后贴近都没事。用身体挡路能把怪拖在陷阱里，但要盯着自己的血量。自爆蜘蛛被你挡住会直接爆炸；BOSS 不会停下，会把挡路的你拍开。</p>');
+  R('body', '基础规则', '挡路与近战', '<p>碰到怪物不会受伤：近战怪只会攻击<b>挡在它路上</b>的守卫。站到它正前方，它就会停下来挥一下（约 1 秒，挥到一半时命中）——及时闪开能让它挥空，但它还是会停在原地把这一下打完；从旁边或身后贴近都没事。用身体挡路能把怪拖在陷阱里，但要盯着自己的血量。自爆蜘蛛被你挡住会直接爆炸；BOSS 不会停下，会把挡路的你拍开。</p>');
   R('dodge', '基础规则', '躲子弹', '<p>远程怪（火线射手、天穹炮艇）射出的是看得见的红色光弹，不会预判你的走位——跑动、横移、跳跃都能躲开。</p>');
   R('unlock', '基础规则', '陷阱解锁', `<p>新守卫上岗时只有六种基础陷阱：减速器、毒刺陷阱、自修复磁暴塔、激光发射器、粉碎锤、岗哨机枪。每打通一章主线（任意难度），老钳就会送来新装备：</p><ul class="cdxTags">${Object.keys(UNLOCKS).sort((a, b) => UNLOCKS[a].ch - UNLOCKS[b].ch).map(id => `<li><b>${TRAP[id].name}</b>：${UNLOCKS[id].how}${isUnlocked(id) ? '（已解锁）' : ''}</li>`).join('')}</ul><p class="cdxFoot">解锁进度记录在这台设备上，可以在设置里导出存档或开启云存档。</p>`);
   R('shock', '基础规则', '震荡冲击', `<p>按 V（手机右侧的「冲击」按钮）向准星方向扇形释放一道冲击波：造成伤害、击退并短暂眩晕前方的怪物，冷却 ${TD.SHOCK.cd} 秒。被推到坑边的怪物会直接掉下去。BOSS 只吃伤害。</p><ul class="cdxTags">${CLASSES.map(c => `<li><b>${c.name}</b>：${c.shock}</li>`).join('')}</ul>`);
