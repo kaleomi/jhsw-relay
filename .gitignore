@@ -7,3 +7,4 @@ android/assets/
 *.jks
 *.keystore
 *.apk
+__pycache__/
