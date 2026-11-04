@@ -1326,8 +1326,8 @@ let coinsLive = 0;
 function coinFly(x, y, z, n) {
   if (mode !== 'play' || coinsLive >= 16 || Math.hypot(x - cam.x, z - cam.z) > 48) return;
   const p = project(x, y, z), tgt = $('goldNum');
-  if (!p || p.x < 0 || p.y < 0 || p.x > innerWidth || p.y > innerHeight || !tgt || !tgt.animate) return;
-  const r = tgt.getBoundingClientRect(), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
+  if (!p || p.x < 0 || p.y < 0 || p.x > VW() || p.y > VH() || !tgt || !tgt.animate) return;
+  const r = rectOf(tgt), tx = r.left + r.width / 2, ty = r.top + r.height / 2;
   for (let i = 0; i < n && coinsLive < 16; i++) {
     let el = coinPool.pop();
     if (!el) { el = document.createElement('i'); el.className = 'coin'; $('coins').appendChild(el); }
@@ -1387,10 +1387,63 @@ function project(x, y, z) {
   const cy = m[1] * x + m[5] * y + m[9] * z + m[13];
   const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
   if (cw <= 0.05) return null;
-  return { x: (cx / cw * 0.5 + 0.5) * innerWidth, y: (1 - (cy / cw * 0.5 + 0.5)) * innerHeight };
+  return { x: (cx / cw * 0.5 + 0.5) * VW(), y: (1 - (cy / cw * 0.5 + 0.5)) * VH() };
 }
 // 自适应分辨率：帧时间过长时自动降低渲染分辨率
 const TOUCH = !!(window.__TOUCH || /[?&]touch=1/.test(location.search) || (matchMedia('(pointer: coarse)').matches && (navigator.maxTouchPoints || 0) > 0));
+/* ---------- 竖屏强制横屏 ----------
+ * 手机竖着拿（锁了屏幕旋转、或者浏览器不让锁方向，比如 iPhone 和微信里）时，把整个页面转 90° 横着显示，
+ * 手机横过来就是正的。页面里所有「视口宽高 / 触点坐标 / 元素位置」都要经过下面几个函数换算。 */
+let ROT = false;
+function VW() { return ROT ? innerHeight : innerWidth; }
+function VH() { return ROT ? innerWidth : innerHeight; }
+// 屏幕坐标 → 页面坐标（页面顺时针转了 90°：页面的上边在屏幕右侧）
+function PT(e) { return ROT ? { x: e.clientY, y: innerWidth - e.clientX } : { x: e.clientX, y: e.clientY }; }
+function rectOf(el) {
+  const r = el.getBoundingClientRect(); if (!ROT) return r;
+  const left = r.top, top = innerWidth - r.right;
+  return { left, top, width: r.height, height: r.width, right: left + r.height, bottom: top + r.width, x: left, y: top };
+}
+// 样式表改写（只做一次）：vw / vh → 跟着旋转换算的变量；安全区 → 变量；按宽高的媒体查询各复制一份旋转版
+(function prepRotCss() {
+  const unit = v => v.replace(/(-?\d*\.?\d+)v([wh])\b/g, (m, n, a) => `calc(${n} * var(--v${a}, 1v${a}))`)
+    .replace(/env\(\s*safe-area-inset-(top|right|bottom|left)\s*(?:,[^()]*)?\)/g, (m, d) => `var(--sa-${d}, 0px)`);
+  const fixStyle = st => { for (let i = st.length - 1; i >= 0; i--) { const k = st[i], v = st.getPropertyValue(k); if (/\dv[wh]\b|safe-area-inset/.test(v)) st.setProperty(k, unit(v), st.getPropertyPriority(k)); } };
+  const walk = rules => { for (const r of rules) { if (r.style) fixStyle(r.style); if (r.cssRules) walk(r.cssRules); } };
+  // 按顶层逗号拆分选择器（括号里的逗号不拆）
+  const splitSel = t => { const out = []; let d = 0, cur = ''; for (const ch of t) { if (ch === '(') d++; else if (ch === ')') d--; if (ch === ',' && !d) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out.map(x => x.trim()).filter(Boolean); };
+  const wrap = (sel, w) => splitSel(sel).map(x => {
+    const m = x.match(/^body((?:[.#:\[][^\s>+~]*)?)/);
+    if (m) return 'body' + m[1] + `:where(${w})` + x.slice(m[0].length);
+    if (/^(html|:root)/.test(x)) return x;
+    return `:where(body${w}) ${x}`;
+  }).join(', ');
+  const swap = c => c.replace(/(min|max)-(width|height)/g, (m, a, b) => a + '-' + (b === 'width' ? 'height' : 'width')).replace(/orientation:\s*(portrait|landscape)/g, (m, o) => 'orientation: ' + (o === 'portrait' ? 'landscape' : 'portrait'));
+  for (const sh of document.styleSheets) {
+    let rules; try { if (!sh.ownerNode || sh.ownerNode.tagName !== 'STYLE') continue; rules = sh.cssRules; } catch (e) { continue; }
+    try {
+      walk(rules);
+      for (let i = rules.length - 1; i >= 0; i--) {
+        const r = rules[i];
+        if (!(r instanceof CSSMediaRule) || !/width|height|orientation/.test(r.conditionText || r.media.mediaText)) continue;
+        const cond = r.conditionText || r.media.mediaText, inner = [];
+        for (const q of r.cssRules) if (q.selectorText !== undefined) { inner.push(`${wrap(q.selectorText, '.rot')} { ${q.style.cssText} }`); q.selectorText = wrap(q.selectorText, ':not(.rot)'); }
+        if (inner.length) sh.insertRule(`@media ${swap(cond)} { ${inner.join('\n')} }`, i + 1);
+      }
+    } catch (e) { console.warn('rot css', e); }
+  }
+})();
+function applyRot() {
+  const want = TOUCH && !window.__APK && innerHeight > innerWidth * 1.08;
+  if (want !== ROT) { ROT = want; document.body.classList.toggle('rot', ROT); }
+  const ds = document.documentElement.style, W = VW(), H = VH();
+  ds.setProperty('--vw', W / 100 + 'px'); ds.setProperty('--vh', H / 100 + 'px');
+  ds.setProperty('--rw', W + 'px'); ds.setProperty('--rh', H + 'px'); ds.setProperty('--rx', innerWidth + 'px');
+  // 安全区跟着转：竖屏的刘海（上）变成横屏页面的左边，底部横条变成右边
+  const sa = ROT ? { top: 'right', right: 'bottom', bottom: 'left', left: 'top' } : { top: 'top', right: 'right', bottom: 'bottom', left: 'left' };
+  for (const d in sa) ds.setProperty('--sa-' + d, `env(safe-area-inset-${sa[d]}, 0px)`);
+}
+applyRot();
 // 画质档位：渲染分辨率上限 / 材质精细度 / 远处小物件显示距离 / 动态光源数 / 调色锐化
 const DPR = window.devicePixelRatio || 1;
 const GFX = {
@@ -1408,11 +1461,12 @@ function applyGfx() {
   resize();
 }
 function resize() {
+  applyRot();
   let sc = window.__RES || quality.scale;
-  const maxPix = gfx().pix, pix = innerWidth * innerHeight * sc * sc;
+  const maxPix = gfx().pix, pix = VW() * VH() * sc * sc;
   if (pix > maxPix) sc *= Math.sqrt(maxPix / pix);
-  canvas.width = Math.max(1, Math.floor(innerWidth * sc));
-  canvas.height = Math.max(1, Math.floor(innerHeight * sc));
+  canvas.width = Math.max(1, Math.floor(VW() * sc));
+  canvas.height = Math.max(1, Math.floor(VH() * sc));
 }
 const fpsM = { t: 0, n: 0, worst: 0 };
 function fpsMeter(dt) {
@@ -4248,9 +4302,9 @@ function openPop(gid, byKey) {
   // 对齐到分组格子正上方，不超出屏幕
   const chip = document.querySelector(`#hotbar .grp[data-grp="${gid}"]`), hb = $('hotbar');
   pop.style.left = '0px';
-  const cr = chip.getBoundingClientRect(), hr = hb.getBoundingClientRect(), pw = pop.offsetWidth;
+  const cr = rectOf(chip), hr = rectOf(hb), pw = pop.offsetWidth;
   let left = cr.left + cr.width / 2 - pw / 2 - hr.left;
-  left = Math.max(-hr.left + 6, Math.min(left, innerWidth - hr.left - pw - 6));
+  left = Math.max(-hr.left + 6, Math.min(left, VW() - hr.left - pw - 6));
   pop.style.left = left + 'px';
 }
 /* ---------- 陷阱一览（Tab）：按分组列出全部陷阱的详细说明，点一下就选中 ---------- */
@@ -5669,28 +5723,29 @@ function tutHighlight() {
   for (const sel of H.els || []) {
     const el = document.querySelector(sel);
     if (!el || el.hidden || el.offsetParent === null) continue;
-    const r = el.getBoundingClientRect(); if (r.width < 2) continue;
+    const r = rectOf(el); if (r.width < 2) continue;
     rects.push(r);
   }
-  const key = JSON.stringify([rects.map(r => [r.left | 0, r.top | 0, r.width | 0, r.height | 0]), H.zone || '', H.keys || [], popGrp || '', innerWidth, innerHeight]);
+  const key = JSON.stringify([rects.map(r => [r.left | 0, r.top | 0, r.width | 0, r.height | 0]), H.zone || '', H.keys || [], popGrp || '', VW(), VH()]);
   if (box.dataset.key !== key) {
     box.dataset.key = key;
-    let html = rects.map(r => `<i class="ring" style="left:${r.left - 5}px;top:${r.top - 5}px;width:${r.width + 10}px;height:${r.height + 10}px"></i><b class="arrow${r.top < innerHeight / 2 ? ' up' : ''}" style="left:${r.left + r.width / 2}px;top:${r.top < innerHeight / 2 ? r.bottom + 14 : r.top - 14}px"></b>`).join('');
+    let html = rects.map(r => `<i class="ring" style="left:${r.left - 5}px;top:${r.top - 5}px;width:${r.width + 10}px;height:${r.height + 10}px"></i><b class="arrow${r.top < VH() / 2 ? ' up' : ''}" style="left:${r.left + r.width / 2}px;top:${r.top < VH() / 2 ? r.bottom + 14 : r.top - 14}px"></b>`).join('');
     if (H.zone) html += `<div class="zone ${H.zone}"><span>${H.zone === 'left' ? '在这里按住拖动，走到通道里' : '在这里滑动，转动视角'}</span></div>`;
     if (H.keys && !TOUCH) html += `<div class="keys">${H.keys.map(k => `<kbd>${k}</kbd>`).join('')}</div>`;
     box.innerHTML = html;
-    // 手机：引导卡片放到不和目标重叠的位置（上方 → 中间 → 左下）
+    // 手机：引导卡片放到不和目标重叠的位置（左上 → 左下 → 中间）
     if (TOUCH) {
       const pop = $('trapPop'), avoid = rects.slice();
-      if (pop && !pop.hidden) avoid.push(pop.getBoundingClientRect());
+      if (pop && !pop.hidden) avoid.push(rectOf(pop));
+      for (const z of box.querySelectorAll('.zone')) avoid.push(rectOf(z));
       // 需要瞄准的步骤：屏幕中间（准星和放置预览）也不能挡
-      if (H.aim) { const cx = innerWidth / 2, cy = innerHeight / 2; avoid.push({ left: cx - 100, right: cx + 100, top: cy - 50, bottom: cy + 90 }); }
+      if (H.aim) { const cx = VW() / 2, cy = VH() / 2; avoid.push({ left: cx - 100, right: cx + 100, top: cy - 50, bottom: cy + 90 }); }
       // 量位置时先关掉过渡动画，否则量到的是动画起点；选好后再带动画移过去
       const prev = card.dataset.pos || 'top'; let pick = 'low';
       card.style.transition = 'none';
-      for (const pos of ['top', 'left', 'mid', 'low']) {
+      for (const pos of ['top', 'low', 'mid']) {
         card.dataset.pos = pos;
-        const c = card.getBoundingClientRect();
+        const c = rectOf(card);
         if (!avoid.some(r => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { pick = pos; break; }
       }
       card.dataset.pos = prev; void card.offsetWidth;
@@ -5879,8 +5934,8 @@ function applyTouchLayout() {
     if (!el.offsetWidth) continue;   // 界面未显示时尺寸未知，进入游戏后再排
     const w = el.offsetWidth, h = el.offsetHeight, ex = (w * k - w) / 2, ey = (h * k - h) / 2;
     el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
-    el.style.left = clamp(pos[0] * innerWidth - w / 2, ex, Math.max(ex, innerWidth - w - ex)) + 'px';
-    el.style.top = clamp(pos[1] * innerHeight - h / 2, ey, Math.max(ey, innerHeight - h - ey)) + 'px';
+    el.style.left = clamp(pos[0] * VW() - w / 2, ex, Math.max(ex, VW() - w - ex)) + 'px';
+    el.style.top = clamp(pos[1] * VH() - h / 2, ey, Math.max(ey, VH() - h - ey)) + 'px';
   }
 }
 // 编辑栏：显示选中的按钮和它的大小
@@ -5895,8 +5950,8 @@ function tbSetSize(id, k) {
   const el = $(id); if (!el) return;
   // 还没自定义过位置的按钮先记下当前中心，放大缩小都以它为准，不会被挤出屏幕
   if (!settings.tb.pos[id]) {
-    const r = el.getBoundingClientRect();
-    settings.tb.pos[id] = [Math.round((r.left + r.width / 2) / innerWidth * 1000) / 1000, Math.round((r.top + r.height / 2) / innerHeight * 1000) / 1000];
+    const r = rectOf(el);
+    settings.tb.pos[id] = [Math.round((r.left + r.width / 2) / VW() * 1000) / 1000, Math.round((r.top + r.height / 2) / VH() * 1000) / 1000];
   }
   k = Math.round(clamp(k, TB_MIN, TB_MAX) * 10) / 10;
   if (k === 1) delete settings.tb.size[id]; else settings.tb.size[id] = k;
@@ -5929,23 +5984,24 @@ function initTouchEditor() {
     e.stopPropagation(); e.preventDefault();
     if (!el) { tbSel = null; renderTeBar(); return; }
     tbSel = el.dataset.drag; renderTeBar();
-    const r = el.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    const r = rectOf(el), w = el.offsetWidth, h = el.offsetHeight, q = PT(e);
     // r 是放大后的外框；left/top 记的是未放大的盒子，所以按中心换算
     const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
-    tbEdit = { el, id: el.dataset.drag, dx: e.clientX - cx, dy: e.clientY - cy, pid: e.pointerId };
+    tbEdit = { el, id: el.dataset.drag, dx: q.x - cx, dy: q.y - cy, pid: e.pointerId };
     el.style.right = el.style.bottom = 'auto'; el.style.transform = 'none';
     el.style.left = (cx - w / 2) + 'px'; el.style.top = (cy - h / 2) + 'px';
   }, true);
   addEventListener('pointermove', e => {
     if (!tbEdit || e.pointerId !== tbEdit.pid) return;
     const el = tbEdit.el, w = el.offsetWidth, h = el.offsetHeight, k = tbSize(tbEdit.id), ex = (w * k - w) / 2, ey = (h * k - h) / 2;
-    el.style.left = clamp(e.clientX - tbEdit.dx - w / 2, ex, Math.max(ex, innerWidth - w - ex)) + 'px';
-    el.style.top = clamp(e.clientY - tbEdit.dy - h / 2, ey, Math.max(ey, innerHeight - h - ey)) + 'px';
+    const q = PT(e);
+    el.style.left = clamp(q.x - tbEdit.dx - w / 2, ex, Math.max(ex, VW() - w - ex)) + 'px';
+    el.style.top = clamp(q.y - tbEdit.dy - h / 2, ey, Math.max(ey, VH() - h - ey)) + 'px';
   });
   const up = e => {
     if (!tbEdit || e.pointerId !== tbEdit.pid) return;
-    const r = tbEdit.el.getBoundingClientRect();
-    settings.tb.pos[tbEdit.id] = [Math.round((r.left + r.width / 2) / innerWidth * 1000) / 1000, Math.round((r.top + r.height / 2) / innerHeight * 1000) / 1000];
+    const r = rectOf(tbEdit.el);
+    settings.tb.pos[tbEdit.id] = [Math.round((r.left + r.width / 2) / VW() * 1000) / 1000, Math.round((r.top + r.height / 2) / VH() * 1000) / 1000];
     tbEdit = null; saveSettings();
   };
   addEventListener('pointerup', up); addEventListener('pointercancel', up);
@@ -7146,7 +7202,7 @@ function goFullscreen() {
 }
 function setJoy(e) {
   const R = 50, dead = 0.16;
-  const rx = e.clientX - joy.ox, ry = e.clientY - joy.oy, L = Math.hypot(rx, ry);
+  const q = PT(e), rx = q.x - joy.ox, ry = q.y - joy.oy, L = Math.hypot(rx, ry);
   const n = Math.min(1, L / R), mag = n < dead ? 0 : (n - dead) / (1 - dead);
   joy.x = L ? rx / L * mag : 0; joy.z = L ? -ry / L * mag : 0;
   joy.sprint = L > R * 1.1 && -ry > Math.abs(rx) * 1.2;
@@ -7165,27 +7221,28 @@ function initTouch() {
   $('tzMove').addEventListener('pointerdown', e => {
     if (joy.id !== null) return;
     Snd.init();
-    joy.id = e.pointerId; joy.on = true; joy.ox = e.clientX; joy.oy = e.clientY; joy.x = joy.z = 0; joy.sprint = false;
-    jEl.style.left = e.clientX + 'px'; jEl.style.top = e.clientY + 'px'; jEl.classList.add('on');
+    const q = PT(e);
+    joy.id = e.pointerId; joy.on = true; joy.ox = q.x; joy.oy = q.y; joy.x = joy.z = 0; joy.sprint = false;
+    jEl.style.left = q.x + 'px'; jEl.style.top = q.y + 'px'; jEl.classList.add('on');
     jEl.firstChild.style.transform = '';
   });
   $('tzLook').addEventListener('pointerdown', e => {
     if (lookT.id !== null) return;
     Snd.init();
-    lookT.id = e.pointerId; lookT.x = e.clientX; lookT.y = e.clientY;
+    const q = PT(e); lookT.id = e.pointerId; lookT.x = q.x; lookT.y = q.y;
   });
   const fire = $('tbFire');
   fire.addEventListener('pointerdown', e => {
     e.preventDefault(); Snd.init();
-    fireT.id = e.pointerId; fireT.x = e.clientX; fireT.y = e.clientY;
+    const q = PT(e); fireT.id = e.pointerId; fireT.x = q.x; fireT.y = q.y;
     if (mode !== 'play') return;
     if (tool !== 'gun') { tryPlace(); return; }
     mouse.l = true; fire.classList.add('on');
   });
   addEventListener('pointermove', e => {
     if (e.pointerId === joy.id) setJoy(e);
-    else if (e.pointerId === lookT.id) { touchLook(e.clientX - lookT.x, e.clientY - lookT.y); lookT.x = e.clientX; lookT.y = e.clientY; }
-    else if (e.pointerId === fireT.id) { touchLook(e.clientX - fireT.x, e.clientY - fireT.y); fireT.x = e.clientX; fireT.y = e.clientY; }
+    else if (e.pointerId === lookT.id) { const q = PT(e); touchLook(q.x - lookT.x, q.y - lookT.y); lookT.x = q.x; lookT.y = q.y; }
+    else if (e.pointerId === fireT.id) { const q = PT(e); touchLook(q.x - fireT.x, q.y - fireT.y); fireT.x = q.x; fireT.y = q.y; }
   });
   const end = e => {
     if (e.pointerId === joy.id) { joy.id = null; joy.on = false; joy.x = joy.z = 0; joy.sprint = false; jEl.classList.remove('on'); }
