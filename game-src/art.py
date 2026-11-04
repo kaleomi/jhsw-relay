@@ -13,11 +13,25 @@ for k in ['boss', 'siege', 'colossus', 'brood']:
     SLOTS['boss_' + k] = (960, 540, 74)       # BOSS 登场卡（16:9）
 SLOTS['menu_bg'] = (1600, 900, 72)             # 主菜单海报（16:9）
 SLOTS['prologue'] = (1600, 900, 70)            # 序章背景（16:9）
+# 图标（透明背景）：陷阱 t_*、武器 w_*、技能 s_*；怪物头像 m_*
+TRAP_IDS = ['slow', 'spike', 'push', 'tesla', 'frost', 'acid', 'laser', 'flame', 'arc', 'crusher', 'sentry', 'aa', 'gatling', 'rail', 'mortar', 'grinder']
+WPN_IDS = ['rifle', 'shotgun', 'sniper', 'rocket', 'flamer', 'cryo', 'arcgun']
+MON_IDS = ['grunt', 'runner', 'brute', 'flyer', 'bomber', 'elite', 'healer', 'boss', 'stalker', 'burrower', 'sapper', 'gunner', 'mite', 'siege',
+           'colossus', 'brood', 'shield', 'tank', 'blinker', 'gunship', 'crawler', 'jammer', 'beetle', 'broodling',
+           'magma', 'frostguard', 'sporer', 'spore', 'mirror', 'swarm', 'juggernaut']
+for k in TRAP_IDS:
+    SLOTS['t_' + k] = (192, 192, 82, True)
+for k in WPN_IDS:
+    SLOTS['w_' + k] = (384, 192, 82, True)
+for k in ['nade', 'ult', 'shock']:
+    SLOTS['s_' + k] = (160, 160, 82, True)
+for k in MON_IDS:
+    SLOTS['m_' + k] = (192, 192, 78)
 
 EXTS = ('.png', '.jpg', '.jpeg', '.webp')
 
 
-def _encode(path, size, q):
+def _encode(path, size, q, alpha=False):
     try:
         from PIL import Image
     except ImportError:
@@ -26,7 +40,7 @@ def _encode(path, size, q):
             return None
         mime = 'image/webp' if path.lower().endswith('.webp') else 'image/jpeg'
         return 'data:%s;base64,%s' % (mime, base64.b64encode(open(path, 'rb').read()).decode())
-    im = Image.open(path).convert('RGB')
+    im = Image.open(path).convert('RGBA' if alpha else 'RGB')
     W, H = size
     # 居中裁成目标比例，再缩放
     r = W / H
@@ -51,8 +65,8 @@ def art_js(art_dir):
             if name not in SLOTS:
                 print('  [art] 未知槽位，忽略:', fn)
                 continue
-            w, h, q = SLOTS[name]
-            uri = _encode(os.path.join(art_dir, fn), (w, h), q)
+            w, h, q = SLOTS[name][:3]
+            uri = _encode(os.path.join(art_dir, fn), (w, h), q, len(SLOTS[name]) > 3)
             if uri:
                 out[name] = uri
     total = sum(len(v) for v in out.values())

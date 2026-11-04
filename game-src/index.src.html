@@ -1147,6 +1147,147 @@ body.tEditOnly #hud { background: #05080c; }
   body.touch #rotateNote small { font-size: 13px; color: var(--dim); letter-spacing: .05em; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ================================================================
+ * v3.4 视觉层「守卫面甲」
+ * HUD 是七号头盔面甲上的投影：烟色玻璃面板，右上 / 左下两角各一道青色刻线（另两角被 --cut 切掉）。
+ * 整套界面只让一样东西出彩：顶部的晶核读数——一颗晶体 + 一排晶体碎片，掉血的部分被锈色侵蚀。
+ * ================================================================ */
+:root {
+  --danger: #ff5c48;
+  --glass: rgba(6, 13, 20, .66);
+  --hair: rgba(120, 205, 240, .2);
+  --tick: rgba(95, 227, 255, .75);
+  --ticks: linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 12px 1.5px no-repeat, linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 1.5px 12px no-repeat, linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 12px 1.5px no-repeat, linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 1.5px 12px no-repeat;
+  --plate: var(--ticks), linear-gradient(var(--glass), var(--glass));
+  --gem: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 30'%3E%3Cpolygon points='13,1 25,8 25,22 13,29 1,22 1,8' fill='%230b4f66'/%3E%3Cpolygon points='13,1 25,8 13,14' fill='%23b9f6ff'/%3E%3Cpolygon points='13,1 1,8 13,14' fill='%236ae6ff'/%3E%3Cpolygon points='1,8 1,22 13,14' fill='%232bb8e0'/%3E%3Cpolygon points='25,8 25,22 13,14' fill='%23168aad'/%3E%3Cpolygon points='1,22 13,29 13,14' fill='%23137c9e'/%3E%3Cpolygon points='25,22 13,29 13,14' fill='%230c5f7a'/%3E%3Cpolygon points='13,1 25,8 25,22 13,29 1,22 1,8' fill='none' stroke='%23dffbff' stroke-width='1' stroke-opacity='.8'/%3E%3C/svg%3E");
+}
+
+/* ---------- 晶核读数（主角） ---------- */
+#topbar .crys { display: grid; grid-template-columns: 30px minmax(0, 1fr); grid-template-rows: auto auto; column-gap: 9px; row-gap: 4px; align-items: center; text-align: left; }
+#topbar .crys::before { content: ''; grid-row: 1 / span 2; width: 26px; height: 30px; justify-self: center; background: var(--gem) center / contain no-repeat; filter: drop-shadow(0 0 7px rgba(95, 227, 255, .75)); animation: gemPulse 3s ease-in-out infinite; }
+@keyframes gemPulse { 50% { filter: drop-shadow(0 0 12px rgba(95, 227, 255, .95)) brightness(1.12); } }
+#topbar .crys .lbl span { font-family: var(--f-disp); font-size: 15px; letter-spacing: .16em; color: var(--crys); text-shadow: 0 0 10px rgba(95, 227, 255, .45); }
+#topbar .crys .lbl b { font-size: 15px; color: #f2fbff; }
+#topbar .crys .bar { height: 13px; background: linear-gradient(90deg, rgba(255, 92, 72, .22), rgba(255, 140, 90, .12)); clip-path: polygon(7px 0, 100% 0, calc(100% - 7px) 100%, 0 100%); }
+#topbar .crys .bar i { background: linear-gradient(180deg, #d8faff 0%, #6ae6ff 40%, #189fc8 100%); box-shadow: none; }
+/* 碎片之间的切缝 */
+#topbar .crys .bar::after, #vitals .bar::after { content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none; background: repeating-linear-gradient(112deg, transparent 0 calc(10% - 3px), rgba(4, 8, 12, .95) calc(10% - 3px) 10%); }
+#topbar.low .crys::before { filter: hue-rotate(168deg) saturate(1.6) drop-shadow(0 0 9px rgba(255, 80, 60, .9)); animation: blink .5s infinite alternate; }
+#topbar.low .crys .lbl span { color: var(--danger); text-shadow: 0 0 10px rgba(255, 92, 72, .6); }
+#phase { justify-self: center; padding: 2px 16px; background: linear-gradient(90deg, transparent, rgba(6, 13, 20, .62) 18%, rgba(6, 13, 20, .62) 82%, transparent); }
+#bossBar .lbl span { text-shadow: 0 0 12px rgba(255, 61, 240, .5); }
+
+/* ---------- 通用面板 ---------- */
+#mapWrap, #gold, #vitals, #trapCard, #prompt, #toast { background: var(--plate); box-shadow: inset 0 0 0 1px var(--hair); }
+#mapWrap { padding: 7px 7px 20px; }
+#feed .f { background: linear-gradient(90deg, rgba(6, 13, 20, .78), rgba(6, 13, 20, .5)); }
+#talk { background: var(--ticks), linear-gradient(100deg, rgba(6, 14, 22, .94), rgba(6, 12, 20, .74)); }
+#talk .tkP { clip-path: polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px); background: radial-gradient(circle at 50% 30%, rgba(95, 227, 255, .14), rgba(255, 255, 255, .03)); border: 0; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--tc, var(--crys)) 45%, transparent); }
+
+/* ---------- 生命 ---------- */
+#vitals { padding: 6px 11px 9px; clip-path: var(--cut); box-sizing: border-box; }
+#vitals .row { align-items: center; }
+#vitals .row::before { content: ''; width: 13px; height: 13px; background: var(--ok); clip-path: polygon(36% 0, 64% 0, 64% 36%, 100% 36%, 100% 64%, 64% 64%, 64% 100%, 36% 100%, 36% 64%, 0 64%, 0 36%, 36% 36%); filter: drop-shadow(0 0 4px rgba(108, 240, 164, .7)); }
+#vitals .bar { height: 8px; margin-top: 3px; background: rgba(255, 255, 255, .06); }
+#vitals .bar i { background: linear-gradient(180deg, #b8ffd8, #4fd78f 55%, #2a9c64); }
+
+/* ---------- 金币：用金币图标代替「金币」两个字 ---------- */
+#gold { align-items: center; padding: 4px 14px 4px 11px; }
+#gold > span:not(.kl) { display: none; }
+#gold::before { content: ''; flex: none; width: 15px; height: 15px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6cf, #ffc24a 45%, #b9740f 100%); box-shadow: 0 0 8px rgba(255, 190, 70, .55), inset 0 0 0 1.5px rgba(255, 236, 170, .5); }
+
+/* ---------- 陷阱栏 ---------- */
+.slot { background: linear-gradient(180deg, rgba(16, 28, 40, .82), rgba(5, 10, 16, .82)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .07), inset 0 2px 0 color-mix(in srgb, var(--cc) 75%, transparent); }
+.slot.sel { background: linear-gradient(180deg, color-mix(in srgb, var(--cc) 42%, rgba(8, 14, 21, .9)), color-mix(in srgb, var(--cc) 14%, rgba(8, 14, 21, .9))); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--cc) 85%, transparent), inset 0 -3px 0 var(--cc); }
+.slot.grp.open { background: linear-gradient(180deg, color-mix(in srgb, var(--cc) 34%, rgba(8, 14, 21, .9)), rgba(8, 14, 21, .9)); }
+.slot svg { filter: drop-shadow(0 0 4px color-mix(in srgb, var(--cc) 55%, transparent)); }
+#trapPop { background: var(--ticks), linear-gradient(rgba(6, 11, 17, .94), rgba(6, 11, 17, .94)); border: 0; box-shadow: inset 0 0 0 1px var(--hair), 0 8px 30px rgba(0, 0, 0, .5); }
+
+/* ---------- 技能：三块小面板 ---------- */
+#skills { gap: 5px; margin-bottom: 10px; }
+#skills .sk { position: relative; grid-template-columns: auto minmax(0, 1fr) auto; width: 172px; box-sizing: border-box; padding: 5px 9px 7px 6px; font-size: 12.5px; color: var(--ink); text-align: left; background: linear-gradient(90deg, rgba(6, 13, 20, .5), rgba(6, 13, 20, .72)); box-shadow: inset 0 0 0 1px var(--hair); clip-path: var(--cut); }
+#skills .sk .kb { min-width: 18px; padding: 1px 4px; font-size: 11px; border: 0; background: rgba(95, 227, 255, .14); color: var(--crys); }
+#skills .sk i { position: absolute; left: 0; right: 0; bottom: 0; width: auto; height: 2px; margin: 0; background: rgba(255, 255, 255, .06); }
+#skills .sk.ready { box-shadow: inset 0 0 0 1px rgba(95, 227, 255, .55); }
+#skills .sk.ready em { color: var(--crys); }
+#ammo b { text-shadow: 0 0 16px rgba(95, 227, 255, .25); }
+#ammo #wpn { margin-top: 2px; font-size: 12px; color: var(--dim); }
+
+/* ---------- 大字横幅：两侧一道渐隐的刻线 ---------- */
+#banner .b1 { position: relative; display: inline-block; padding: 0 .55em; }
+#banner .b1::before, #banner .b1::after { content: ''; position: absolute; top: 56%; width: min(16vw, 150px); height: 1px; background: linear-gradient(90deg, transparent, currentColor); opacity: .55; }
+#banner .b1::before { right: 100%; } #banner .b1::after { left: 100%; transform: scaleX(-1); }
+#banner .b2 { letter-spacing: .06em; }
+
+/* ---------- 弹出面板（军械库 / 陷阱一览 / 科研 / 进阶 / 暂停 / 结算 / 设置） ---------- */
+#shop, #trapBook, #lab, #evo, #qchat { background: var(--ticks), linear-gradient(170deg, rgba(12, 22, 33, .97), rgba(5, 10, 16, .97)); box-shadow: inset 0 0 0 1px var(--hair); }
+.modal { background: linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 16px 1.5px no-repeat, linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 1.5px 16px no-repeat, linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 16px 1.5px no-repeat, linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 1.5px 16px no-repeat, linear-gradient(170deg, rgba(13, 24, 36, .97), rgba(6, 11, 18, .97)); box-shadow: inset 0 0 0 1px var(--hair); }
+.shopHead { padding-bottom: 8px; border-bottom: 1px solid rgba(120, 205, 240, .12); }
+.shopHead h3 { display: flex; align-items: center; gap: 9px; margin: 0; font-family: var(--f-disp); font-weight: 400; font-size: 20px; letter-spacing: .12em; color: #eefaff; }
+.shopHead h3::before { content: ''; flex: none; width: 13px; height: 15px; background: var(--gem) center / contain no-repeat; }
+.wcard { background: linear-gradient(180deg, rgba(255, 255, 255, .05), rgba(255, 255, 255, .015)); border-color: rgba(120, 205, 240, .16); }
+.wcard.cur { border-color: var(--crys); background: linear-gradient(180deg, rgba(95, 227, 255, .16), rgba(95, 227, 255, .04)); }
+.wcard:hover { border-color: rgba(95, 227, 255, .5); }
+.scrPanel { background: linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 18px 1.5px no-repeat, linear-gradient(var(--tick), var(--tick)) right 0 top 0 / 1.5px 18px no-repeat, linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 18px 1.5px no-repeat, linear-gradient(var(--tick), var(--tick)) left 0 bottom 0 / 1.5px 18px no-repeat, linear-gradient(165deg, rgba(10, 18, 28, .95), rgba(5, 9, 15, .93)); }
+.pauseBox h2, #end h2 { text-shadow: 0 0 18px rgba(95, 227, 255, .35); }
+.cta { box-shadow: inset 0 -3px 0 rgba(0, 40, 55, .35); background: linear-gradient(180deg, #8beeff, var(--crys) 55%, #39c7ea); }
+
+/* ---------- 触屏按钮：玻璃镜片 ---------- */
+.tb { border: 1px solid rgba(150, 215, 240, .36); background: radial-gradient(circle at 50% 28%, rgba(46, 78, 100, .52), rgba(6, 12, 18, .6) 72%); box-shadow: inset 0 0 0 3px rgba(95, 227, 255, .05), inset 0 -10px 16px rgba(0, 0, 0, .25), 0 3px 10px rgba(0, 0, 0, .28); color: #eaf6fb; }
+.tb b { color: #f4fbff; }
+.tb small { color: #9fb6c4; }
+.tb.on, .tb:active { background: radial-gradient(circle at 50% 35%, rgba(95, 227, 255, .5), rgba(10, 40, 55, .62) 75%); border-color: var(--crys); box-shadow: 0 0 14px rgba(95, 227, 255, .45), inset 0 0 0 3px rgba(95, 227, 255, .15); }
+/* 开火：锈色准星镜片 */
+.tb.big { border: 1.5px solid rgba(255, 128, 100, .72); background: radial-gradient(circle at 50% 32%, rgba(255, 110, 80, .36), rgba(46, 10, 8, .62) 70%); font-family: var(--f-disp); font-size: 18px; letter-spacing: .14em; color: #ffe8e2; }
+.tb.big::before { content: ''; position: absolute; inset: 13px; border-radius: 50%; border: 1px dashed rgba(255, 190, 170, .4); pointer-events: none; }
+.tb.big::after { content: ''; position: absolute; left: 50%; top: 50%; width: 64%; height: 64%; transform: translate(-50%, -50%); pointer-events: none; background: linear-gradient(rgba(255, 190, 170, .35), rgba(255, 190, 170, .35)) center top / 1.5px 9px no-repeat, linear-gradient(rgba(255, 190, 170, .35), rgba(255, 190, 170, .35)) center bottom / 1.5px 9px no-repeat, linear-gradient(rgba(255, 190, 170, .35), rgba(255, 190, 170, .35)) left center / 9px 1.5px no-repeat, linear-gradient(rgba(255, 190, 170, .35), rgba(255, 190, 170, .35)) right center / 9px 1.5px no-repeat; }
+.tb.big.on { background: radial-gradient(circle at 50% 35%, rgba(255, 120, 90, .6), rgba(80, 16, 10, .7) 72%); box-shadow: 0 0 18px rgba(255, 110, 80, .55); }
+.tb.big.build { border-color: rgba(108, 240, 164, .8); background: radial-gradient(circle at 50% 32%, rgba(108, 240, 164, .32), rgba(8, 40, 24, .62) 70%); color: #e6fff1; }
+.tb.big.build::before { border-color: rgba(170, 255, 210, .4); }
+.tb.big.build::after { background: linear-gradient(rgba(170, 255, 210, .4), rgba(170, 255, 210, .4)) center / 2px 40% no-repeat, linear-gradient(rgba(170, 255, 210, .4), rgba(170, 255, 210, .4)) center / 40% 2px no-repeat; }
+#tbUlt.ready { border-color: #ff9a6c; box-shadow: 0 0 14px rgba(255, 140, 90, .7), inset 0 0 0 3px rgba(255, 140, 90, .12); }
+/* 左侧功能键：切角面板 + 图标；手机上按键提示没有意义，藏掉 */
+#tbUtil .tb.sm { position: relative; width: 44px; height: 44px; padding: 19px 0 0; border: 0; border-radius: 0; clip-path: var(--cut); background: linear-gradient(180deg, rgba(16, 28, 40, .74), rgba(5, 10, 16, .74)); box-shadow: inset 0 0 0 1px rgba(150, 215, 240, .3); font-size: 10.5px; color: #d7e7ef; }
+#tbUtil .tb.sm small { display: none; }
+#tbUtil .tb.sm::before { content: ''; position: absolute; left: 50%; top: 6px; width: 17px; height: 17px; margin-left: -8.5px; background: currentColor; -webkit-mask: var(--ic) center / contain no-repeat; mask: var(--ic) center / contain no-repeat; }
+#tbUtil .tb.sm:active { background: linear-gradient(180deg, rgba(95, 227, 255, .4), rgba(10, 40, 55, .7)); }
+#tbUtil [data-k="Escape"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M4 6h16M4 12h16M4 18h16'/%3E%3C/svg%3E"); }
+#tbUtil [data-k="KeyB"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M2 9h15l2-2h3v5h-4l-1 2h-5l-1 5H7l1-5H2z'/%3E%3C/svg%3E"); }
+#tbUtil [data-k="Tab"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2'%3E%3Crect x='3' y='3' width='7' height='7'/%3E%3Crect x='14' y='3' width='7' height='7'/%3E%3Crect x='3' y='14' width='7' height='7'/%3E%3Crect x='14' y='14' width='7' height='7'/%3E%3C/svg%3E"); }
+#tbUtil [data-k="KeyM"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15'/%3E%3C/svg%3E"); }
+#tbUtil [data-k="KeyT"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M12 22s7-7 7-12a7 7 0 0 0-14 0c0 5 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E"); }
+#tbUtil [data-k="KeyY"] { --ic: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linejoin='round'%3E%3Cpath d='M4 4h16v12H9l-5 4z'/%3E%3C/svg%3E"); }
+/* 底部情境键（互动 / 升级 / 拆除 / 开战）：切角面板 */
+.tb.pill { border-radius: 0; border: 0; clip-path: var(--cut); background: linear-gradient(180deg, rgba(20, 60, 40, .78), rgba(8, 26, 18, .8)); box-shadow: inset 0 0 0 1px rgba(108, 240, 164, .55); }
+.tb.pill small { display: none; }
+.tb.pill.go { background: linear-gradient(180deg, rgba(80, 56, 14, .82), rgba(36, 24, 6, .82)); box-shadow: inset 0 0 0 1px rgba(255, 181, 71, .75); color: #ffe7bd; }
+#tbSell.pill { background: linear-gradient(180deg, rgba(70, 22, 16, .8), rgba(30, 10, 8, .8)); box-shadow: inset 0 0 0 1px rgba(255, 110, 85, .6); }
+#joy { border: 1.5px solid rgba(95, 227, 255, .35); background: radial-gradient(circle, rgba(95, 227, 255, .08), rgba(8, 14, 21, .3) 70%); }
+#joy i { background: radial-gradient(circle at 50% 35%, rgba(190, 245, 255, .7), rgba(95, 227, 255, .45) 60%); }
+/* 美术图标（art/ 里的 t_* / w_* / s_*；没有就是线条图标）：和线条图标占同样的位置，略放大一点 */
+img.artIc { display: block; object-fit: contain; pointer-events: none; -webkit-user-drag: none; }
+.slot img.artIc { width: 64%; height: auto; max-height: 52%; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .5)); }
+.slot img.artIc.wpnIc { width: 90%; }
+.ldT .ic img.artIc { width: 30px; height: 30px; }
+.bkTop .ic img.artIc, #endTrapList .ic img.artIc, .cdxTile .ic img.artIc, .cdxDetail header .ic img.artIc { width: 100%; height: 100%; transform: scale(1.25); }
+.wcard .wi:has(img.wpnIc) { width: 100%; height: 54px; }
+.wcard .wi img.artIc { width: 100%; height: 100%; }
+#trapTable .ic img.artIc, #wpnTable .ic img.artIc, #evoTable .ic img.artIc { width: 22px; height: 22px; }
+.mastRow .ic img.artIc { width: 24px; height: 24px; }
+.brLoadIc i img.artIc { width: 17px; height: 17px; }
+/* 怪物头像（art/ 里的 m_*） */
+img.monPic { display: block; object-fit: cover; pointer-events: none; }
+.cdxTile .ic img.monPic { width: 100%; height: 100%; }
+.cdxDetail header img.monPic.big { width: 64px; height: 64px; clip-path: var(--cut); box-shadow: inset 0 0 0 1px var(--hair); }
+img.monPic.sm { display: inline-block; width: 18px; height: 18px; margin: 0 5px -4px 0; border-radius: 3px; }
+body.touch #topbar .crys { grid-template-columns: 19px minmax(0, 1fr); column-gap: 6px; row-gap: 2px; }
+body.touch #topbar .crys::before { width: 17px; height: 20px; }
+body.touch #topbar .crys .lbl span { font-size: 11px; letter-spacing: .12em; } body.touch #topbar .crys .lbl b { font-size: 11.5px; }
+body.touch #topbar .crys .bar { height: 9px; }
+body.touch #vitals { padding: 4px 9px 7px; }
+body.touch #skills .sk { width: auto; }
+@media (prefers-reduced-motion: reduce) { #topbar .crys::before { animation: none; } }
 </style>
 
 <canvas id="view" aria-label="游戏画面"></canvas>

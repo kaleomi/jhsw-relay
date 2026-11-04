@@ -3933,7 +3933,7 @@ function nextWaveHTML(w) {
   const isEndless = w > sim.waves.length;
   return `<span class="nw-t">下一波 · 第 ${w} 波「${W.name}」</span>` + Object.keys(pv.agg).map(t => {
     const m = MON[t], cls = m.boss ? ' boss' : m.elite ? ' elite' : m.fly ? ' fly' : '';
-    return `<span class="chip${cls}">${m.name} ×${pv.agg[t].n}<i>${laneTxt(pv.agg[t].lanes)}</i></span>`;
+    return `<span class="chip${cls}">${monPic(t, 'sm')}${m.name} ×${pv.agg[t].n}<i>${laneTxt(pv.agg[t].lanes)}</i></span>`;
   }).join('') + (pv.opened.length ? `<span class="nw-tip warn">新出怪口开启：${pv.opened.map(l => names[l] || l).join('、')}</span>` : '') + (W.tip ? `<span class="nw-tip">${W.tip}</span>` : '') + (isEndless && w === sim.waves.length + 1 ? '<span class="nw-tip">剧本波次已全部清除，进入无尽模式</span>' : '');
 }
 function shake(v) { if (settings.shake === false) return; cam.shake = Math.min(1.2, cam.shake + v); }
@@ -4150,7 +4150,7 @@ function openBrief(id) {
   $('brIntel').innerHTML = [['地图', def.name], ['出怪口', `${lanes} 个${late ? `（${late} 个中途开启）` : ''}`], ['波次', `${def.waves.length} 波`], ['终局 BOSS', bosses.join(' + ') || '—'], ['难度', DIFFS[diff] ? DIFFS[diff].name : '普通']].map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   const foes = newFoesOf(id).filter(t => !MON[t].boss);
   const ci = MAP_LIST.findIndex(m => m.id === id) + 1, rew = Object.keys(UNLOCKS).filter(t => UNLOCKS[t].ch === ci && !isUnlocked(t));
-  $('brNew').innerHTML = (foes.length ? `<span class="lbl">本章新敌人</span>` + foes.map(t => { const A = TD.ARMOR[MON[t].cls], wk = A ? Object.keys(A.mul).filter(e => A.mul[e] > 1).map(e => TD.ELEM[e].name) : []; return `<span title="${A ? A.desc : ''}">${MON[t].name}${wk.length ? `<small> · 怕${wk.join('、')}</small>` : ''}</span>`; }).join('') : '') + (rew.length ? `<span class="lbl">通关奖励</span>` + rew.map(t => `<span class="rew">${TRAP[t].name}</span>`).join('') : '');
+  $('brNew').innerHTML = (foes.length ? `<span class="lbl">本章新敌人</span>` + foes.map(t => { const A = TD.ARMOR[MON[t].cls], wk = A ? Object.keys(A.mul).filter(e => A.mul[e] > 1).map(e => TD.ELEM[e].name) : []; return `<span title="${A ? A.desc : ''}">${monPic(t, 'sm')}${MON[t].name}${wk.length ? `<small> · 怕${wk.join('、')}</small>` : ''}</span>`; }).join('') : '') + (rew.length ? `<span class="lbl">通关奖励</span>` + rew.map(t => `<span class="rew">${TRAP[t].name}</span>`).join('') : '');
   $('brLog').innerHTML = '';
   renderBriefLoad();
   show('brief', true);
@@ -4249,7 +4249,14 @@ const ICONS = {
   nade: '<circle cx="12" cy="14" r="6"/><path d="M10 8V5h4v3M14 5l4-2"/>',
   ult: '<path d="M12 2v8M8 6l4 4 4-4M5 21h14M7 21l5-9 5 9M3 14h3M18 14h3"/>',
 };
-function svgIcon(id) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg>`; }
+// 有美术图（art/ 目录里的 t_* / w_* / s_*）就用图，没有就用线条图标
+function svgIcon(id) {
+  const A = window.TD_ART || {}, a = A['t_' + id] || A['w_' + id] || A['s_' + id] || (id === 'gun' && A.w_rifle);
+  if (a) return `<img class="artIc${A['w_' + id] || id === 'gun' ? ' wpnIc' : ''}" src="${a}" alt="" draggable="false">`;
+  return svgLine(id);
+}
+const monPic = (k, cls) => { const a = (window.TD_ART || {})['m_' + k]; return a ? `<img class="monPic${cls ? ' ' + cls : ''}" src="${a}" alt="" draggable="false">` : ''; };
+function svgLine(id) { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[id]}</svg>`; }
 /* ---------- 快捷栏：枪 + 5 个陷阱分组（可收起）----------
  * 每组只显示一个格子（上次选过的陷阱）；点一下选中它并展开同组的其他陷阱，再点一次收起。
  * 数字键 1-5 打开分组，再按数字选组内第几个；Tab 打开陷阱一览。 */
@@ -4505,9 +4512,9 @@ function buildHelp() {
   // —— 敌人 ——
   for (const k of Object.keys(MON)) {
     const m = MON[k], grp = m.boss ? 'BOSS' : m.elite || m.heavy ? '精英与重装' : m.fly ? '空中' : '地面';
-    cdxItem('mon', { id: k, grp, name: m.name, icon: svgIcon(m.boss ? 'ult' : m.fly ? 'aa' : 'spike'), cat: m.boss ? 'heavy' : m.elite || m.heavy ? 'wall' : m.fly ? 'ceil' : 'floor', detail: () => {
+    cdxItem('mon', { id: k, grp, name: m.name, icon: monPic(k) || svgIcon(m.boss ? 'ult' : m.fly ? 'aa' : 'spike'), cat: m.boss ? 'heavy' : m.elite || m.heavy ? 'wall' : m.fly ? 'ceil' : 'floor', detail: () => {
       const tags = monTags(k);
-      return `<header><h3>${m.name}</h3><span class="cdxMeta">${grp}</span></header>
+      return `<header>${monPic(k, 'big')}<h3>${m.name}</h3><span class="cdxMeta">${grp}</span></header>
         ${ST.MON_LORE[k] ? `<p class="cdxLore">${ST.MON_LORE[k]}</p>` : ''}
         <div class="cdxCols"><div>
         ${dl([['基础血量', m.hp.toLocaleString() + (m.boss ? '（按难度放大）' : '（随波次成长）')], ['移动速度', m.spd + ' 米/秒'], ['护甲', m.armor ? Math.round(m.armor * 100) + '%' : '无'], ['体质', m.cls ? armorLine(m.cls) + (m.boss ? '（BOSS 只算一半）' : '') : '普通（所有伤害类型都正常）'], ['击杀奖励', m.bounty + ' 金币'], ['漏到晶核', m.core >= 999 ? '直接摧毁' : '-' + m.core + ' 晶核生命']])}
@@ -4720,10 +4727,11 @@ function updateHUD(dt) {
     if (sec <= 5 && sec >= 1 && cache.countSec !== sec) { cache.countSec = sec; Snd.play('count'); }
   }
   if (s.phase === 'build') {
-    setText('waveTxt', s.wave === 0 ? `${sim.def.name} · 共 ${Wtxt} 波` : `第 ${s.wave} / ${Wtxt} 波 已清除`);
+    setText('waveTxt', s.wave === 0 ? (TOUCH ? `共 ${Wtxt} 波` : `${sim.def.name} · 共 ${Wtxt} 波`) : `第 ${s.wave} / ${Wtxt} 波 已清除`);
     setText('phaseTxt', '布防阶段');
     const rc = sim.readyCount();
-    setText('timerTxt', rc.of > 1 ? `${Math.ceil(s.timer)} 秒 · 按 G ${p && p.ready ? '取消准备' : '准备开战'}（${rc.n}/${rc.of}，全员准备提前开战 +${Math.floor(s.timer) * 3} 金币）` : `${Math.ceil(s.timer)} 秒 · 按 G 立即开战（+${Math.floor(s.timer) * 3} 金币）`);
+    // 手机上有「开战」按钮，顶部只留倒计时和提前开战的奖励
+    setText('timerTxt', TOUCH ? `${Math.ceil(s.timer)} 秒${rc.of > 1 ? ` · 准备 ${rc.n}/${rc.of}` : ''} · 提前开战 +${Math.floor(s.timer) * 3}` : rc.of > 1 ? `${Math.ceil(s.timer)} 秒 · 按 G ${p && p.ready ? '取消准备' : '准备开战'}（${rc.n}/${rc.of}，全员准备提前开战 +${Math.floor(s.timer) * 3} 金币）` : `${Math.ceil(s.timer)} 秒 · 按 G 立即开战（+${Math.floor(s.timer) * 3} 金币）`);
     setClass($('phase'), 'build');
   } else if (s.phase === 'wave') {
     setText('waveTxt', `第 ${s.wave} / ${Wtxt} 波`);
@@ -4785,7 +4793,7 @@ function updateHUD(dt) {
     setStyle($('shockFill'), 'width', ((1 - Math.min(1, shR / shCd)) * 100).toFixed(0) + '%');
     $('skShock').classList.toggle('ready', shR <= 0);
     const gs = $('hotbar').firstChild;
-    if (gs && cache.gunSlot !== p.wpn) { cache.gunSlot = p.wpn; gs.querySelector('svg').outerHTML = svgIcon(p.wpn); gs.querySelector('.n').textContent = W.name; }
+    if (gs && cache.gunSlot !== p.wpn) { cache.gunSlot = p.wpn; { const ic = gs.querySelector('svg, img.artIc'); if (ic) ic.outerHTML = svgIcon(p.wpn); } gs.querySelector('.n').textContent = W.name; }
     if (shopOpen) renderShop();
     $('ammo').classList.toggle('low', mt ? (p.heat || 0) > 0.75 : p.ammo <= 6 && p.reloadT <= 0);
     $('deadMsg').hidden = !p.dead;
