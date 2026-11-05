@@ -140,7 +140,7 @@ body.touch .qcType .kb { display: none; }
 #tut .tutProg { height: 4px; background: rgba(255, 255, 255, .1); }
 #tut .tutProg i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--crys), var(--ok)); transition: width .4s; }
 /* 手机：引导卡片默认放在左上角（对话框下面、左侧按钮旁边），挡到目标时挪到左下角，再不行才放中间 */
-body.touch #tut { right: auto; left: calc(56px + env(safe-area-inset-left, 0px)); margin-left: 0; top: calc(80px + env(safe-area-inset-top, 0px)); width: min(220px, 27vw); box-sizing: border-box; padding: 5px 9px 6px; transition: top .25s, left .25s, bottom .25s; }
+body.touch #tut { right: auto; left: calc(56px + env(safe-area-inset-left, 0px)); margin-left: 0; top: calc(80px + env(safe-area-inset-top, 0px)); width: min(220px, 27vw, calc(50vw - 160px - env(safe-area-inset-left, 0px))); box-sizing: border-box; padding: 5px 9px 6px; transition: top .25s, left .25s, bottom .25s; }
 body.touch #tut[data-pos="low"] { top: auto; bottom: calc(50px + env(safe-area-inset-bottom, 0px)); }
 body.touch #tut[data-pos="mid"] { left: 50%; margin-left: max(-125px, -15.5vw); top: calc(108px + env(safe-area-inset-top, 0px)); }
 body.touch #tut .tutTop { font-size: 10px; } body.touch #tut .tutTop button { font-size: 10.5px; padding: 1px 7px; }
@@ -616,7 +616,7 @@ h3 { margin: 0; font-size: 13px; font-weight: 500; letter-spacing: .2em; color: 
 #talk p { margin: 3px 0 0; font-size: 14px; line-height: 1.5; color: var(--ink); min-height: 1.5em; }
 #talk.rust { border-color: rgba(255, 106, 77, .45); background: linear-gradient(100deg, rgba(28, 8, 6, .92), rgba(16, 6, 6, .78)); }
 #talk.rust p { color: #ffd6cc; font-style: italic; }
-body.touch #talk { top: calc(4px + env(safe-area-inset-top, 0px)); bottom: auto; left: calc(6px + env(safe-area-inset-left, 0px)); width: max(170px, min(300px, calc(50vw - 200px))); box-sizing: border-box; grid-template-columns: 30px minmax(0, 1fr); gap: 7px; padding: 5px 8px 6px 6px; z-index: 8; }
+body.touch #talk { top: calc(4px + env(safe-area-inset-top, 0px)); bottom: auto; left: calc(6px + env(safe-area-inset-left, 0px)); width: max(220px, min(300px, calc(50vw - 200px))); box-sizing: border-box; grid-template-columns: 30px minmax(0, 1fr); gap: 7px; padding: 5px 8px 6px 6px; z-index: 8; }
 body.touch #talk .tkP { width: 30px; height: 30px; } body.touch #talk .tkP svg { width: 26px; height: 26px; }
 body.touch #talk .tkN b { font-size: 12px; } body.touch #talk .tkN small { display: none; }
 body.touch #talk p { font-size: 11px; line-height: 1.38; margin-top: 1px; }

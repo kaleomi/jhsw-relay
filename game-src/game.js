@@ -4034,7 +4034,7 @@ function talkReset() { Talk.q.length = 0; Talk.cur = null; Talk.gap = 0; $('talk
 function updateTalk(dt) {
   const box = $('talk');
   if (!Talk.cur) {
-    if (Talk.gap > 0) { Talk.gap -= dt; if (Talk.gap <= 0 && !Talk.q.length) box.hidden = true; return; }
+    if (Talk.gap > 0) { Talk.gap -= dt; if (Talk.gap <= 0 && !Talk.q.length) { box.hidden = true; fitTut(); } return; }
     const nx = Talk.q.shift();
     if (!nx) return;
     Talk.cur = nx; Talk.typed = 0; Talk.hold = 0;
@@ -4051,11 +4051,18 @@ function updateTalk(dt) {
     const b = Math.floor(Talk.typed);
     Talk.typed = Math.min(L, Talk.typed + dt * 32);
     const n = Math.floor(Talk.typed);
-    if (n !== b) { $('talkText').textContent = cu.text.slice(0, n); if (n % 3 === 1) talkBlip(cu.who); }
+    if (n !== b) { $('talkText').textContent = cu.text.slice(0, n); if (n % 3 === 1) talkBlip(cu.who); fitTut(); }
   } else {
     Talk.hold += dt;
     if (Talk.hold > Math.max(2.4, L * 0.075) * (Talk.q.length ? 0.7 : 1)) { Talk.cur = null; Talk.gap = 0.3; box.classList.add('out'); }
   }
+}
+// 手机：引导卡片在左上角对话框的正下方，对话框变高时跟着往下让
+function fitTut() {
+  if (!TOUCH) return;
+  const card = $('tut'), tk = $('talk'); if (!card || card.hidden) return;
+  const r = !tk.hidden ? rectOf(tk) : null, top = r && r.height > 2 ? Math.round(r.bottom + 6) : 0;
+  card.style.top = top > 80 ? top + 'px' : '';
 }
 /* ---------- 本局剧情状态 ---------- */
 const RUN = { seen: new Set(), scanT: 0, hit: false, half: false, low: false, kills: [], bossSaid: false, lastStory: 0, tip: '' };
@@ -5741,24 +5748,8 @@ function tutHighlight() {
     if (H.zone) html += `<div class="zone ${H.zone}"><span>${H.zone === 'left' ? '在这里按住拖动，走到通道里' : '在这里滑动，转动视角'}</span></div>`;
     if (H.keys && !TOUCH) html += `<div class="keys">${H.keys.map(k => `<kbd>${k}</kbd>`).join('')}</div>`;
     box.innerHTML = html;
-    // 手机：引导卡片放到不和目标重叠的位置（左上 → 左下 → 中间）
-    if (TOUCH) {
-      const pop = $('trapPop'), avoid = rects.slice();
-      if (pop && !pop.hidden) avoid.push(rectOf(pop));
-      for (const z of box.querySelectorAll('.zone')) avoid.push(rectOf(z));
-      // 需要瞄准的步骤：屏幕中间（准星和放置预览）也不能挡
-      if (H.aim) { const cx = VW() / 2, cy = VH() / 2; avoid.push({ left: cx - 100, right: cx + 100, top: cy - 50, bottom: cy + 90 }); }
-      // 量位置时先关掉过渡动画，否则量到的是动画起点；选好后再带动画移过去
-      const prev = card.dataset.pos || 'top'; let pick = 'low';
-      card.style.transition = 'none';
-      for (const pos of ['top', 'low', 'mid']) {
-        card.dataset.pos = pos;
-        const c = rectOf(card);
-        if (!avoid.some(r => r.left < c.right && r.right > c.left && r.top < c.bottom && r.bottom > c.top)) { pick = pos; break; }
-      }
-      card.dataset.pos = prev; void card.offsetWidth;
-      card.style.transition = ''; card.dataset.pos = pick;
-    }
+    // 手机：引导卡片固定在左上角（对话框下面），不再挪到左下角或中间
+    if (TOUCH) { card.dataset.pos = 'top'; fitTut(); }
   }
 }
 function tutDone() { try { return localStorage.getItem('jhsw-tut') === '1'; } catch (e) { return true; } }
